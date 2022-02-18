@@ -4,10 +4,10 @@ Variational quantum algorithms experimental framework for lattice problems based
 ## TODO
 - Allow for mappings that result in multiple zero reference states.
 
-##Features
-	- loads matrices in experiments folder
-	- encodes the Shortest Vector Problem (SVP) to an Ising spin Hamiltonian
-	- runs VQE/QAOA algorithm to find the shortest lattice vector and reports the results
+## Features
+- loads matrices in experiments folder
+- encodes the Shortest Vector Problem (SVP) to an Ising spin Hamiltonian
+- runs VQE/QAOA algorithm to find the shortest lattice vector and reports the results
 
 ## Installation
 ```
