@@ -48,6 +48,7 @@ int main(int ac, char** av){
 	auto final_alpha     = op.add<Value<double>>("f", "final_alpha", "final alpha value", 0.5);
 	auto max_alpha_iters = op.add<Value<int>>("m", "max_alpha_iters", "max alpha iters", 1000);
 
+	auto instance_select = op.add<Value<int>>("s", "iselect", "Select i-th instance in the dataset. If unset (=-1), all instances are being run.", -1);
 	auto dataset_name    = op.add<Value<std::string>>("d", "datasetName","dataset name in ./experiments folder", "qary_25_50");
 	auto rank_select 	 = op.add<Value<int>>("r", "", "rank truncation for paperexp", 0);
 	auto circ_dir_prefix = op.add<Value<std::string>>("c", "circ-dir-prefix", "", "../experiment_files");
@@ -96,7 +97,7 @@ int main(int ac, char** av){
 			logi("Constant cvar_alpha= " + std::to_string(acceleratorOptions.samples_cut_ratio), loglevel);
 	}
 
-	initialize_paper_experiment(dataset_name->value(), lattices, rank_select->value());
+	initialize_paper_experiment(dataset_name->value(), lattices, rank_select->value(), instance_select->value());
 	num_lattices = lattices.size();
 	logi("Dataset " + dataset_name->value() + " succesfully loaded", loglevel);
 

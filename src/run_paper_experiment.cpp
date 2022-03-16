@@ -4,7 +4,7 @@
 #include <utility>
 #include "io/logger.h"
 
-std::shared_ptr<SolutionDataset> __read_experiment_file(/*int num_ranks, int rank_min, int dim, */std::string experiment_name){
+std::shared_ptr<SolutionDataset> __read_experiment_file(std::string experiment_name, int instance_select){
 
 	std::ifstream expFile("../experiments/"+experiment_name+".csv");
 	std::ifstream matrixFile("../experiments/"+experiment_name+"_matrices.csv");
@@ -77,6 +77,11 @@ std::shared_ptr<SolutionDataset> __read_experiment_file(/*int num_ranks, int ran
 			continue;
 		}
 
+		if(instance_select != -1 && instance_select != inst_counter){
+			inst_counter++;
+			continue;
+		}
+
 		std::istringstream s(line);
 		std::string field;
 
@@ -115,6 +120,11 @@ std::shared_ptr<SolutionDataset> __read_experiment_file(/*int num_ranks, int ran
 
 	int matrix_counter = 0;
 	while(std::getline(matrixFile, line)){
+
+		if(instance_select != -1 && instance_select != matrix_counter){
+			matrix_counter++;
+			continue;
+		}
 
 		MatrixInt lattice;
 		int rows = solutionDataset->rank_min+solutionDataset->num_ranks;
@@ -158,9 +168,9 @@ std::shared_ptr<SolutionDataset> __read_experiment_file(/*int num_ranks, int ran
 	return solutionDataset;
 }
 
-void initialize_paper_experiment(std::string experiment_name, std::vector<Lattice*> &lattices, int rank_select){
+void initialize_paper_experiment(std::string experiment_name, std::vector<Lattice*> &lattices, int rank_select, int instance_select){
 
-	std::shared_ptr<SolutionDataset> solutionDataset = __read_experiment_file(experiment_name);
+	std::shared_ptr<SolutionDataset> solutionDataset = __read_experiment_file(experiment_name, instance_select);
 	std::pair<std::vector<MatrixInt>, std::vector<Solution>> dataset = solutionDataset->getMatricexAndDataset();
 	std::vector<MatrixInt> matrices = std::get<0>(dataset);
 	std::vector<Solution> solutions = std::get<1>(dataset);

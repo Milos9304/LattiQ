@@ -53,7 +53,7 @@ public:
 
 };
 
-std::shared_ptr<SolutionDataset> __read_experiment_file(/*int num_ranks, int rank_min, int dim, */std::string experiment_name);
-void initialize_paper_experiment(std::string experiment_name, std::vector<Lattice*> &lattices, int rank_select=0);
+std::shared_ptr<SolutionDataset> __read_experiment_file(std::string experiment_name, int instance_select);
+void initialize_paper_experiment(std::string experiment_name, std::vector<Lattice*> &lattices, int rank_select=0, int instance_select=0);
 
 #endif /* SSRC_RUN_PAPER_EXP_H_ */
