@@ -17,7 +17,7 @@ std::shared_ptr<SolutionDataset> __read_experiment_file(/*int num_ranks, int ran
 	int inst_counter = 0;
 
 	int header_index = 0;
-	int num_ranks, rank_min, dim;
+	int num_ranks, rank_min, num_instances, dim;
 
 	while(std::getline(expFile, line)){
 
@@ -48,6 +48,20 @@ std::shared_ptr<SolutionDataset> __read_experiment_file(/*int num_ranks, int ran
 			header_index++;
 			continue;
 		}else if(header_index == 2){
+			if(line.substr(0,14) != "num_instances ")
+				throw_runtime_error("Invalid file header format");
+
+			std::istringstream s(line);
+			std::string temp, int_val;
+			s >> temp >> int_val;
+
+			try{num_instances = std::stoi(int_val);}
+			catch(...){throw_runtime_error("Invalid file header format");}
+
+			solutionDataset = std::make_shared<SolutionDataset>(num_ranks, rank_min, dim);
+			header_index++;
+			continue;
+		}else if(header_index == 3){
 			if(line.substr(0,4) != "dim ")
 				throw_runtime_error("Invalid file header format");
 
@@ -152,6 +166,12 @@ void initialize_paper_experiment(std::string experiment_name, std::vector<Lattic
 	std::vector<Solution> solutions = std::get<1>(dataset);
 	int i = 0;
 	i = rank_select - solutionDataset->rank_min;
+
+	if(rank_select == 0){
+		logw("-r option missing. Selecting rank " + std::to_string(solutionDataset->rank_min));
+		i = 0;
+	}
+
 	if(i < 0 || i >= solutionDataset->num_ranks){
 		throw_runtime_error("Invalid rank_reduce value.");
 	}
