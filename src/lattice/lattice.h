@@ -116,8 +116,8 @@ class Lattice {
 
 		Hamiltonian getHamiltonian(MapOptions* options);
 
-		std::string toHamiltonianString();
-		std::string toHamiltonianString(MapOptions* options);
+		/*std::string toHamiltonianString();
+		std::string toHamiltonianString(MapOptions* options);*/
 
 		//classical state that corresponds to zero eigen-value of Hamiltonian
 		std::vector<long long unsigned int> getZeroReferenceStates();
