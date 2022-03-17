@@ -163,7 +163,7 @@ int main(int ac, char** av){
 			fastVQA::ExperimentBuffer buffer;
 		}
 
-		Hamiltonian hamiltonian = lattice->getHamiltonian(mapOptions);
+		fastVQA::Hamiltonian hamiltonian = lattice->getHamiltonian(mapOptions);
 		vqeOptions->zero_reference_states = lattice->getZeroReferenceStates();
 
 		fastVQA::Vqe vqe_instance;
