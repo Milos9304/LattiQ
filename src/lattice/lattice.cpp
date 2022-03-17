@@ -258,7 +258,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 }*/
 
-std::string Lattice::toHamiltonianString(){
+/*std::string Lattice::toHamiltonianString(){
 	if(!qubo_generated){
 		loge("Hamiltonian referenced but not yet generated!");
 		return "";
@@ -272,7 +272,7 @@ std::string Lattice::toHamiltonianString(MapOptions* options){
 	calcHamiltonian(options, options->verbose);
 	return expression_qubo->expression_line_print();
 
-}
+}*/
 
 std::vector<long long unsigned int> Lattice::getZeroReferenceStates(){
 	if(!qubo_generated){
