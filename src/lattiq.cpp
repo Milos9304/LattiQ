@@ -26,17 +26,18 @@ int main(int ac, char** av){
 	OptionParser op("Allowed options");
 	auto help_option     = op.add<Switch>("h", "help", "produce help message");
 	auto log_level       = op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 0);
+	auto logExpecStd	 = op.add<Switch>("e", "", "log interdmediate expectation values to standard output");
 	auto qaoa 		     = op.add<Switch>("", "qaoa", "run qaoa algorithm");
 	auto vqe 		     = op.add<Switch>("", "vqe", "run vqe algorithm");
 	auto ansatz_name     = op.add<Value<std::string>>("a", "ansatz","Ry_CNOT_all2all_Ry/qaoa/EfficientSU2", "Ry_CNOT_all2all_Ry");
 	auto seed_option 	 = op.add<Value<int>>("", "seed", "seed for the experiments", seed);
 	//auto enumeration     = op.add<Switch>("", "enum", "enumerate all qubo configurations");
-	auto config 	     = op.add<Value<std::string>>("", "config", "config file location", "");
+	//auto config 	     = op.add<Value<std::string>>("", "config", "config file location", "");
 	auto lattice_file    = op.add<Value<std::string>>("", "lattice", "lattice file location", "");
 	auto niters          = op.add<Value<int>>("i", "iters", "max num of iterations", 1000);
 	auto nbSamples 		 = op.add<Value<int>>("n", "nbSamples", "number of samples in var assigmnent", 1024);
-	auto save_hml        = op.add<Value<std::string>>("", "savehml", "save hamiltonian to file", "");
-	auto load_hml        = op.add<Value<std::string>>("", "loadhml", "save hamiltonian to file", "");
+	//auto save_hml        = op.add<Value<std::string>>("", "savehml", "save hamiltonian to file", "");
+	//auto load_hml        = op.add<Value<std::string>>("", "loadhml", "save hamiltonian to file", "");
 	auto qubits_per_x    = op.add<Value<int>>("q", "", "qubits per x for uniform assignment", 1);
 	auto overlap_trick   = op.add<Switch>("o", "", "perform overlap trick");
 	auto overlap_penalty = op.add<Value<int>>("p", "", "overlap penalty", 0);
@@ -116,6 +117,7 @@ int main(int ac, char** av){
 	vqaOptions->optimizer = &optimizer;
 	vqaOptions->accelerator = &accelerator;
 	vqaOptions->logEnergies = true;
+	vqaOptions->expectationToStandardOutput = logExpecStd->is_set();
 	//vqaOptions->calcVarAssignment = true;
 	//vqaOptions->provideHamiltonian = true;
 	//vqaOptions->saveIntermediate = save_interm->is_set() ? (save_interm->value() == "" ? false : true) : false;
@@ -167,9 +169,7 @@ int main(int ac, char** av){
 		fastVQA::Vqe vqe_instance;
 		fastVQA::ExperimentBuffer buffer;
 
-		logd("Before VQE run");
 		vqe_instance.run_vqe(&buffer, &hamiltonian, lattice->name, vqeOptions);
-		logd("VQE run");
 
 		inst_counter++;
 	}
