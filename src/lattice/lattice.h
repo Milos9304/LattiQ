@@ -114,7 +114,7 @@ class Lattice {
 		MatrixInt* get_orig_lattice_transposed(){ return &orig_lattice_transposed; }
 		MatrixInt* get_current_lattice(){ return &current_lattice; }
 
-		Hamiltonian getHamiltonian(MapOptions* options);
+		fastVQA::Hamiltonian getHamiltonian(MapOptions* options);
 
 		/*std::string toHamiltonianString();
 		std::string toHamiltonianString(MapOptions* options);*/
