@@ -169,7 +169,7 @@ int main(int ac, char** av){
 		fastVQA::Vqe vqe_instance;
 		fastVQA::ExperimentBuffer buffer;
 
-		vqe_instance.run_vqe(&buffer, &hamiltonian, lattice->name, vqeOptions);
+		vqe_instance.run_vqe(&buffer, &hamiltonian, vqeOptions);
 
 		inst_counter++;
 	}
