@@ -102,7 +102,7 @@ int main(int ac, char** av){
 	num_lattices = lattices.size();
 	logi("Dataset " + dataset_name->value() + " succesfully loaded", loglevel);
 
-	fastVQA::Accelerator accelerator(acceleratorOptions);
+	fastVQA::Accelerator accelerator(std::make_shared<fastVQA::AcceleratorOptions>(acceleratorOptions));
 	accelerator.env = createQuESTEnv();
 
 	fastVQA::NLOptimizer optimizer;
