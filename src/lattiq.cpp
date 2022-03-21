@@ -25,7 +25,8 @@ int main(int ac, char** av){
 
 	OptionParser op("Allowed options");
 	auto help_option     = op.add<Switch>("h", "help", "produce help message");
-	auto log_level       = op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 0);
+	auto log_level       = op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 1);
+	auto print_hml       = op.add<Switch>("", "print_hml", "print calculated hamiltonian expression");
 	auto logExpecStd	 = op.add<Switch>("e", "", "log interdmediate expectation values to standard output");
 	auto qaoa 		     = op.add<Switch>("", "qaoa", "run qaoa algorithm");
 	auto vqe 		     = op.add<Switch>("", "vqe", "run vqe algorithm");
@@ -141,7 +142,7 @@ int main(int ac, char** av){
 	}
 
 	MapOptions* mapOptions = new MapOptions();
-	mapOptions->verbose = log_level->value() < 1;
+	mapOptions->verbose = print_hml->is_set();
 	mapOptions->num_qbits_per_x = qubits_per_x->value();
 	mapOptions->penalty=overlap_penalty->value();
 	if(ansatz_name->value() == "qaoa")

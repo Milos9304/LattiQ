@@ -290,7 +290,7 @@ std::vector<long long unsigned int> Lattice::getZeroReferenceStates(){
 		zero_ref_state += varId_to_zero_ref_map[var_id] == 0 ? 0 : (1<<i);
 	}
 
-	return std::vector<long long unsigned int>(zero_ref_state);
+	return std::vector<long long unsigned int>{zero_ref_state};
 }
 
 void Lattice::reduce_rank(int reduced_rank){
