@@ -113,7 +113,7 @@ int main(int ac, char** av){
 
 	fastVQA::VQAOptions *vqaOptions = qaoa->is_set() ? new fastVQA::QAOAOptions() : (true? new fastVQA::VQEOptions() : new fastVQA::VQAOptions());
 	vqaOptions->log_level = log_level->value();
-	vqaOptions->max_iters = niters->is_set() ? (niters->value() == 0 ? 5000 : niters->value()): 5000;
+	vqaOptions->max_iters = niters->value();
 	vqaOptions->detailed_log_freq = 0;//50;
 	vqaOptions->optimizer = &optimizer;
 	vqaOptions->accelerator = &accelerator;
