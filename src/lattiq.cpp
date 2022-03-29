@@ -119,6 +119,7 @@ int main(int ac, char** av){
 	vqaOptions->accelerator = &accelerator;
 	vqaOptions->logEnergies = true;
 	vqaOptions->expectationToStandardOutput = logExpecStd->is_set();
+	vqaOptions->instance_name = instance_select->value();
 	//vqaOptions->calcVarAssignment = true;
 	//vqaOptions->provideHamiltonian = true;
 	//vqaOptions->saveIntermediate = save_interm->is_set() ? (save_interm->value() == "" ? false : true) : false;
