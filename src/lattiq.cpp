@@ -85,6 +85,7 @@ int main(int ac, char** av){
 	acceleratorOptions.samples_cut_ratio = initial_alpha->value();
 	acceleratorOptions.final_alpha = final_alpha->value();
 	acceleratorOptions.max_alpha_iters = max_alpha_iters->value();
+	acceleratorOptions.exclude_zero_state = true;
 	if(linear_alpha->is_set()){
 		acceleratorOptions.alpha_f = "linear";
 		logi("Linearly increasing cvar_alpha from " +
