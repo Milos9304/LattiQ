@@ -12,7 +12,7 @@ bool pen_initialized = false;
 
 void Lattice::generate_qubo(bool print){
 
-	expression_qubo = new fastVQA::Expression(*expression_penalized);
+	expression_qubo = new FastVQA::Expression(*expression_penalized);
 	expression_qubo->name = "QUBO";
 
 	int qubit = 0;
@@ -44,15 +44,15 @@ void Lattice::generate_qubo(bool print){
 
 void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool print){
 
-	expression_penalized = new fastVQA::Expression(*expression_bin);
+	expression_penalized = new FastVQA::Expression(*expression_bin);
 	expression_penalized->name = "expression_penalized";
 
 	if(mode == MapOptions::penalty_all){
 
-		std::vector<fastVQA::Var*>::iterator x1_it;
+		std::vector<FastVQA::Var*>::iterator x1_it;
 
 		expression_penalized -> addConstant(penalty);
-		std::vector<fastVQA::Var*> variables = expression_penalized->getVariables();
+		std::vector<FastVQA::Var*> variables = expression_penalized->getVariables();
 
 		if(variables[0]->id != -1){
 			loge("Error! id not the first val");
@@ -60,7 +60,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 		}
 
 		int counter = 0;
-		for(std::vector<fastVQA::Var*>::iterator it = variables.begin() + 1;
+		for(std::vector<FastVQA::Var*>::iterator it = variables.begin() + 1;
 				it != variables.end(); ++it){
 
 			int z_id = expression_penalized -> addBinaryVar("z_"+(*it)->name);
@@ -74,7 +74,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 
 			expression_penalized -> addNewTerm((*it)->id, z_id, -penalty);
 
-			for(std::vector<fastVQA::Var*>::iterator it2 = it+1; it2 != variables.end(); it2++){
+			for(std::vector<FastVQA::Var*>::iterator it2 = it+1; it2 != variables.end(); it2++){
 				expression_penalized -> addNewTerm((*it2)->id, z_id, penalty);
 			}
 
@@ -83,7 +83,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 
 		//add z0=1, z1=x1
 		x1_id = (*x1_it)->id;
-		expression_penalized->substituteVarByNumeric(z0_id, 1);
+		expression_penalized->substituteVarToDouble(z0_id, 1);
 		std::map<int, mpq_class> subs_expr; //id, coeff
 		subs_expr.emplace(x1_id, 1);
 		expression_penalized->substitute(z1_id, subs_expr);
@@ -142,7 +142,7 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, bool pri
 
 void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 
-	expression_bin = new fastVQA::Expression(*expression_int);
+	expression_bin = new FastVQA::Expression(*expression_int);
 	expression_bin->name = "expression_bin";
 
 	for(auto &var : expression_bin->getVariables()){

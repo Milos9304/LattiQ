@@ -20,7 +20,7 @@ int main(int ac, char** av){
 	int seed = 1997;
 	int loglevel = 0;
 
-	fastVQA::AcceleratorOptions acceleratorOptions;
+	FastVQA::AcceleratorOptions acceleratorOptions;
 	acceleratorOptions.accelerator_type = "quest";
 
 	OptionParser op("Allowed options");
@@ -30,7 +30,8 @@ int main(int ac, char** av){
 	auto logExpecStd	 = op.add<Switch>("e", "", "log interdmediate expectation values to standard output");
 	auto qaoa 		     = op.add<Switch>("", "qaoa", "run qaoa algorithm");
 	auto vqe 		     = op.add<Switch>("", "vqe", "run vqe algorithm");
-	auto ansatz_name     = op.add<Value<std::string>>("a", "ansatz","Ry_CNOT_all2all_Ry/qaoa/EfficientSU2", "Ry_CNOT_all2all_Ry");
+	auto aqc_pqc	     = op.add<Switch>("a", "aqc_pqc", "run aqc_pqc algorithm");
+	auto ansatz_name     = op.add<Value<std::string>>("", "ansatz","Ry_CNOT_all2all_Ry/qaoa/EfficientSU2", "Ry_CNOT_all2all_Ry");
 	auto seed_option 	 = op.add<Value<int>>("", "seed", "seed for the experiments", seed);
 	//auto enumeration     = op.add<Switch>("", "enum", "enumerate all qubo configurations");
 	//auto config 	     = op.add<Value<std::string>>("", "config", "config file location", "");
@@ -104,79 +105,126 @@ int main(int ac, char** av){
 	num_lattices = lattices.size();
 	logi("Dataset " + dataset_name->value() + " succesfully loaded", loglevel);
 
-	fastVQA::Accelerator accelerator(acceleratorOptions);
-	accelerator.env = createQuESTEnv();
+	if(!aqc_pqc->is_set()){
 
-	fastVQA::NLOptimizer optimizer;
+		FastVQA::Accelerator accelerator(acceleratorOptions);
+		accelerator.env = createQuESTEnv();
 
-	fastVQA::QAOAOptions *qaoaOptions;
-	fastVQA::VQEOptions *vqeOptions;
+		FastVQA::NLOptimizer optimizer;
 
-	fastVQA::VQAOptions *vqaOptions = qaoa->is_set() ? new fastVQA::QAOAOptions() : (true? new fastVQA::VQEOptions() : new fastVQA::VQAOptions());
-	vqaOptions->log_level = log_level->value();
-	vqaOptions->max_iters = niters->value();
-	vqaOptions->detailed_log_freq = 0;//50;
-	vqaOptions->optimizer = &optimizer;
-	vqaOptions->accelerator = &accelerator;
-	vqaOptions->logEnergies = true;
-	vqaOptions->expectationToStandardOutput = logExpecStd->is_set();
-	vqaOptions->instance_name = std::to_string(instance_select->value());
-	//vqaOptions->calcVarAssignment = true;
-	//vqaOptions->provideHamiltonian = true;
-	//vqaOptions->saveIntermediate = save_interm->is_set() ? (save_interm->value() == "" ? false : true) : false;
-	//vqaOptions->s_intermediateName = vqaOptions->saveIntermediate ? save_interm->value() : "";
-	//vqaOptions->loadIntermediate = load_interm->is_set() ? (load_interm->value() == "" ? false : true) : false;
-	//vqaOptions->l_intermediateName = vqaOptions->loadIntermediate ? load_interm->value() : "";
-	vqaOptions->overlap_trick = overlap_trick->is_set();
-	vqaOptions->nbSamples_calcVarAssignment = nbSamples->value();
-	//vqaOptions->save_ansatz = save_ansatz->is_set();
-	//vqaOptions->load_ansatz = load_ansatz->is_set();
-	vqaOptions->ansatz_name = ansatz_name->value();
+		FastVQA::QAOAOptions *qaoaOptions;
+		FastVQA::VQEOptions *vqeOptions;
 
-	logd("VQAOptions set", loglevel);
+		FastVQA::VQAOptions *vqaOptions = qaoa->is_set() ? new FastVQA::QAOAOptions() : (true? new FastVQA::VQEOptions() : new FastVQA::VQAOptions());
+		vqaOptions->log_level = log_level->value();
+		vqaOptions->max_iters = niters->value();
+		vqaOptions->detailed_log_freq = 0;//50;
+		vqaOptions->optimizer = &optimizer;
+		vqaOptions->accelerator = &accelerator;
+		vqaOptions->logEnergies = true;
+		vqaOptions->expectationToStandardOutput = logExpecStd->is_set();
+		vqaOptions->instance_name = std::to_string(instance_select->value());
+		//vqaOptions->calcVarAssignment = true;
+		//vqaOptions->provideHamiltonian = true;
+		//vqaOptions->saveIntermediate = save_interm->is_set() ? (save_interm->value() == "" ? false : true) : false;
+		//vqaOptions->s_intermediateName = vqaOptions->saveIntermediate ? save_interm->value() : "";
+		//vqaOptions->loadIntermediate = load_interm->is_set() ? (load_interm->value() == "" ? false : true) : false;
+		//vqaOptions->l_intermediateName = vqaOptions->loadIntermediate ? load_interm->value() : "";
+		vqaOptions->overlap_trick = overlap_trick->is_set();
+		vqaOptions->nbSamples_calcVarAssignment = nbSamples->value();
+		//vqaOptions->save_ansatz = save_ansatz->is_set();
+		//vqaOptions->load_ansatz = load_ansatz->is_set();
+		vqaOptions->ansatz_name = ansatz_name->value();
 
-	if(qaoa->is_set()){
-		qaoaOptions = static_cast<fastVQA::QAOAOptions*>(vqaOptions);
-		qaoaOptions->simplifiedSimulation = true;
-		qaoaOptions->extendedParametrizedMode = false;//true;
-	}else if(vqe->is_set()){
-		vqeOptions = static_cast<fastVQA::VQEOptions*>(vqaOptions);
-	}
-
-	MapOptions* mapOptions = new MapOptions();
-	mapOptions->verbose = print_hml->is_set();
-	mapOptions->num_qbits_per_x = qubits_per_x->value();
-	mapOptions->penalty=overlap_penalty->value();
-	if(ansatz_name->value() == "qaoa")
-		mapOptions->pen_mode = MapOptions::penalty_all;
-	else
-		mapOptions->pen_mode = MapOptions::no_hml_penalization;
-
-	int inst_counter = 0;
-	for(auto &lattice : lattices){
-
-		logi("Running " + lattice->name);
-
-		int new_id = std::stoi(extract_id(lattice->name));
+		logd("VQAOptions set", loglevel);
 
 		if(qaoa->is_set()){
-			throw_runtime_error("TODO: QAOA not implemented yet");
+			qaoaOptions = static_cast<FastVQA::QAOAOptions*>(vqaOptions);
+			qaoaOptions->simplifiedSimulation = true;
+			qaoaOptions->extendedParametrizedMode = false;//true;
 		}else if(vqe->is_set()){
-			fastVQA::Vqe vqe_instance;
-			fastVQA::ExperimentBuffer buffer;
+			vqeOptions = static_cast<FastVQA::VQEOptions*>(vqaOptions);
 		}
 
-		fastVQA::Hamiltonian hamiltonian = lattice->getHamiltonian(mapOptions);
-		vqeOptions->zero_reference_states = lattice->getZeroReferenceStates();
+		MapOptions* mapOptions = new MapOptions();
+		mapOptions->verbose = print_hml->is_set();
+		mapOptions->num_qbits_per_x = qubits_per_x->value();
+		mapOptions->penalty=overlap_penalty->value();
+		if(ansatz_name->value() == "qaoa")
+			mapOptions->pen_mode = MapOptions::penalty_all;
+		else
+			mapOptions->pen_mode = MapOptions::no_hml_penalization;
 
-		fastVQA::Vqe vqe_instance;
-		fastVQA::ExperimentBuffer buffer;
+		int inst_counter = 0;
+		for(auto &lattice : lattices){
 
-		vqe_instance.run_vqe(&buffer, &hamiltonian, vqeOptions);
+			logi("Running " + lattice->name);
 
-		inst_counter++;
+			int new_id = std::stoi(extract_id(lattice->name));
+
+			if(qaoa->is_set()){
+				throw_runtime_error("TODO: QAOA not implemented yet");
+			}else if(vqe->is_set()){
+				FastVQA::Vqe vqe_instance;
+				FastVQA::ExperimentBuffer buffer;
+			}
+
+			FastVQA::PauliHamiltonian hamiltonian = lattice->getHamiltonian(mapOptions);
+			vqeOptions->zero_reference_states = lattice->getZeroReferenceStates();
+
+			FastVQA::Vqe vqe_instance;
+			FastVQA::ExperimentBuffer buffer;
+
+			vqe_instance.run_vqe(&buffer, &hamiltonian, vqeOptions);
+
+			inst_counter++;
+		}
+	}else{
+
+		int inst_counter = 0;
+		for(auto &lattice : lattices){
+
+			logi("Running " + lattice->name);
+
+			int new_id = std::stoi(extract_id(lattice->name));
+
+			FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;
+			acceleratorOptions.log_level = log_level->value();
+			acceleratorOptions.accelerator_type = "quest";
+			acceleratorOptions.nbSteps = 4;
+			acceleratorOptions.ansatz_name = "Ry_CNOT_all2all_Rz";//"Ry_CNOT_nn_Rz_CNOT_Rz";
+			acceleratorOptions.compareWithClassicalEigenSolver = true;
+			acceleratorOptions.outputLogToFile = true;
+			acceleratorOptions.checkHessian = true;
+			acceleratorOptions.printGroundStateOverlap = true;
+			acceleratorOptions.initialGroundState = FastVQA::InitialGroundState::PlusState;
+
+
+			MapOptions* mapOptions = new MapOptions();
+			mapOptions->verbose = print_hml->is_set();
+			mapOptions->num_qbits_per_x = qubits_per_x->value();
+			mapOptions->penalty=overlap_penalty->value();
+			mapOptions->pen_mode = MapOptions::penalty_all;
+			//mapOptions->pen_mode = MapOptions::no_hml_penalization;
+
+			FastVQA::PauliHamiltonian h1 = lattice->getHamiltonian(mapOptions);
+			//vqeOptions->zero_reference_states = lattice->getZeroReferenceStates();
+
+			acceleratorOptions.solution = /**/0;
+			acceleratorOptions.logFileName = lattice->name+".log";
+			FastVQA::AqcPqcAccelerator accelerator(acceleratorOptions);
+
+			FastVQA::PauliHamiltonian h0(h1.nbQubits);
+			h0.initializeSumMinusSigmaXHamiltonian();
+
+			accelerator.initialize(&h0, &h1);
+			std::cerr<<"aa"<<std::endl;
+			accelerator.run();
+
+			inst_counter++;
+		}
+
 	}
-
 
 	return 0;
 }

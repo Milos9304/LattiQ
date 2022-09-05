@@ -11,9 +11,9 @@
 
 #define log_pi 1.1447298858494
 
-fastVQA::Hamiltonian Lattice::getHamiltonian(MapOptions* options){
+FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 
-	fastVQA::Hamiltonian result;
+	FastVQA::PauliHamiltonian result;
 	this->calcHamiltonian(options, options->verbose);
 
 	if(!qubo_generated){

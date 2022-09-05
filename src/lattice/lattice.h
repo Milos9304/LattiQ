@@ -12,7 +12,7 @@
 #include "fplll.h"
 #include "../io/logger.h"
 #include "FastVQA/symbolic_manipulation.h"
-#include "FastVQA/hamiltonian.h"
+#include "FastVQA/pauliHamiltonian.h"
 #include <vector>
 
 typedef ZZ_mat<mpz_t> MatrixInt;
@@ -97,7 +97,7 @@ class Lattice {
 			//	return;
 			//}
 
-     		this -> expression_int = new fastVQA::Expression("expression_int");
+     		this -> expression_int = new FastVQA::Expression("expression_int");
 		}
 
 		void reduce_rank(int reduced_rank);
@@ -114,7 +114,7 @@ class Lattice {
 		MatrixInt* get_orig_lattice_transposed(){ return &orig_lattice_transposed; }
 		MatrixInt* get_current_lattice(){ return &current_lattice; }
 
-		fastVQA::Hamiltonian getHamiltonian(MapOptions* options);
+		FastVQA::PauliHamiltonian getHamiltonian(MapOptions* options);
 
 		/*std::string toHamiltonianString();
 		std::string toHamiltonianString(MapOptions* options);*/
@@ -132,7 +132,7 @@ class Lattice {
 		bool gso_current_initialized = false, gso_orig_initialized = false;
 		MatGSO<Z_NR<mpz_t>, FP_NR<double>>* gso_current, *gso_orig;
 
-		fastVQA::Expression *expression_int, *expression_bin, *expression_penalized, *expression_qubo;
+		FastVQA::Expression *expression_int, *expression_bin, *expression_penalized, *expression_qubo;
 
 		//std::map<std::string, Var*> qubo_to_bin_map;
 		std::map<int, int> qbit_to_varId_map;
