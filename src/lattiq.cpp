@@ -52,7 +52,7 @@ int main(int ac, char** av){
 	auto max_alpha_iters = op.add<Value<int>>("m", "max_alpha_iters", "max alpha iters", 1000);
 
 	auto instance_select = op.add<Value<int>>("s", "iselect", "Select i-th instance in the dataset. If unset (=-1), all instances are being run.", -1);
-	auto dataset_name    = op.add<Value<std::string>>("d", "datasetName","dataset name in ./experiments folder", "qary_25_50");
+	auto dataset_name    = op.add<Value<std::string>>("d", "datasetName","dataset name in ./experiments folder", "qary_5_7");
 	auto rank_select 	 = op.add<Value<int>>("r", "", "rank truncation for paperexp", 0);
 	auto circ_dir_prefix = op.add<Value<std::string>>("c", "circ-dir-prefix", "", "../experiment_files");
 
@@ -184,6 +184,11 @@ int main(int ac, char** av){
 		int inst_counter = 0;
 		for(auto &lattice : lattices){
 
+			if(inst_counter == 15 || inst_counter == 25){
+				inst_counter++;
+				continue;
+			}
+
 			logi("Running " + lattice->name);
 
 			int new_id = std::stoi(extract_id(lattice->name));
@@ -191,12 +196,14 @@ int main(int ac, char** av){
 			FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;
 			acceleratorOptions.log_level = log_level->value();
 			acceleratorOptions.accelerator_type = "quest";
-			acceleratorOptions.nbSteps = 4;
-			acceleratorOptions.ansatz_name = "Ry_CNOT_all2all_Rz";//"Ry_CNOT_nn_Rz_CNOT_Rz";
+			acceleratorOptions.nbSteps = 10;
+			acceleratorOptions.ansatz_name = "Ry_CNOT_nn_Rz_CNOT_Rz";
 			acceleratorOptions.compareWithClassicalEigenSolver = true;
 			acceleratorOptions.outputLogToFile = true;
 			acceleratorOptions.checkHessian = true;
 			acceleratorOptions.printGroundStateOverlap = true;
+			acceleratorOptions.checkSolutions = true;
+			acceleratorOptions.solutionExpectation = lattice->svLenSquared;
 			acceleratorOptions.initialGroundState = FastVQA::InitialGroundState::PlusState;
 
 
@@ -210,7 +217,34 @@ int main(int ac, char** av){
 			FastVQA::PauliHamiltonian h1 = lattice->getHamiltonian(mapOptions);
 			//vqeOptions->zero_reference_states = lattice->getZeroReferenceStates();
 
-			acceleratorOptions.solution = /**/0;
+			typedef std::pair<qreal, long long int> RefEnergy;
+			typedef std::vector<RefEnergy> RefEnergies;
+
+			Eigen::MatrixXd m = h1.getMatrixRepresentation(true);
+
+			RefEnergies ref_hamil_energies;
+			ref_hamil_energies.clear();
+			std::vector<long long unsigned int> indexes(1ULL<<(h1.nbQubits));
+			std::iota(indexes.begin(), indexes.end(), 0); //zip with indices
+			std::sort(indexes.begin(), indexes.end(), [&](int i, int j){return m(i,i) < m(j,j);}); //non-descending
+
+			for(auto &index : indexes){
+				ref_hamil_energies.push_back(RefEnergy(m(index, index), index));
+
+				//std::cerr<<m(index, index) << " ";
+				//std::cerr<<"."<<cost_function(index)<<" "<<index<<std::endl;
+			}
+
+			qreal sv_len = ref_hamil_energies[0].first;
+			std::vector<long long int> sols;
+			int i = 0;
+			while(ref_hamil_energies[i++].first == sv_len){
+				sols.push_back(ref_hamil_energies[i-1].second);
+			}
+			//std::cerr << "sv: "<< sv_len << " " << ref_hamil_energies[0].second << "\n";
+
+			acceleratorOptions.solutions = sols;
+
 			acceleratorOptions.logFileName = lattice->name+".log";
 			FastVQA::AqcPqcAccelerator accelerator(acceleratorOptions);
 
@@ -218,7 +252,6 @@ int main(int ac, char** av){
 			h0.initializeSumMinusSigmaXHamiltonian();
 
 			accelerator.initialize(&h0, &h1);
-			std::cerr<<"aa"<<std::endl;
 			accelerator.run();
 
 			inst_counter++;

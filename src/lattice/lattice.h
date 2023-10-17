@@ -71,26 +71,38 @@ class Lattice {
 	MatrixInt* lll_transformation;
 	bool lll_preprocessed;
 
-		Lattice(MatrixInt lattice, std::string name = "", int reduced_rank=0){ // @suppress("Class members should be properly initialized")
+	long long int svLenSquared;
+
+		Lattice(MatrixInt lattice, std::string name = "", int reduced_rank=0, bool providingGramiam=false){ // @suppress("Class members should be properly initialized")
 
 			this -> n_rows = lattice.get_rows();
 			this -> n_cols = lattice.get_cols();
 
-			if(reduced_rank != 0){
-				this -> n_rows = reduced_rank;//lattice.get_rows();
-				if(reduced_rank < 0 || reduced_rank > lattice.get_rows()){
-					loge("Invalid reduced rank");
-					return;
+			this -> name = name;
+
+			if(providingGramiam){
+				this->gramiam = true;
+				this -> orig_lattice = lattice;
+
+			}else{
+				this->gramiam = false;
+				if(reduced_rank != 0){
+					this -> n_rows = reduced_rank;//lattice.get_rows();
+					if(reduced_rank < 0 || reduced_rank > lattice.get_rows()){
+						loge("Invalid reduced rank");
+						return;
+					}
 				}
+
+				this -> lll_preprocessed = false;
+				this -> orig_lattice = lattice;
+				this -> orig_lattice_transposed = MatrixInt(lattice);
+				this -> orig_lattice_transposed.transpose();
+				this -> current_lattice = MatrixInt(lattice);
+				this -> orig_gh_sq = calculate_gh_squared(&orig_lattice);
 			}
 
-			this -> name = name;
-			this -> lll_preprocessed = false;
-			this -> orig_lattice = lattice;
-			this -> orig_lattice_transposed = MatrixInt(lattice);
-			this -> orig_lattice_transposed.transpose();
-			this -> current_lattice = MatrixInt(lattice);
-			this -> orig_gh_sq = calculate_gh_squared(&orig_lattice);
+
 
 			//if(lattice.get_rows()/*.rows()*/ != lattice.get_cols()/*.cols()*/){
 			//	loge("Non-square lattice not supported");
@@ -126,6 +138,8 @@ class Lattice {
 
 	private:
 
+		bool gramiam;
+
 		mpq_class orig_gh_sq; //gaussian heuristics
 		MatrixInt orig_lattice, orig_lattice_transposed, current_lattice;
 
@@ -149,7 +163,7 @@ class Lattice {
 		bool bin_initialized = false;
 		void init_expr_bin(MapOptions::bin_mapping mapping, bool print=false);
 
-		int z0_id=0, z1_id=0, x1_id;
+		int zn_id=0, zn_m1_id=0, xn_m1_id;
 		bool pen_initialized = false;
 		void penalize_expr(int penalty, MapOptions::penalty_mode mode, bool print=false);
 
@@ -162,7 +176,6 @@ class Lattice {
 		mpq_class calculate_gh_squared(MatrixInt* lattice);
 
 };
-
 
 
 #endif /* SRC_LATTICE_H_ */

@@ -190,6 +190,7 @@ void initialize_paper_experiment(std::string experiment_name, std::vector<Lattic
 	for(auto &m: matrices){
 		Lattice* new_lattice = new Lattice(m, std::to_string(solutions[i].lattice_id)+"_"+std::to_string(solutions[i].rank));
 		new_lattice->reduce_rank(solutions[i].rank);
+		new_lattice->svLenSquared = solutions[i].svLength;
 		lattices.push_back(new_lattice);
 		std::cout << (std::to_string(solutions[i].lattice_id)+"_"+std::to_string(solutions[i].rank)) << " ";
 

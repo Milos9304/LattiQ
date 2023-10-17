@@ -49,7 +49,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 
 	if(mode == MapOptions::penalty_all){
 
-		std::vector<FastVQA::Var*>::iterator x1_it;
+		std::vector<FastVQA::Var*>::iterator xn_m1_it;
 
 		expression_penalized -> addConstant(penalty);
 		std::vector<FastVQA::Var*> variables = expression_penalized->getVariables();
@@ -65,13 +65,12 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 
 			int z_id = expression_penalized -> addBinaryVar("z_"+(*it)->name);
 
-			if(counter == 0)
-				z0_id = z_id;
-			else if(counter == 1){
-				z1_id = z_id;
-				x1_it = it;
+			if(counter == variables.size()-2)
+				zn_id = z_id;
+			else if(counter == variables.size()-3){
+				zn_m1_id = z_id;
+				xn_m1_it = it;
 			}
-
 			expression_penalized -> addNewTerm((*it)->id, z_id, -penalty);
 
 			for(std::vector<FastVQA::Var*>::iterator it2 = it+1; it2 != variables.end(); it2++){
@@ -81,12 +80,12 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 		counter++;
 		}
 
-		//add z0=1, z1=x1
-		x1_id = (*x1_it)->id;
-		expression_penalized->substituteVarToDouble(z0_id, 1);
+		//add z_n=1, z_n-1=x_n-1
+		xn_m1_id = (*xn_m1_it)->id;
+		expression_penalized->substituteVarToDouble(zn_id, 1);
 		std::map<int, mpq_class> subs_expr; //id, coeff
-		subs_expr.emplace(x1_id, 1);
-		expression_penalized->substitute(z1_id, subs_expr);
+		subs_expr.emplace(xn_m1_id, 1);
+		expression_penalized->substitute(zn_m1_id, subs_expr);
 
 		//std::cout << "subs " << z1_id << " c" << 1 << "\n";
 		//std::cout << "subs " << z2_id << " " << (*x2_it)->id << "\n";

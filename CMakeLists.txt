@@ -32,11 +32,29 @@ file(GLOB SRC_ORIG
         ${PROJECT_SOURCE_DIR}/src/run_paper_experiment.cpp
         ${PROJECT_SOURCE_DIR}/src/symbolic_manipulation.cpp
 )
+
+file(GLOB SRC_ORIG_AVERAGEDSVP
+	${PROJECT_SOURCE_DIR}/src/averaged_svp.cpp
+	${PROJECT_SOURCE_DIR}/src/averaged_svp_utils.cpp
+)
        
 add_subdirectory(src)
        
 add_executable(${PROJECT_NAME} ${SRC_ORIG})
+add_executable(averagedSvp ${SRC_ORIG_AVERAGEDSVP})
+
+
 include_directories(
 	${PROJECT_SOURCE_DIR}/src
 )
 target_link_libraries(${PROJECT_NAME} fastVQA::FastVQA Eigen3::Eigen fplll gmpxx gmp) #lattice
+target_compile_definitions(${PROJECT_NAME}
+    PRIVATE
+    QuEST_PREC=4
+)
+
+target_link_libraries(averagedSvp fastVQA::FastVQA Eigen3::Eigen fplll gmpxx gmp)
+target_compile_definitions(averagedSvp
+    PRIVATE
+    QuEST_PREC=4
+)
