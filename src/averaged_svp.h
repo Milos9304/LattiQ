@@ -19,7 +19,7 @@ struct GeneratorParam{
 	int lambda1 = 10;
 	int lambda2 = 12;
 	int lambda3_lb = 15;
-	int lambda_ub = 20;
+	int lambda_ub = 17;
 
 	int num_instances = 100;
 
@@ -29,11 +29,15 @@ struct GeneratorParam{
 		if(n < 3)
 			throw_runtime_error("n should be larger than 2");
 
+		if(lambda3_lb > lambda_ub || lambda2 >= lambda3_lb || lambda1 >= lambda2 || lambda1 < 1)
+			throw_runtime_error("Invalid lambda values");
+
 		this->n = n;
 	}
 };
 typedef std::function<std::vector<DiagonalHamiltonian>(GeneratorParam)> InstanceGenerator;
 extern InstanceGenerator generateDiagonalUniform;
+extern InstanceGenerator generateDiagonalExtensive;
 
 void calculateAverage(int n, DiagonalHamiltonian*);
 

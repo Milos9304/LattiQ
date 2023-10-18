@@ -5,7 +5,7 @@
 
 using namespace popl;
 
-int n = 3; //dim of basis
+int n = 4; //dim of basis
 
 int main(int ac, char** av){
 
@@ -21,7 +21,7 @@ int main(int ac, char** av){
 	DiagonalHamiltonian h;
 	calculateAverage(n, &h);
 
-	std::cerr<<h;
+	//std::cerr<<h;
 
 	return 0;
 }
