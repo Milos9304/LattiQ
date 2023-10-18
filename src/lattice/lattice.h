@@ -17,6 +17,8 @@
 
 typedef ZZ_mat<mpz_t> MatrixInt;
 typedef std::vector<mpz_class> VectorInt;
+typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;
+
 
 class MapOptions{
 
@@ -73,36 +75,28 @@ class Lattice {
 
 	long long int svLenSquared;
 
-		Lattice(MatrixInt lattice, std::string name = "", int reduced_rank=0, bool providingGramiam=false){ // @suppress("Class members should be properly initialized")
+		Lattice(MatrixInt lattice, std::string name = "", int reduced_rank=0){ // @suppress("Class members should be properly initialized")
 
 			this -> n_rows = lattice.get_rows();
 			this -> n_cols = lattice.get_cols();
 
 			this -> name = name;
 
-			if(providingGramiam){
-				this->gramiam = true;
-				this -> orig_lattice = lattice;
-
-			}else{
-				this->gramiam = false;
-				if(reduced_rank != 0){
-					this -> n_rows = reduced_rank;//lattice.get_rows();
-					if(reduced_rank < 0 || reduced_rank > lattice.get_rows()){
-						loge("Invalid reduced rank");
-						return;
-					}
+			this->gramian = false;
+			if(reduced_rank != 0){
+				this -> n_rows = reduced_rank;//lattice.get_rows();
+				if(reduced_rank < 0 || reduced_rank > lattice.get_rows()){
+					loge("Invalid reduced rank");
+					return;
 				}
-
-				this -> lll_preprocessed = false;
-				this -> orig_lattice = lattice;
-				this -> orig_lattice_transposed = MatrixInt(lattice);
-				this -> orig_lattice_transposed.transpose();
-				this -> current_lattice = MatrixInt(lattice);
-				this -> orig_gh_sq = calculate_gh_squared(&orig_lattice);
 			}
 
-
+			this -> lll_preprocessed = false;
+			this -> orig_lattice = lattice;
+			this -> orig_lattice_transposed = MatrixInt(lattice);
+			this -> orig_lattice_transposed.transpose();
+			this -> current_lattice = MatrixInt(lattice);
+			this -> orig_gh_sq = calculate_gh_squared(&orig_lattice);
 
 			//if(lattice.get_rows()/*.rows()*/ != lattice.get_cols()/*.cols()*/){
 			//	loge("Non-square lattice not supported");
@@ -111,6 +105,24 @@ class Lattice {
 
      		this -> expression_int = new FastVQA::Expression("expression_int");
 		}
+
+		Lattice(DiagonalHamiltonian gramian, std::string name = "", bool diagonal=false){
+
+			if(!diagonal)
+				throw_runtime_error("Not implemnted");
+
+			this -> gramian = true;
+			this -> gramian_diag = true;
+			this -> diagonalGramian = gramian;
+			this -> n_rows = gramian.size();
+			this -> n_cols = 1;
+			this -> name = name;
+
+			gso_current_initialized = true;
+
+			this -> expression_int = new FastVQA::Expression("expression_int");
+
+		};
 
 		void reduce_rank(int reduced_rank);
 
@@ -138,7 +150,9 @@ class Lattice {
 
 	private:
 
-		bool gramiam;
+		bool gramian;
+		bool gramian_diag;
+		DiagonalHamiltonian diagonalGramian;
 
 		mpq_class orig_gh_sq; //gaussian heuristics
 		MatrixInt orig_lattice, orig_lattice_transposed, current_lattice;

@@ -123,14 +123,21 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, bool pri
 	}
 
 	for(int i = 0; i < n_rows; ++i){
-		gso_current->get_int_gram(coeff, i, i);
-		expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), coeff.get_data()/*.coeff(i, i)*/); // G_ii*x_i^2
-		for(int j = 0; j < i; ++j){
-			mpz_class c(gso_current->get_int_gram(coeff, i, j).get_data());
 
-			//std::cout << "i" << i << " j" << j << " c"<<c << "\n";
+		if(gramian){
+			if(!gramian_diag)
+				throw_runtime_error("Not implemented");
 
-			expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(j)), 2*c/*.coeff(i, j)*/); //2*G_ij*xi
+			expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), diagonalGramian(i)); // G_ii*x_i^2
+
+		}else{
+			gso_current->get_int_gram(coeff, i, i);
+			expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), coeff.get_data()/*.coeff(i, i)*/); // G_ii*x_i^2
+			for(int j = 0; j < i; ++j){
+				mpz_class c(gso_current->get_int_gram(coeff, i, j).get_data());
+				//std::cout << "i" << i << " j" << j << " c"<<c << "\n";
+				expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(j)), 2*c/*.coeff(i, j)*/); //2*G_ij*xi
+			}
 		}
 	}
 
@@ -204,13 +211,17 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 		if(!pen_initialized){
 
-			int first_vect_len = 0;
+			if(gramian){
+				logi("Penalty="+std::to_string(options->penalty), print ? 0 : 3);
+			}else{
+				int first_vect_len = 0;
 
-			for(int i = 0; i < n_cols; ++i){
-				first_vect_len+=current_lattice.matrix[0][i].get_si()*current_lattice.matrix[0][i].get_si();
+				for(int i = 0; i < n_cols; ++i){
+					first_vect_len+=current_lattice.matrix[0][i].get_si()*current_lattice.matrix[0][i].get_si();
+				}
+				options->penalty = 5 * first_vect_len;
+				logi("Overriding penalty with 5*firstVectLenSq="+std::to_string(options->penalty), print ? 0 : 3);
 			}
-			options->penalty = 5 * first_vect_len;
-			logi("Overriding penalty with 5*firstVectLenSq="+std::to_string(options->penalty), print ? 0 : 3);
 
 			penalize_expr(options->penalty, options->pen_mode, print);
 			pen_initialized = true;

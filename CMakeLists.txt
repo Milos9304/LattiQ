@@ -34,6 +34,8 @@ file(GLOB SRC_ORIG
 )
 
 file(GLOB SRC_ORIG_AVERAGEDSVP
+	${PROJECT_SOURCE_DIR}/src/lattice/lattice.cpp
+    ${PROJECT_SOURCE_DIR}/src/lattice/lattice_utils.cpp
 	${PROJECT_SOURCE_DIR}/src/averaged_svp.cpp
 	${PROJECT_SOURCE_DIR}/src/averaged_svp_utils.cpp
 )

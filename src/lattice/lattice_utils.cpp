@@ -57,6 +57,7 @@ FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 				result.pauliOpts.push_back(0);
 		}
 	}
+
 	return result;
 }
 

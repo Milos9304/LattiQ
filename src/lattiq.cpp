@@ -134,7 +134,7 @@ int main(int ac, char** av){
 		vqaOptions->nbSamples_calcVarAssignment = nbSamples->value();
 		//vqaOptions->save_ansatz = save_ansatz->is_set();
 		//vqaOptions->load_ansatz = load_ansatz->is_set();
-		vqaOptions->ansatz_name = ansatz_name->value();
+
 
 		logd("VQAOptions set", loglevel);
 
@@ -144,6 +144,7 @@ int main(int ac, char** av){
 			qaoaOptions->extendedParametrizedMode = false;//true;
 		}else if(vqe->is_set()){
 			vqeOptions = static_cast<FastVQA::VQEOptions*>(vqaOptions);
+			vqeOptions->ansatz_name = ansatz_name->value();
 		}
 
 		MapOptions* mapOptions = new MapOptions();

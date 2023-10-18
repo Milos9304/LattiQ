@@ -9,7 +9,7 @@
 #define AVERAGED_SVP_H_
 
 #include <Eigen/Dense>
-typedef Eigen::Vector<double, Eigen::Dynamic> DiagonalHamiltonian;
+typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;
 
 #include "io/logger.h"
 
