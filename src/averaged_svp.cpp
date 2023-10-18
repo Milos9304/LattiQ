@@ -18,10 +18,17 @@ int main(int ac, char** av){
 		return 0;
 	}
 
-	DiagonalHamiltonian h;
-	calculateAverage(n, &h);
+	//DiagonalHamiltonian h;
+	//calculateAverage(n, &h);
 
-	//std::cerr<<h;
+	GeneratorParam param(n);
+	std::vector<DiagonalHamiltonian> gramiams = generateDiagonalExtensive(param);
+	for(auto G : gramiams){
+
+		FastVQA::Qaoa qaoa_instance;
+
+	}
+
 
 	return 0;
 }

@@ -80,8 +80,8 @@ extern InstanceGenerator generateDiagonalExtensive= [](GeneratorParam param){
 
 void calculateAverage(int n, DiagonalHamiltonian* h){
 
-	GeneratorParam param(n);
-	std::vector<DiagonalHamiltonian> res = generateDiagonalExtensive(param);
+	//GeneratorParam param(n);
+	//std::vector<DiagonalHamiltonian> res = generateDiagonalExtensive(param);
 	//for(auto r : res)
 	//	std::cerr << r.transpose() <<"\n";
 
