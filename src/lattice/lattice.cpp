@@ -103,40 +103,68 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, bool pri
 
 	Z_NR<mpz_t> coeff;
 
-	if(mode == MapOptions::x_symmetric){
+	auto addVar = [&](int k){
+		if(mode == MapOptions::x_symmetric){
 
-		if(num_qbits_per_x == 1){
-			for(int i = 0; i < n_rows; ++i){
-				int id = expression_int->addBinaryVar("x"+std::to_string(i));
-				x_ids.push_back(id);
-			}
-		}else{
+			if(num_qbits_per_x == 1){
+					int id = expression_int->addBinaryVar("x"+std::to_string(k));
+					x_ids.push_back(id);
+			}else{
 
-			int lb = -pow(2, num_qbits_per_x)/ 2 + 1;
-			int ub = 1-lb;
+				int lb = -pow(2, num_qbits_per_x)/ 2 + 1;
+				int ub = 1-lb;
 
-			for(int i = 0; i < n_rows; ++i){
-				int id = expression_int->addIntegerVar("x"+std::to_string(i), lb, ub);
+				int id = expression_int->addIntegerVar("x"+std::to_string(k), lb, ub);
 				x_ids.push_back(id);
 			}
 		}
-	}
+	};
+
 
 	for(int i = 0; i < n_rows; ++i){
 
 		if(gramian){
-			if(!gramian_diag)
-				throw_runtime_error("Not implemented");
-
-			expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), diagonalGramian(i)); // G_ii*x_i^2
-
+			if(gramian_diag){
+				mpz_class c(diagonalGramian(i));
+				if(c!=0){
+					addVar(i);
+					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c); // G_ii*x_i^2
+				}
+			}
+			else{
+				mpz_class c(nonDiagGramian(i,i));
+				if(c!=0){
+					addVar(i);
+					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c);
+				}
+				for(int j = 0; j < i; ++j){
+					mpz_class c(nonDiagGramian(i,j));
+					if(c!=0){
+						try {expression_int->getId("x"+std::to_string(i));}
+						catch (const std::out_of_range& e) {addVar(i);}
+						try {expression_int->getId("x"+std::to_string(j));}
+						catch (const std::out_of_range& e) {addVar(j);}
+						expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(j)), 2*c); //2*G_ij*xi
+					}
+				}
+			}
 		}else{
 			gso_current->get_int_gram(coeff, i, i);
-			expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), coeff.get_data()/*.coeff(i, i)*/); // G_ii*x_i^2
+			mpz_class c(coeff.get_data());
+			if(c!=0){
+				addVar(i);
+				expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c/*.coeff(i, i)*/); // G_ii*x_i^2
+			}
 			for(int j = 0; j < i; ++j){
 				mpz_class c(gso_current->get_int_gram(coeff, i, j).get_data());
 				//std::cout << "i" << i << " j" << j << " c"<<c << "\n";
-				expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(j)), 2*c/*.coeff(i, j)*/); //2*G_ij*xi
+				if(c!=0){
+					try {expression_int->getId("x"+std::to_string(i));}
+					catch (const std::out_of_range& e) {addVar(i);}
+					try {expression_int->getId("x"+std::to_string(j));}
+					catch (const std::out_of_range& e) {addVar(j);}
+					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(j)), 2*c/*.coeff(i, j)*/); //2*G_ij*xi
+				}
 			}
 		}
 	}

@@ -28,17 +28,17 @@ extern InstanceGenerator generateDiagonalExtensive= [](GeneratorParam param){
 
     //Calculate A
 		int delta = param.lambda_ub-param.lambda3_lb+1;
-		int A_size = myPow(delta,(param.n - 2));
+		int A_size = myPow(delta,(param.n - 3));
 		int** A = (int**) malloc(A_size * sizeof(int*));
 		int** A_temp = (int**) malloc(A_size * sizeof(int*));
 		for(int i = 0; i < A_size; ++i){
-			A[i] = (int*) malloc((param.n-2) * sizeof(int));
-			A_temp[i] = (int*) malloc((param.n-2) * sizeof(int));
+			A[i] = (int*) malloc((param.n-3) * sizeof(int));
+			A_temp[i] = (int*) malloc((param.n-3) * sizeof(int));
 		}
 		for(int i = param.lambda3_lb; i <= param.lambda_ub; ++i){
 			A[i-param.lambda3_lb][0]=i;
 		}
-		for(int i = 0; i < param.n-3; ++i){
+		for(int i = 0; i < param.n-4; ++i){
 			for(int j = 0; j < myPow(delta,(i+1)); ++j){
 				for(int z = 0; z < delta; ++z){
 					for(int x = 0; x < (i+1); ++x)
@@ -60,11 +60,12 @@ extern InstanceGenerator generateDiagonalExtensive= [](GeneratorParam param){
 
 	for(int i = 0; i < A_size; ++i){
 		DiagonalHamiltonian G(param.n);
-		G(0)=param.lambda1;
-		G(1)=param.lambda2;
-		for(int j = 0; j < param.n-2; ++j){
+		G(0)=param.lambda0; //should be zero
+		G(1)=param.lambda1;
+		G(2)=param.lambda2;
+		for(int j = 0; j < param.n-3; ++j){
 			//std::cerr<<A[i][j-2]<<" ";
-			G(j+2)=A[i][j];
+			G(j+3)=A[i][j];
 		}
 		res.push_back(G);
 		//std::cerr<<"\n";

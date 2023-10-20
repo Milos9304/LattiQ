@@ -106,10 +106,7 @@ class Lattice {
      		this -> expression_int = new FastVQA::Expression("expression_int");
 		}
 
-		Lattice(DiagonalHamiltonian gramian, std::string name = "", bool diagonal=false){
-
-			if(!diagonal)
-				throw_runtime_error("Not implemnted");
+		Lattice(DiagonalHamiltonian gramian, std::string name = ""){
 
 			this -> gramian = true;
 			this -> gramian_diag = true;
@@ -121,7 +118,20 @@ class Lattice {
 			gso_current_initialized = true;
 
 			this -> expression_int = new FastVQA::Expression("expression_int");
+		};
 
+		Lattice(Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> gramian, std::string name = ""){
+
+			this -> gramian = true;
+			this -> gramian_diag = false;
+			this -> nonDiagGramian = gramian;
+			this -> n_rows = gramian.size();
+			this -> n_cols = gramian.size();
+			this -> name = name;
+
+			gso_current_initialized = true;
+
+			this -> expression_int = new FastVQA::Expression("expression_int");
 		};
 
 		void reduce_rank(int reduced_rank);
@@ -153,6 +163,7 @@ class Lattice {
 		bool gramian;
 		bool gramian_diag;
 		DiagonalHamiltonian diagonalGramian;
+		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> nonDiagGramian;
 
 		mpq_class orig_gh_sq; //gaussian heuristics
 		MatrixInt orig_lattice, orig_lattice_transposed, current_lattice;

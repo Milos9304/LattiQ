@@ -28,6 +28,7 @@ int main(int ac, char** av){
 
 	FastVQA::AcceleratorOptions acceleratorOptions;
 	acceleratorOptions.accelerator_type = "quest";
+	acceleratorOptions.log_level = log_level->value();
 
 	FastVQA::NLOptimizer optimizer;
 
@@ -44,6 +45,7 @@ int main(int ac, char** av){
 	MapOptions mapOptions;
 	mapOptions.verbose = print_hml->is_set();
 	mapOptions.num_qbits_per_x = qubits_per_x->value();
+	mapOptions.pen_mode = MapOptions::penalty_all;
 	mapOptions.penalty = 100;
 
 	GeneratorParam param(n);
@@ -51,9 +53,22 @@ int main(int ac, char** av){
 
 	for(auto G : gramiams){
 
+		DiagonalHamiltonian g(2);
+		g(0)=0;
+		g(1)=1;
 		FastVQA::Qaoa qaoa_instance;
-		Lattice l(G, "name", true);
+		Lattice l(g, "name");
 		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
+		std::cerr<<"NEEEW\n";
+		accelerator.initialize(&h);
+		break;
+
+
+		/*FastVQA::Qaoa qaoa_instance;
+		Lattice l(G, "name");
+		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
+		std::cerr<<"NEEEW\n";
+		accelerator.initialize(&h);*/
 
 	}
 

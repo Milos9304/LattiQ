@@ -16,6 +16,7 @@ typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;
 struct GeneratorParam{
 
 	//all these are lambdas squared
+	int lambda0 = 0;
 	int lambda1 = 10;
 	int lambda2 = 12;
 	int lambda3_lb = 15;
@@ -26,8 +27,8 @@ struct GeneratorParam{
 	int n;
 
 	GeneratorParam(int n){
-		if(n < 3)
-			throw_runtime_error("n should be larger than 2");
+		if(n < 4)
+			throw_runtime_error("n should be larger than 3");
 
 		if(lambda3_lb > lambda_ub || lambda2 >= lambda3_lb || lambda1 >= lambda2 || lambda1 < 1)
 			throw_runtime_error("Invalid lambda values");
