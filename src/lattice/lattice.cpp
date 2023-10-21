@@ -81,12 +81,14 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 		}
 
 		//add z_n=1, z_n-1=x_n-1
-		xn_m1_id = (*xn_m1_it)->id;
 		expression_penalized->substituteVarToDouble(zn_id, 1);
-		std::map<int, mpq_class> subs_expr; //id, coeff
-		subs_expr.emplace(xn_m1_id, 1);
-		expression_penalized->substitute(zn_m1_id, subs_expr);
+		std::map<int, mpq_class> subs_expr;//id, coeff
 
+		if(variables.size() > 2){
+			xn_m1_id = (*xn_m1_it)->id;
+			subs_expr.emplace(xn_m1_id, 1);
+			expression_penalized->substitute(zn_m1_id, subs_expr);
+		}
 		//std::cout << "subs " << z1_id << " c" << 1 << "\n";
 		//std::cout << "subs " << z2_id << " " << (*x2_it)->id << "\n";
 	}else if(mode == MapOptions::no_hml_penalization){
