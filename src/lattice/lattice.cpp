@@ -60,14 +60,26 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 		}
 
 		int counter = 0;
+		int num_penalized_vars = 0;
 		for(std::vector<FastVQA::Var*>::iterator it = variables.begin() + 1;
 				it != variables.end(); ++it){
 
+			if((*it)->extra_information!="P")
+				continue;
+			num_penalized_vars++;
+		}
+
+		for(std::vector<FastVQA::Var*>::iterator it = variables.begin() + 1;
+				it != variables.end(); ++it){
+
+			if((*it)->extra_information!="P")
+				continue;
+
 			int z_id = expression_penalized -> addBinaryVar("z_"+(*it)->name);
 
-			if(counter == variables.size()-2)
+			if(counter == num_penalized_vars-1)
 				zn_id = z_id;
-			else if(counter == variables.size()-3){
+			else if(counter == num_penalized_vars-2){
 				zn_m1_id = z_id;
 				xn_m1_it = it;
 			}
@@ -84,7 +96,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 		expression_penalized->substituteVarToDouble(zn_id, 1);
 		std::map<int, mpq_class> subs_expr;//id, coeff
 
-		if(variables.size() > 2){
+		if(num_penalized_vars > 1){
 			xn_m1_id = (*xn_m1_it)->id;
 			subs_expr.emplace(xn_m1_id, 1);
 			expression_penalized->substitute(zn_m1_id, subs_expr);
@@ -101,7 +113,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 }
 
 
-void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, bool print){
+void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print){
 
 	Z_NR<mpz_t> coeff;
 
@@ -111,13 +123,22 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, bool pri
 			if(num_qbits_per_x == 1){
 					int id = expression_int->addBinaryVar("x"+std::to_string(k));
 					x_ids.push_back(id);
-			}else{
+			}else if(num_qbits_per_x > 1){
 
 				int lb = -pow(2, num_qbits_per_x)/ 2 + 1;
 				int ub = 1-lb;
 
 				int id = expression_int->addIntegerVar("x"+std::to_string(k), lb, ub);
 				x_ids.push_back(id);
+			}
+			else if(absolute_bound != -1){
+				int lb = -absolute_bound;
+				int ub = absolute_bound;
+
+				int id = expression_int->addIntegerVar("x"+std::to_string(k), lb, ub);
+				x_ids.push_back(id);
+			}else{
+				throw_runtime_error("bounds undefined");
 			}
 		}
 	};
@@ -130,7 +151,9 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, bool pri
 				mpz_class c(diagonalGramian(i));
 				if(c!=0){
 					addVar(i);
-					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c); // G_ii*x_i^2
+					//expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c); // G_ii*x_i^2
+					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), -1, c);
+					std::cerr<<"UNDO THIS!\n";
 				}
 			}
 			else{
@@ -198,12 +221,26 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 			subs_expr.emplace(-1, lb); //set lb to identity coeff
 			for(int i = 0; i < ceil(log2(ub-lb+1)); ++i){
 
-				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(i));
+				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(i), "P"); //P means it is the one to be penalized
 				subs_expr.emplace(id, pow(2, i));
 
 				varId_to_zero_ref_map[id]=0; //all zero as no constant is involved in naive_overapprox
 			}
 
+		}else if(mapping == MapOptions::zeta_omega_overapprox || mapping == MapOptions::zeta_omega_exact){
+			subs_expr.emplace(-1, lb); //set lb to identity coeff
+			int id = expression_bin->addBinaryVar(name + "_zeta", "P"); //P means it is the one to be penalized
+			subs_expr.emplace(id, -lb);
+			id = expression_bin->addBinaryVar(name + "_omega");
+			subs_expr.emplace(id, -lb+1);
+			for(int i = 0; i <= (mapping == MapOptions::zeta_omega_overapprox ? floor(log2((-lb)-1)) : floor(log2((-lb)-1))-1); ++i){
+				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(i));
+				subs_expr.emplace(id, pow(2, i));
+			}
+			if(mapping == MapOptions::zeta_omega_exact && (-lb)>1){
+				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(floor(log2((-lb)-1))));
+				subs_expr.emplace(id, -lb-pow(2,floor(log2((-lb)-1))));
+			}
 		}else{
 			loge("NOT IMPLEMENTED");
 			throw;
@@ -230,7 +267,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 		}
 
 		if(!x_initialized){
-			init_x(options->x_mode, options->num_qbits_per_x, print);
+			init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, print);
 			x_initialized = true;
 		}
 

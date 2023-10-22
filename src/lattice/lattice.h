@@ -31,7 +31,7 @@ class MapOptions{
 		 *
 		 * */
 		enum x_init_mode { x_symmetric };
-		enum bin_mapping { naive_overapprox };
+		enum bin_mapping { naive_overapprox, zeta_omega_overapprox, zeta_omega_exact };
 
 		/*
 		 * penalty_all: apply penalty
@@ -47,18 +47,29 @@ class MapOptions{
 
 		int penalty;
 		int num_qbits_per_x;
+		int absolute_bound;
 
 		MapOptions(x_init_mode x_mode=x_symmetric,
 				bin_mapping bin_map=naive_overapprox,
 				penalty_mode pen_mode=penalty_all,
 				int penalty_val=1000,
 				int num_qbits_per_x=1,
+				int absolute_bound=-1,
 				bool verbose=false){
+
+			if(num_qbits_per_x != -1 && bin_map != naive_overapprox){
+				throw_runtime_error("Not implemented");
+			}
+			if(absolute_bound != -1 && bin_map != zeta_omega_overapprox && bin_map != zeta_omega_exact){
+				throw_runtime_error("Not implemented");
+			}
+
 			this->x_mode = x_mode;
 			this->bin_map = bin_map;
 			this->pen_mode = pen_mode;
 			this->penalty = penalty_val;
 			this->num_qbits_per_x = num_qbits_per_x;
+			this->absolute_bound = absolute_bound;
 			this->verbose = verbose;
 		}
 };
@@ -125,8 +136,8 @@ class Lattice {
 			this -> gramian = true;
 			this -> gramian_diag = false;
 			this -> nonDiagGramian = gramian;
-			this -> n_rows = gramian.size();
-			this -> n_cols = gramian.size();
+			this -> n_rows = gramian.rows();
+			this -> n_cols = gramian.cols();
 			this -> name = name;
 
 			gso_current_initialized = true;
@@ -177,7 +188,7 @@ class Lattice {
 		std::map<int, int> qbit_to_varId_map;
 
 		bool x_initialized = false;
-		void init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, bool print=false);
+		void init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int exponent_bound, bool print=false);
 
 		std::vector<int> x_ids;
 		std::map<int, std::map<int, mpq_class>> int_to_bin_map;
