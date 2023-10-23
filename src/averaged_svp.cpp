@@ -6,7 +6,7 @@
 
 using namespace popl;
 
-int n = 4; //dim of basis
+int n = 3; //dim of basis
 
 int main(int ac, char** av){
 
@@ -20,6 +20,8 @@ int main(int ac, char** av){
 	auto niters          = op.add<Value<int>>("i", "iters", "max num of iterations", 1000);
 	auto qubits_per_x    = op.add<Value<int>>("q", "", "qubits per x for uniform assignment (-1 means disabled)", -1);
 	auto absolute_bound  = op.add<Value<int>>("e", "", "exponent bound for each coefficient, i.e. |x_i|<=2^e (-1 means disabled)", -1);
+	auto penalty         = op.add<Value<int>>("p", "penalty", "penalty", 100);
+
 
 	op.parse(ac, av);
 	if (help_option->is_set()){
@@ -53,32 +55,19 @@ int main(int ac, char** av){
 	mapOptions.absolute_bound = absolute_bound->value();
 	mapOptions.pen_mode = MapOptions::penalty_all;
 	mapOptions.bin_map = MapOptions::zeta_omega_exact;
-	mapOptions.penalty = 100;
+	mapOptions.penalty = penalty->value();
 
 	GeneratorParam param(n);
 	std::vector<DiagonalHamiltonian> gramiams = generateDiagonalExtensive(param);
 
 	for(auto G : gramiams){
 
-		DiagonalHamiltonian g(1);
-		g(0)=1;
-		//g(1)=1;
 		FastVQA::Qaoa qaoa_instance;
-		Lattice l(g, "name");
-		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
-		break;
-		std::cerr<<"NEEEW\n";
-		accelerator.initialize(&h);
-		break;
-
-
-
-		/*FastVQA::Qaoa qaoa_instance;
 		Lattice l(G, "name");
 		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
 		std::cerr<<"NEEEW\n";
-		accelerator.initialize(&h);*/
-
+		accelerator.initialize(&h);
+		break;
 	}
 
 

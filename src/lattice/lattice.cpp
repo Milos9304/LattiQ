@@ -53,6 +53,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 
 		expression_penalized -> addConstant(penalty);
 		std::vector<FastVQA::Var*> variables = expression_penalized->getVariables();
+		std::vector<FastVQA::Var*> variables_to_be_penalized;
 
 		if(variables[0]->id != -1){
 			loge("Error! id not the first val");
@@ -64,16 +65,17 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 		for(std::vector<FastVQA::Var*>::iterator it = variables.begin() + 1;
 				it != variables.end(); ++it){
 
-			if((*it)->extra_information!="P")
-				continue;
-			num_penalized_vars++;
+			if((*it)->extra_information=="P0" || (*it)->extra_information=="P1"){
+				variables_to_be_penalized.push_back((*it));
+				num_penalized_vars++;
+			}
 		}
 
-		for(std::vector<FastVQA::Var*>::iterator it = variables.begin() + 1;
-				it != variables.end(); ++it){
+		for(std::vector<FastVQA::Var*>::iterator it = variables_to_be_penalized.begin()/* + 1*/;
+				it != variables_to_be_penalized.end(); ++it){
 
-			if((*it)->extra_information!="P")
-				continue;
+			//if((*it)->extra_information!="P0" || (*it)->extra_information!="P1")
+			//	continue;
 
 			int z_id = expression_penalized -> addBinaryVar("z_"+(*it)->name);
 
@@ -83,10 +85,20 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 				zn_m1_id = z_id;
 				xn_m1_it = it;
 			}
-			expression_penalized -> addNewTerm((*it)->id, z_id, -penalty);
+			if((*it)->extra_information=="P0"){
+				expression_penalized -> addNewTerm((*it)->id, z_id, -penalty);
+			}else{ //(*it)->extra_information[0]=="P1"
+				expression_penalized -> addNewTerm(-1, z_id, -penalty);
+				expression_penalized -> addNewTerm((*it)->id, z_id, penalty);
+			}
 
-			for(std::vector<FastVQA::Var*>::iterator it2 = it+1; it2 != variables.end(); it2++){
-				expression_penalized -> addNewTerm((*it2)->id, z_id, penalty);
+			for(std::vector<FastVQA::Var*>::iterator it2 = it+1; it2 != variables_to_be_penalized.end(); it2++){
+				if((*it)->extra_information=="P0"){
+					expression_penalized -> addNewTerm((*it2)->id, z_id, penalty);
+				}else{ //(*it)->extra_information[0]=="P1"
+					expression_penalized -> addNewTerm(-1, z_id, penalty);
+					expression_penalized -> addNewTerm((*it2)->id, z_id, -penalty);
+				}
 			}
 
 		counter++;
@@ -151,9 +163,7 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int abso
 				mpz_class c(diagonalGramian(i));
 				if(c!=0){
 					addVar(i);
-					//expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c); // G_ii*x_i^2
-					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), -1, c);
-					std::cerr<<"UNDO THIS!\n";
+					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c); // G_ii*x_i^2
 				}
 			}
 			else{
@@ -216,12 +226,12 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 
 		std::map<int, mpq_class> subs_expr; //id, coeff
 
-		if(mapping == MapOptions::naive_overapprox){
+		if(var->isBinary() || mapping == MapOptions::naive_overapprox){
 
 			subs_expr.emplace(-1, lb); //set lb to identity coeff
 			for(int i = 0; i < ceil(log2(ub-lb+1)); ++i){
 
-				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(i), "P"); //P means it is the one to be penalized
+				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(i), "P0"); //P0 means it is the one to be penalized for being zero
 				subs_expr.emplace(id, pow(2, i));
 
 				varId_to_zero_ref_map[id]=0; //all zero as no constant is involved in naive_overapprox
@@ -229,7 +239,7 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 
 		}else if(mapping == MapOptions::zeta_omega_overapprox || mapping == MapOptions::zeta_omega_exact){
 			subs_expr.emplace(-1, lb); //set lb to identity coeff
-			int id = expression_bin->addBinaryVar(name + "_zeta", "P"); //P means it is the one to be penalized
+			int id = expression_bin->addBinaryVar(name + "_zeta", "P1"); //P means it is the one to be penalized for being one
 			subs_expr.emplace(id, -lb);
 			id = expression_bin->addBinaryVar(name + "_omega");
 			subs_expr.emplace(id, -lb+1);
