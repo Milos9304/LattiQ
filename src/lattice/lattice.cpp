@@ -96,13 +96,15 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 				if((*it)->extra_information=="P0"){
 					expression_penalized -> addNewTerm((*it2)->id, z_id, penalty);
 				}else{ //(*it)->extra_information[0]=="P1"
-					expression_penalized -> addNewTerm(-1, z_id, penalty);
+					expression_penalized -> addTermCoeff(-1, z_id, penalty);
 					expression_penalized -> addNewTerm((*it2)->id, z_id, -penalty);
 				}
 			}
 
 		counter++;
 		}
+		if(print)
+				expression_penalized->print();
 
 		//add z_n=1, z_n-1=x_n-1
 		expression_penalized->substituteVarToDouble(zn_id, 1);
@@ -110,7 +112,12 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 
 		if(num_penalized_vars > 1){
 			xn_m1_id = (*xn_m1_it)->id;
-			subs_expr.emplace(xn_m1_id, 1);
+			if((*xn_m1_it)->extra_information=="P0")
+				subs_expr.emplace(xn_m1_id, 1);
+			else{ //(*xn_m1_it)->extra_information=="P1")
+				subs_expr.emplace(-1, 1);
+				subs_expr.emplace(xn_m1_id, -1);
+			}
 			expression_penalized->substitute(zn_m1_id, subs_expr);
 		}
 		//std::cout << "subs " << z1_id << " c" << 1 << "\n";
@@ -164,6 +171,9 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int abso
 				if(c!=0){
 					addVar(i);
 					expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c); // G_ii*x_i^2
+					//uncomment below only for test purposes
+					//std::cerr<<"CHANGE THIS\n";
+					//expression_int->addNewTerm(-1, expression_int->getId("x"+std::to_string(i)), c);
 				}
 			}
 			else{

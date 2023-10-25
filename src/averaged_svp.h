@@ -8,7 +8,9 @@
 #ifndef AVERAGED_SVP_H_
 #define AVERAGED_SVP_H_
 
+#include "FastVQA/fastVQA.h"
 #include <Eigen/Dense>
+typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> Hamiltonian;
 typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;
 
 #include "io/logger.h"
@@ -23,9 +25,13 @@ struct GeneratorParam{
 
 	int num_instances = 100;
 
-	int n;
+	int n, m;
+	int q = 7;
 
-	GeneratorParam(int n){
+	GeneratorParam(int n){ //diagonal
+
+		this->__diagonal = true;
+
 		if(n < 3)
 			throw_runtime_error("n should be larger than 2");
 
@@ -34,11 +40,25 @@ struct GeneratorParam{
 
 		this->n = n;
 	}
+
+	GeneratorParam(int n, int m){ //nondiagonal
+
+		this->__diagonal = false;
+		this->n = n;
+		this->m = m;
+	}
+
+		bool __diagonal;
 };
-typedef std::function<std::vector<DiagonalHamiltonian>(GeneratorParam)> InstanceGenerator;
-extern InstanceGenerator generateDiagonalUniform;
-extern InstanceGenerator generateDiagonalExtensive;
+typedef std::function<std::vector<DiagonalHamiltonian>(GeneratorParam)> DiagonalInstanceGenerator;
+typedef std::function<std::vector<Hamiltonian>(GeneratorParam)> InstanceGenerator;
+
+extern DiagonalInstanceGenerator generateDiagonalUniform;
+extern DiagonalInstanceGenerator generateDiagonalExtensive;
+extern InstanceGenerator generateQaryUniform;
 
 void calculateAverage(int n, DiagonalHamiltonian*);
+
+void saveEigenspaceToFile(std::string filename, FastVQA::RefEnergies eigenspace);
 
 #endif /* AVERAGED_SVP_H_ */
