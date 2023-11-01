@@ -148,6 +148,7 @@ class Lattice {
 		void reduce_rank(int reduced_rank);
 
 		//decode qubo optimal config to x config
+		VectorInt quboToXvector(long long int measurement, int nbQubits);
 		VectorInt quboToXvector(std::string measurement);
 		VectorInt quboToXvector(bool* measurement, int n);
 

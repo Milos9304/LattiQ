@@ -63,23 +63,63 @@ int main(int ac, char** av){
 	//std::vector<DiagonalHamiltonian> gramiams = generateDiagonalExtensive(param);
 	n=1;m=3;
 	GeneratorParam param(n,m);
-	std::vector<Hamiltonian> gramiams = generateQaryUniform(param);
+	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
 
-	for(auto G : gramiams){
+	//int ppp=0;
+	for(auto w : gramian_wrappers){
+
+		//if(ppp++!=30)
+		//	continue;
+
+		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
+		std::string name = w.name;
 
 		FastVQA::Qaoa qaoa_instance;
-		Lattice l(G, "name");
+		Lattice l(G, name);
 		std::cerr<<"G"<<G<<"\n";
 		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
-		std::cerr<<"NEEEW\n";
+		int nbQubits=h.nbQubits;
+
 		accelerator.initialize(&h);
+		FastVQA::RefEnergies solutions = accelerator.getSolutions();
 
-		if(save_eigenspace->is_set()){
-			saveEigenspaceToFile("name", accelerator.getEigenspace());
+		std::cerr<<"q="<<w.K<<"\n\n";
+		//std::cerr<<"G="<<G<<"\n";
+		for(auto &sol: solutions){
 
+			//energy index
+			qreal energy = std::get<0>(sol);
+			long long int index = std::get<1>(sol);
+			//std::cerr<<index<<"    "<<energy<<"\n";
+			VectorInt solVectFromAcc = l.quboToXvector(index, nbQubits);
+			Eigen::Vector<int, Eigen::Dynamic> solVect(solVectFromAcc.size());
+			for(int i = 0; i < solVectFromAcc.size(); ++i){
+				solVect[i] = solVectFromAcc[i].get_si();
+				//std::cerr<<solVectFromAcc[i]<<" ";
+			}
+
+			Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> r = solVect.transpose() * (G * solVect);
+			assert(r.rows() == 1 && r.cols() == 1);
+			if(r(0,0) != energy){
+				std::stringstream ss;
+				ss << "Problem with energy evaluation! x="<<solVect.transpose()<<"\nG=\n"<<G<<"\nx^TGx="<<r(0,0)<<" while the expected minimum is "<<energy;
+				//throw_runtime_error(ss.str());
+				std::cerr<<ss.str()<<"\n";
+			}else
+				std::cerr<<"E: "<<energy<<" SOLUTION FOUND: "<<solVect.transpose()<<"\n";
+			//auto p = solVectT*G;
+			//std::cerr<<"\n"<<r;//*solVect<<"\n";
+			//std::cerr<<"\ni: "<<index<<"\n";
+			//std::cerr<<"e: "<<energy<<"\n";
+
+			//break;
 		}
 
-		break;
+		if(save_eigenspace->is_set()){
+			saveEigenspaceToFile(name+"_espace", accelerator.getEigenspace());
+		}
+
+
 
 		/*FastVQA::Qaoa qaoa_instance;
 		Lattice l(G, "name");

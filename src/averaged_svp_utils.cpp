@@ -57,10 +57,63 @@ Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> randomVectors(int size, int l
 	return A;
 }
 
+InstanceGenerator generateQaryUniformFPLLLWay = [](GeneratorParam param){
+	if(param.__diagonal)
+			throw_runtime_error("Invalid Generator param instance");
+		std::vector<HamiltonianWrapper> res;
+
+	int n = param.n;
+	int m = param.m;
+
+	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A=randomVectors((m-n)*n, 0, param.q);
+
+	int counter = 0;
+	for(auto row: A.rowwise()){
+		Hamiltonian G(m,m);
+		int i, j;
+		  /*if (c != r || k > r)
+		  {
+			FPLLL_ABORT("gen_qary called on an ill-formed matrix");
+			return;
+		  }*/
+
+		  for (i = 0; i < m - n; i++)
+			for (j = 0; j < m - n; j++)
+			  G(i,j) = 0;
+
+		  for (i = 0; i < m - n; i++)
+			  G(i,i) = 1;
+
+		  for (i = 0; i < m - n; i++)
+			for (j = m - n; j < m; j++){
+				//G(i,j).randm(q);
+				//std::cerr<<i*n+j-(m-n)<<" ";
+				G(i,j)=row(i*n+j-(m-n));
+			}//std::cerr<<"\n";
+
+		  for (i = m - n; i < m; i++)
+			for (j = 0; j < m; j++)
+				G(i,j) = 0;
+
+		  for (i = m - n; i < m; i++)
+			  G(i,i) = param.q;
+		//ZZ_mat<mpz_t> m;
+		//m.resize(d, d);
+		  //std::cerr<<G<<"\n\n";
+		 HamiltonianWrapper HW = HamiltonianWrapper(G*G.transpose(),std::to_string(param.q)+"-ary_"+std::to_string(n)+"x"+std::to_string(m)+"_"+std::to_string(counter));
+		  HW.K=G; //DELETE
+		 res.push_back(HW);
+		 counter++;
+	}
+	return res;
+
+};
+
+
 InstanceGenerator generateQaryUniform = [](GeneratorParam param){
 	if(param.__diagonal)
 		throw_runtime_error("Invalid Generator param instance");
-	std::vector<Hamiltonian> res;
+	std::vector<HamiltonianWrapper> res;
 
 	int n = param.n;
 	int m = param.m;
@@ -69,6 +122,7 @@ InstanceGenerator generateQaryUniform = [](GeneratorParam param){
 	auto id = Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic>::Identity(m-n,m-n);
 
 	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A = randomVectors(n*(m-n), 0, param.q-1);
+	int i = 0;
 	for(auto row: A.rowwise()){
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> K = row.reshaped(n,(m-n));
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> KT=K.transpose();
@@ -77,7 +131,10 @@ InstanceGenerator generateQaryUniform = [](GeneratorParam param){
 		G.block(0,n,n,m-n)=K;
 		G.block(n,0,m-n,n)=KT;
 		G.block(n,n,m-n,m-n)=id;
-		res.push_back(G);
+		HamiltonianWrapper HW = HamiltonianWrapper(G.transpose(),std::to_string(param.q)+"-ary_"+std::to_string(n)+"x"+std::to_string(m)+"_"+std::to_string(i));
+		HW.K=K;
+		res.push_back(HW);
+		i++;
 	}
 
 	return res;

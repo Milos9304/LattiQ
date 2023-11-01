@@ -13,6 +13,17 @@
 typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> Hamiltonian;
 typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;
 
+class HamiltonianWrapper{
+public:
+	std::string name;
+	Hamiltonian hamiltonian;
+	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> K;
+	HamiltonianWrapper(Hamiltonian hamiltonian, std::string name){
+		this->hamiltonian=hamiltonian;
+		this->name=name;
+	}
+};
+
 #include "io/logger.h"
 
 struct GeneratorParam{
@@ -51,11 +62,12 @@ struct GeneratorParam{
 		bool __diagonal;
 };
 typedef std::function<std::vector<DiagonalHamiltonian>(GeneratorParam)> DiagonalInstanceGenerator;
-typedef std::function<std::vector<Hamiltonian>(GeneratorParam)> InstanceGenerator;
+typedef std::function<std::vector<HamiltonianWrapper>(GeneratorParam)> InstanceGenerator;
 
 extern DiagonalInstanceGenerator generateDiagonalUniform;
 extern DiagonalInstanceGenerator generateDiagonalExtensive;
 extern InstanceGenerator generateQaryUniform;
+extern InstanceGenerator generateQaryUniformFPLLLWay;
 
 void calculateAverage(int n, DiagonalHamiltonian*);
 

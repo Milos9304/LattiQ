@@ -103,8 +103,6 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 
 		counter++;
 		}
-		if(print)
-				expression_penalized->print();
 
 		//add z_n=1, z_n-1=x_n-1
 		expression_penalized->substituteVarToDouble(zn_id, 1);

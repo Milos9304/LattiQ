@@ -8,6 +8,7 @@
 #include "lattice.h"
 #include "fplll/pruner/pruner.h"
 #include <cmath>
+#include <bitset>
 
 #define log_pi 1.1447298858494
 
@@ -101,25 +102,32 @@ VectorInt Lattice::quboToXvector(std::string measurement){
 	for (int i = 0; i < n; ++i) {
 		int varId = qbit_to_varId_map[i];
 
+		//std::cerr<<i<<"-th qubit has " << expression_penalized->getName(varId)<<"\n";
 		if(expression_penalized->getName(varId)[0] != 'z'){
 			penalized_varId_map[varId] = measurement[n-1-i]-'0';
+			//std::cerr<<expression_penalized->getName(varId)<<" gets " << measurement[n-1-i]-'0'<<"\n";
 		}
 
 	}
-
+	//std::cerr<<"in X:\n";
 	VectorInt res;
 	for(auto &x: x_ids){
 
 		mpq_class val = 0;
 		for(auto &id_val:int_to_bin_map[x]){
-			val += id_val.second * penalized_varId_map[id_val.first]; //binary var times its coeff
+			if(id_val.first == -1){ //lower bound
+				val += id_val.second;
+			}else{
+				val += id_val.second * penalized_varId_map[id_val.first]; //binary var times its coeff
+			}
+			//std::cerr<<"val: "<<val<<"\n";
 		}
 
 		if(val.get_den() != 1){
 			stringstream ss;
 			ss << "Lattice::quboToXvector: decimal " << val << " to int conversion\n";
 		}
-
+		//std::cerr<<"pushing "<<val<<"\n";
 		res.push_back(mpz_class(val));
 
 
@@ -158,4 +166,13 @@ VectorInt Lattice::quboToXvector(bool* measurement, int n){
 	}
 	return res;
 }
+
+VectorInt Lattice::quboToXvector(long long int measurement, int nbQubits){
+	std::string binary = std::bitset<100>(measurement).to_string();
+	binary=binary.substr(binary.size() - nbQubits);
+	std::reverse(binary.begin(), binary.end());
+	//std::cerr<<"M:"<<measurement<<" "<<nbQubits<<" "<<binary<<"\n";
+	return quboToXvector(binary);
+}
+
 
