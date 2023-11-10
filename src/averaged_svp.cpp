@@ -12,7 +12,7 @@ int main(int ac, char** av){
 
 	OptionParser op("Allowed options");
 	auto help_option     = op.add<Switch>("h", "help", "produce help message");
-	auto n_opt		     = op.add<Value<int>>("n", "", "", 3);
+	auto n_opt		     = op.add<Value<int>>("n", "", "", 1);
 	auto m_opt		     = op.add<Value<int>>("m", "", "", 3);
 	auto log_level       = op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 1);
 	auto print_hml       = op.add<Switch>("", "print_hml", "print calculated hamiltonian expression");
@@ -48,6 +48,8 @@ int main(int ac, char** av){
 	qaoaOptions.max_iters = niters->value();
 	qaoaOptions.optimizer = &optimizer;
 	qaoaOptions.accelerator = &accelerator;
+	qaoaOptions.nbSamples_calcVarAssignment=1000;
+	qaoaOptions.p = 1;
 	//DiagonalHamiltonian h;
 	//calculateAverage(n, &h);
 
@@ -61,36 +63,36 @@ int main(int ac, char** av){
 
 	//GeneratorParam param(n);
 	//std::vector<DiagonalHamiltonian> gramiams = generateDiagonalExtensive(param);
-	n=1;m=3;
+
 	GeneratorParam param(n,m);
 	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
 
-	//int ppp=0;
+	int counter=0;
 	for(auto w : gramian_wrappers){
-
-		//if(ppp++!=30)
-		//	continue;
+		std::cerr<<100*float(counter++)/gramian_wrappers.size()<<"\%\n";
 
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
 		std::string name = w.name;
 
 		FastVQA::Qaoa qaoa_instance;
 		Lattice l(G, name);
-		std::cerr<<"G"<<G<<"\n";
+		//std::cerr<<"G"<<G<<"\n";
 		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
 		int nbQubits=h.nbQubits;
 
 		accelerator.initialize(&h);
 		FastVQA::RefEnergies solutions = accelerator.getSolutions();
 
-		std::cerr<<"q="<<w.K<<"\n\n";
+
+
+		//std::cerr<<"q="<<w.K<<"\n\n";
 		//std::cerr<<"G="<<G<<"\n";
 		for(auto &sol: solutions){
 
 			//energy index
 			qreal energy = std::get<0>(sol);
 			long long int index = std::get<1>(sol);
-			//std::cerr<<index<<"    "<<energy<<"\n";
+			std::cerr<<index<<"    "<<energy<<"\n";
 			VectorInt solVectFromAcc = l.quboToXvector(index, nbQubits);
 			Eigen::Vector<int, Eigen::Dynamic> solVect(solVectFromAcc.size());
 			for(int i = 0; i < solVectFromAcc.size(); ++i){
@@ -105,8 +107,9 @@ int main(int ac, char** av){
 				ss << "Problem with energy evaluation! x="<<solVect.transpose()<<"\nG=\n"<<G<<"\nx^TGx="<<r(0,0)<<" while the expected minimum is "<<energy;
 				//throw_runtime_error(ss.str());
 				std::cerr<<ss.str()<<"\n";
-			}else
-				std::cerr<<"E: "<<energy<<" SOLUTION FOUND: "<<solVect.transpose()<<"\n";
+			}else{
+				//std::cerr<<"E: "<<energy<<" SOLUTION FOUND: "<<solVect.transpose()<<"\n";
+			}
 			//auto p = solVectT*G;
 			//std::cerr<<"\n"<<r;//*solVect<<"\n";
 			//std::cerr<<"\ni: "<<index<<"\n";
@@ -115,18 +118,18 @@ int main(int ac, char** av){
 			//break;
 		}
 
+		FastVQA::ExperimentBuffer buffer;
+		qaoa_instance.run_qaoa(&buffer, &h, &qaoaOptions);
+
 		if(save_eigenspace->is_set()){
 			saveEigenspaceToFile(name+"_espace", accelerator.getEigenspace());
 		}
 
 
 
-		/*FastVQA::Qaoa qaoa_instance;
-		Lattice l(G, "name");
-		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
-		std::cerr<<"NEEEW\n";
-		accelerator.initialize(&h);
-		break;*/
+
+
+
 	}
 
 

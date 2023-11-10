@@ -120,7 +120,8 @@ VectorInt Lattice::quboToXvector(std::string measurement){
 			}else{
 				val += id_val.second * penalized_varId_map[id_val.first]; //binary var times its coeff
 			}
-			//std::cerr<<"val: "<<val<<"\n";
+			//std::cerr<<expression_penalized->getName(id_val.first)<<"\n";
+			//std::cerr<<"val: "<<id_val.second<<"\n";
 		}
 
 		if(val.get_den() != 1){
