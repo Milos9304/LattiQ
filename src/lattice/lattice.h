@@ -168,6 +168,8 @@ class Lattice {
 		//classical state that corresponds to zero eigen-value of Hamiltonian
 		std::vector<long long unsigned int> getZeroReferenceStates();
 
+		void outputGramianToFile(std::string filename);
+
 		//xacc::quantum::PauliOperator getHamiltonian(MapOptions* options);
 
 	private:

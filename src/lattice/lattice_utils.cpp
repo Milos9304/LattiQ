@@ -9,6 +9,7 @@
 #include "fplll/pruner/pruner.h"
 #include <cmath>
 #include <bitset>
+#include <fstream>
 
 #define log_pi 1.1447298858494
 
@@ -175,5 +176,19 @@ VectorInt Lattice::quboToXvector(long long int measurement, int nbQubits){
 	//std::cerr<<"M:"<<measurement<<" "<<nbQubits<<" "<<binary<<"\n";
 	return quboToXvector(binary);
 }
+
+void Lattice::outputGramianToFile(std::string filename){
+	std::ofstream f;
+		f.open(filename+".gram");
+		if(!gramian)
+			loge("outputGramianToFile not implemented for this case");
+		if(gramian_diag)
+			f << diagonalGramian;
+		else
+			f << nonDiagGramian;
+		f << gramian;
+		f.close();
+}
+
 
 

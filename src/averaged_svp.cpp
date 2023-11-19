@@ -19,7 +19,8 @@ int main(int ac, char** av){
 	auto niters          = op.add<Value<int>>("i", "iters", "max num of iterations", 1000);
 	auto qubits_per_x    = op.add<Value<int>>("q", "", "qubits per x for uniform assignment (-1 means disabled)", -1);
 	auto absolute_bound  = op.add<Value<int>>("e", "", "exponent bound for each coefficient, i.e. |x_i|<=2^e (-1 means disabled)", -1);
-	auto penalty         = op.add<Value<int>>("p", "penalty", "penalty", 100);
+	auto qaoadepth       = op.add<Value<int>>("p", "depth", "qaoa depth", 1);
+	auto penalty         = op.add<Value<int>>("l", "penalty", "penalty", 100);
 	auto save_eigenspace = op.add<Switch>("", "espace", "save eigenspace to file");
 
 	op.parse(ac, av);
@@ -49,7 +50,7 @@ int main(int ac, char** av){
 	qaoaOptions.optimizer = &optimizer;
 	qaoaOptions.accelerator = &accelerator;
 	qaoaOptions.nbSamples_calcVarAssignment=1000;
-	qaoaOptions.p = 1;
+	qaoaOptions.p = qaoadepth->value();
 	//DiagonalHamiltonian h;
 	//calculateAverage(n, &h);
 
@@ -67,18 +68,28 @@ int main(int ac, char** av){
 	GeneratorParam param(n,m);
 	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
 
+	std::vector<double> hit_rates;
+
 	int counter=0;
 	for(auto w : gramian_wrappers){
-		std::cerr<<100*float(counter++)/gramian_wrappers.size()<<"\%\n";
+
+		if(log_level->value() < 2){
+			std::cerr<<100*float(counter++)/gramian_wrappers.size()<<"\%\n";
+		}
 
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
 		std::string name = w.name;
 
 		FastVQA::Qaoa qaoa_instance;
 		Lattice l(G, name);
+
 		//std::cerr<<"G"<<G<<"\n";
 		FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
 		int nbQubits=h.nbQubits;
+		//std::cerr<<"qs: "<<nbQubits<<"\n";
+
+		//l.outputGramianToFile(name);
+		h.to_ising_file(name);
 
 		accelerator.initialize(&h);
 		FastVQA::RefEnergies solutions = accelerator.getSolutions();
@@ -87,12 +98,14 @@ int main(int ac, char** av){
 
 		//std::cerr<<"q="<<w.K<<"\n\n";
 		//std::cerr<<"G="<<G<<"\n";
+		qreal energy = std::get<0>(solutions[0]);
 		for(auto &sol: solutions){
 
 			//energy index
-			qreal energy = std::get<0>(sol);
+			if(energy != std::get<0>(sol))
+				logw("An outcome with different energy marked as a solution!");
 			long long int index = std::get<1>(sol);
-			std::cerr<<index<<"    "<<energy<<"\n";
+			//std::cerr<<index<<"    "<<energy<<"\n";
 			VectorInt solVectFromAcc = l.quboToXvector(index, nbQubits);
 			Eigen::Vector<int, Eigen::Dynamic> solVect(solVectFromAcc.size());
 			for(int i = 0; i < solVectFromAcc.size(); ++i){
@@ -120,18 +133,26 @@ int main(int ac, char** av){
 
 		FastVQA::ExperimentBuffer buffer;
 		qaoa_instance.run_qaoa(&buffer, &h, &qaoaOptions);
+		if(buffer.opt_val != energy){
+			logw("Solution returned has incorrect energy");
+		}
+		for(auto &param: buffer.initial_params){
+			std::cerr<<std::get<0>(param)<<" "<<std::get<1>(param)<<"\n";
+		}
+
+		hit_rates.push_back(buffer.getTotalHitRate());
 
 		if(save_eigenspace->is_set()){
 			saveEigenspaceToFile(name+"_espace", accelerator.getEigenspace());
 		}
-
-
-
-
-
-
+		break;
 	}
 
+	double sum=0;
+	for(auto &hr : hit_rates){
+		sum+=hr;
+	}
+	std::cerr<<sum/hit_rates.size()<<"\n";
 
 	return 0;
 }
