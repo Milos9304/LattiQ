@@ -1,5 +1,6 @@
 #include "averaged_svp.h"
 #include "lattice/lattice.h"
+#include "experiment_runner.h"
 
 #include "popl.hpp"
 
@@ -11,17 +12,18 @@ int main(int ac, char** av){
 	int loglevel = 0;
 
 	OptionParser op("Allowed options");
-	auto help_option     = op.add<Switch>("h", "help", "produce help message");
-	auto n_opt		     = op.add<Value<int>>("n", "", "", 1);
-	auto m_opt		     = op.add<Value<int>>("m", "", "", 3);
-	auto log_level       = op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 1);
-	auto print_hml       = op.add<Switch>("", "print_hml", "print calculated hamiltonian expression");
-	auto niters          = op.add<Value<int>>("i", "iters", "max num of iterations", 1000);
-	auto qubits_per_x    = op.add<Value<int>>("q", "", "qubits per x for uniform assignment (-1 means disabled)", -1);
-	auto absolute_bound  = op.add<Value<int>>("e", "", "exponent bound for each coefficient, i.e. |x_i|<=2^e (-1 means disabled)", -1);
-	auto qaoadepth       = op.add<Value<int>>("p", "depth", "qaoa depth", 1);
-	auto penalty         = op.add<Value<int>>("l", "penalty", "penalty", 100);
-	auto save_eigenspace = op.add<Switch>("", "espace", "save eigenspace to file");
+	auto help_option      = op.add<Switch>("h", "help", "produce help message");
+	auto n_opt		      = op.add<Value<int>>("n", "", "", 1);
+	auto m_opt		      = op.add<Value<int>>("m", "", "", 3);
+	auto log_level        = op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 1);
+	auto print_hml        = op.add<Switch>("", "print_hml", "print calculated hamiltonian expression");
+	auto niters           = op.add<Value<int>>("i", "iters", "max num of iterations", 1000);
+	auto qubits_per_x     = op.add<Value<int>>("q", "", "qubits per x for uniform assignment (-1 means disabled)", -1);
+	auto absolute_bound   = op.add<Value<int>>("e", "", "exponent bound for each coefficient, i.e. |x_i|<=2^e (-1 means disabled)", -1);
+	auto qaoadepth        = op.add<Value<int>>("p", "depth", "qaoa depth", 1);
+	auto penalty          = op.add<Value<int>>("l", "penalty", "penalty", 100);
+	auto save_eigenspace  = op.add<Switch>("", "espace", "save eigenspace to file");
+	auto param_experiment = op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
 
 	op.parse(ac, av);
 	if (help_option->is_set()){
@@ -34,6 +36,15 @@ int main(int ac, char** av){
 
 	if((qubits_per_x->value() == -1 && absolute_bound->value()==-1) || (qubits_per_x->value() != -1 && absolute_bound->value() !=-1)){
 		throw_runtime_error("Exactly one of 'qubits_per_x' or 'absolute_bound' must be set.");
+	}
+
+	ExperimentSetup experimentSetup;
+
+	if(param_experiment->value() > 0){
+		experimentSetup.experiment_type = "manyParams";
+		experimentSetup.num_rand_params=param_experiment->value();
+	}else{
+		experimentSetup.experiment_type = "singleInstance";
 	}
 
 	FastVQA::AcceleratorOptions acceleratorOptions;
@@ -51,6 +62,8 @@ int main(int ac, char** av){
 	qaoaOptions.accelerator = &accelerator;
 	qaoaOptions.nbSamples_calcVarAssignment=1000;
 	qaoaOptions.p = qaoadepth->value();
+	qaoaOptions.ftol = 10e-10;
+	long long int max_iters = 0;
 	//DiagonalHamiltonian h;
 	//calculateAverage(n, &h);
 
@@ -80,7 +93,6 @@ int main(int ac, char** av){
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
 		std::string name = w.name;
 
-		FastVQA::Qaoa qaoa_instance;
 		Lattice l(G, name);
 
 		//std::cerr<<"G"<<G<<"\n";
@@ -93,8 +105,6 @@ int main(int ac, char** av){
 
 		accelerator.initialize(&h);
 		FastVQA::RefEnergies solutions = accelerator.getSolutions();
-
-
 
 		//std::cerr<<"q="<<w.K<<"\n\n";
 		//std::cerr<<"G="<<G<<"\n";
@@ -131,7 +141,12 @@ int main(int ac, char** av){
 			//break;
 		}
 
-		FastVQA::ExperimentBuffer buffer;
+		experimentSetup.qaoaOptions = &qaoaOptions;
+		experimentSetup.hamiltonian = &h;
+		experimentSetup.minimum_energy = energy;
+		experiment_runner(&experimentSetup, name);
+
+		/*FastVQA::ExperimentBuffer buffer;
 		qaoa_instance.run_qaoa(&buffer, &h, &qaoaOptions);
 		if(buffer.opt_val != energy){
 			logw("Solution returned has incorrect energy");
@@ -140,7 +155,7 @@ int main(int ac, char** av){
 			std::cerr<<std::get<0>(param)<<" "<<std::get<1>(param)<<"\n";
 		}
 
-		hit_rates.push_back(buffer.getTotalHitRate());
+		hit_rates.push_back(buffer.getTotalHitRate());*/
 
 		if(save_eigenspace->is_set()){
 			saveEigenspaceToFile(name+"_espace", accelerator.getEigenspace());
