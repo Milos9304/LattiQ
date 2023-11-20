@@ -38,12 +38,13 @@ file(GLOB SRC_ORIG_AVERAGEDSVP
     ${PROJECT_SOURCE_DIR}/src/lattice/lattice_utils.cpp
 	${PROJECT_SOURCE_DIR}/src/averaged_svp.cpp
 	${PROJECT_SOURCE_DIR}/src/averaged_svp_utils.cpp
+	${PROJECT_SOURCE_DIR}/src/experiment_runner.cpp
 )
        
 add_subdirectory(src)
        
 add_executable(${PROJECT_NAME} ${SRC_ORIG})
-add_executable(averagedSvp ${SRC_ORIG_AVERAGEDSVP})
+add_executable(averagedSvp ${SRC_ORIG_AVERAGEDSVP} ${PROJECT_SOURCE_DIR}/src/experiment_runner.cpp)
 
 
 include_directories(
