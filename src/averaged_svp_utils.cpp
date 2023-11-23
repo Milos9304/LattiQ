@@ -69,7 +69,7 @@ InstanceGenerator generateQaryUniformFPLLLWay = [](GeneratorParam param){
 
 	int counter = 0;
 	for(auto row: A.rowwise()){
-		Hamiltonian G(m,m);
+		Hamiltonian GT(m,m);
 		int i, j;
 		  /*if (c != r || k > r)
 		  {
@@ -79,29 +79,32 @@ InstanceGenerator generateQaryUniformFPLLLWay = [](GeneratorParam param){
 
 		  for (i = 0; i < m - n; i++)
 			for (j = 0; j < m - n; j++)
-			  G(i,j) = 0;
+			  GT(m-i-1,m-j-1) = 0;
 
 		  for (i = 0; i < m - n; i++)
-			  G(i,i) = 1;
+			  GT(m-i-1,m-i-1) = 1;
 
 		  for (i = 0; i < m - n; i++)
 			for (j = m - n; j < m; j++){
 				//G(i,j).randm(q);
 				//std::cerr<<i*n+j-(m-n)<<" ";
-				G(i,j)=row(i*n+j-(m-n));
+				GT(m-i-1,m-j-1)=row(i*n+j-(m-n));
 			}//std::cerr<<"\n";
 
 		  for (i = m - n; i < m; i++)
 			for (j = 0; j < m; j++)
-				G(i,j) = 0;
+				GT(m-i-1,m-j-1) = 0;
 
 		  for (i = m - n; i < m; i++)
-			  G(i,i) = param.q;
+			  GT(m-i-1,m-i-1) = param.q;
 		//ZZ_mat<mpz_t> m;
 		//m.resize(d, d);
-		  //std::cerr<<G<<"\n\n";
-		 HamiltonianWrapper HW = HamiltonianWrapper(G*G.transpose(),std::to_string(param.q)+"-ary_"+std::to_string(n)+"x"+std::to_string(m)+"_"+std::to_string(counter));
-		  HW.K=G; //DELETE
+		 std::cerr<<"GT:"<<GT<<"\n";
+		 std::cerr<<"G:"<<GT.transpose()<<"\n";
+		 auto H=GT*GT.transpose();
+		 std::cerr<<"H:"<<H<<"\n\n";
+		 HamiltonianWrapper HW = HamiltonianWrapper(GT*GT.transpose(),std::to_string(param.q)+"-ary_"+std::to_string(n)+"x"+std::to_string(m)+"_"+std::to_string(counter));
+		  HW.K=GT; //DELETE
 		 res.push_back(HW);
 		 counter++;
 	}
@@ -127,11 +130,11 @@ InstanceGenerator generateQaryUniform = [](GeneratorParam param){
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> K = row.reshaped(n,(m-n));
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> KT=K.transpose();
 		Hamiltonian G(m,m);
-		G.block(0,0,n,n)=qid+K*KT;
+		G.block(0,0,n,n)=qid;
 		G.block(0,n,n,m-n)=K;
 		G.block(n,0,m-n,n)=KT;
-		G.block(n,n,m-n,m-n)=id;
-		HamiltonianWrapper HW = HamiltonianWrapper(G.transpose(),std::to_string(param.q)+"-ary_"+std::to_string(n)+"x"+std::to_string(m)+"_"+std::to_string(i));
+		G.block(n,n,m-n,m-n)=id+KT*K;
+		HamiltonianWrapper HW = HamiltonianWrapper(G,std::to_string(param.q)+"-ary_"+std::to_string(n)+"x"+std::to_string(m)+"_"+std::to_string(i));
 		HW.K=K;
 		res.push_back(HW);
 		i++;

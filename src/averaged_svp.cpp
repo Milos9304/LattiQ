@@ -79,7 +79,12 @@ int main(int ac, char** av){
 	//std::vector<DiagonalHamiltonian> gramiams = generateDiagonalExtensive(param);
 
 	GeneratorParam param(n,m);
-	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
+	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);//generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
+	//for(auto &hw: gramian_wrappers){
+	//	std::cerr<<hw.hamiltonian<<"\n\n";
+	//}
+	//return 0;
+
 
 	std::vector<double> hit_rates;
 
@@ -101,7 +106,7 @@ int main(int ac, char** av){
 		//std::cerr<<"qs: "<<nbQubits<<"\n";
 
 		//l.outputGramianToFile(name);
-		h.to_ising_file(name);
+		//h.to_ising_file(name);
 
 		accelerator.initialize(&h);
 		FastVQA::RefEnergies solutions = accelerator.getSolutions();
