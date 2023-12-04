@@ -86,6 +86,14 @@ class Lattice {
 
 	long long int svLenSquared;
 
+		Lattice(std::string s, MapOptions* mapOptions){
+			if(s!="variable_test")
+				throw_runtime_error("Invalid lattice initialization");
+
+     		this -> expression_int = new FastVQA::Expression("expression_int");
+			this -> __single_variable_test(mapOptions);
+		}
+
 		Lattice(MatrixInt lattice, std::string name = "", int reduced_rank=0){ // @suppress("Class members should be properly initialized")
 
 			this -> n_rows = lattice.get_rows();
@@ -191,7 +199,7 @@ class Lattice {
 		std::map<int, int> qbit_to_varId_map;
 
 		bool x_initialized = false;
-		void init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int exponent_bound, bool print=false);
+		void init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int exponent_bound, bool print=false, bool testing_single_var=false);
 
 		std::vector<int> x_ids;
 		std::map<int, std::map<int, mpq_class>> int_to_bin_map;
@@ -213,6 +221,8 @@ class Lattice {
 		void calcHamiltonian(MapOptions* options, bool print);
 
 		mpq_class calculate_gh_squared(MatrixInt* lattice);
+
+		void __single_variable_test(MapOptions*);
 
 };
 

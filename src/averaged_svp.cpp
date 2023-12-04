@@ -1,6 +1,7 @@
 #include "averaged_svp.h"
 #include "lattice/lattice.h"
 #include "experiment_runner.h"
+#include "test_runner.h"
 
 #include "popl.hpp"
 
@@ -12,18 +13,21 @@ int main(int ac, char** av){
 	int loglevel = 0;
 
 	OptionParser op("Allowed options");
-	auto help_option      = op.add<Switch>("h", "help", "produce help message");
-	auto n_opt		      = op.add<Value<int>>("n", "", "", 1);
-	auto m_opt		      = op.add<Value<int>>("m", "", "", 3);
-	auto log_level        = op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 1);
-	auto print_hml        = op.add<Switch>("", "print_hml", "print calculated hamiltonian expression");
-	auto niters           = op.add<Value<int>>("i", "iters", "max num of iterations", 1000);
-	auto qubits_per_x     = op.add<Value<int>>("q", "", "qubits per x for uniform assignment (-1 means disabled)", -1);
-	auto absolute_bound   = op.add<Value<int>>("e", "", "exponent bound for each coefficient, i.e. |x_i|<=2^e (-1 means disabled)", -1);
-	auto qaoadepth        = op.add<Value<int>>("p", "depth", "qaoa depth", 1);
-	auto penalty          = op.add<Value<int>>("l", "penalty", "penalty", 100);
-	auto save_eigenspace  = op.add<Switch>("", "espace", "save eigenspace to file");
-	auto param_experiment = op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
+	auto help_option     		= op.add<Switch>("h", "help", "produce help message");
+	auto n_opt		     		= op.add<Value<int>>("n", "", "", 1);
+	auto m_opt		    		= op.add<Value<int>>("m", "", "", 3);
+	auto log_level     		  	= op.add<Value<int>>("", "loglevel", "0 - debug, 1 - info, 2 - warning, 3 - error", 1);
+	auto print_hml      		= op.add<Switch>("", "print_hml", "print calculated hamiltonian expression");
+	auto niters        	 		= op.add<Value<int>>("i", "iters", "max num of iterations", 1000);
+	auto qubits_per_x    		= op.add<Value<int>>("q", "", "qubits per x for uniform assignment (-1 means disabled)", -1);
+	auto absolute_bound	 		= op.add<Value<int>>("e", "", "exponent bound for each coefficient, i.e. |x_i|<=2^e (-1 means disabled)", -1);
+	auto qaoadepth      		= op.add<Value<int>>("p", "depth", "qaoa depth", 1);
+	auto penalty         		= op.add<Value<int>>("l", "penalty", "penalty", 100);
+	auto save_eigenspace  		= op.add<Switch>("", "espace", "save eigenspace to file");
+	auto param_experiment 		= op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
+	auto angle_search	  		= op.add<Switch>("a", "anglesearch", "run the angle search experiment");
+	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
+
 
 	op.parse(ac, av);
 	if (help_option->is_set()){
@@ -38,16 +42,7 @@ int main(int ac, char** av){
 		throw_runtime_error("Exactly one of 'qubits_per_x' or 'absolute_bound' must be set.");
 	}
 
-	ExperimentSetup experimentSetup;
-
-	if(param_experiment->value() > 0){
-		experimentSetup.experiment_type = "manyParams";
-		experimentSetup.num_rand_params=param_experiment->value();
-	}else{
-		experimentSetup.experiment_type = "singleInstance";
-	}
-
-	FastVQA::AcceleratorOptions acceleratorOptions;
+		FastVQA::AcceleratorOptions acceleratorOptions;
 	acceleratorOptions.accelerator_type = "quest";
 	acceleratorOptions.log_level = log_level->value();
 
@@ -72,18 +67,41 @@ int main(int ac, char** av){
 	mapOptions.num_qbits_per_x = qubits_per_x->value();
 	mapOptions.absolute_bound = absolute_bound->value();
 	mapOptions.pen_mode = MapOptions::penalty_all;
-	mapOptions.bin_map = MapOptions::zeta_omega_exact;
+	mapOptions.bin_map = penalty->value() > 0 ? MapOptions::zeta_omega_exact : MapOptions::naive_overapprox;
 	mapOptions.penalty = penalty->value();
 
 	//GeneratorParam param(n);
 	//std::vector<DiagonalHamiltonian> gramiams = generateDiagonalExtensive(param);
 
-	GeneratorParam param(n,m);
-	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);//generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
+
 	//for(auto &hw: gramian_wrappers){
 	//	std::cerr<<hw.hamiltonian<<"\n\n";
 	//}
 	//return 0;
+
+	ExperimentSetup experimentSetup;
+	if(test_variable_subst->is_set()){
+		test_variable_substitution(&mapOptions);
+		return 0;
+	}else if(angle_search->is_set()){
+		logi("Running angleSearch experiment");
+		experimentSetup.experiment_type = "angleSearch";
+
+		AngleSearchExperiment angleSearchExp;
+
+		angleSearchExp.run();
+
+		return 0;
+	}else if(param_experiment->value() > 0){
+		logi("Running manyParams experiment");
+		experimentSetup.experiment_type = "manyParams";
+		experimentSetup.num_rand_params=param_experiment->value();
+	}else{
+		experimentSetup.experiment_type = "singleInstance";
+	}
+
+	GeneratorParam param(7,n,m);
+	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);//generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
 
 
 	std::vector<double> hit_rates;

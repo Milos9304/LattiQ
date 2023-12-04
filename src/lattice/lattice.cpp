@@ -130,7 +130,14 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 }
 
 
-void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print){
+void Lattice::__single_variable_test(MapOptions* options){
+	init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, true, true);
+	init_expr_bin(options->bin_map, true);
+
+}
+
+
+void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print, bool testing_single_var){
 
 	Z_NR<mpz_t> coeff;
 
@@ -159,6 +166,13 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int abso
 			}
 		}
 	};
+
+	if(testing_single_var){
+		addVar(0);
+		expression_int->addNewTerm(-1, expression_int->getId("x"+std::to_string(0)), 1);
+		expression_int->print();
+		return;
+	}
 
 
 	for(int i = 0; i < n_rows; ++i){
@@ -256,7 +270,7 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 				subs_expr.emplace(id, pow(2, i));
 			}
 			if(mapping == MapOptions::zeta_omega_exact && (-lb)>1){
-				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(floor(log2((-lb)-1))));
+				int id = expression_bin->addBinaryVar(name + "_b"+std::to_string(int(floor(log2((-lb)-1)))));
 				subs_expr.emplace(id, -lb-pow(2,floor(log2((-lb)-1))));
 			}
 		}else{

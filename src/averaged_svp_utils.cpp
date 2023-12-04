@@ -21,40 +21,90 @@ void saveEigenspaceToFile(std::string filename, FastVQA::RefEnergies eigenspace)
 	else loge("Unable to create file " + filename);
 }
 
-Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> randomVectors(int size, int lb, int ub){
+Eigen::Vector<int, Eigen::Dynamic> convertFromBaseTo(int length, unsigned long long int convertFrom, int convertTo) {
+
+	Eigen::Vector<int, Eigen::Dynamic> answer(length);
+
+	int i = 0;
+    while (i < length){
+    	int digit = convertFrom % convertTo;
+        answer(length-(++i))=digit;
+        convertFrom /= convertTo;
+    }
+
+    return answer;
+}
+
+Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> randomVectors(int size, int lb, int ub, int cutoff=-1, int seed=0){
 
 	int delta = ub-lb+1;
 	int A_size = myPow(delta, size);
-	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A(A_size, size);
 
-	//int** A = (int**) malloc(A_size * sizeof(int*));
-	int** A_temp = (int**) malloc(A_size * sizeof(int*));
-	for(int i = 0; i < A_size; ++i){
-		//A[i] = (int*) malloc(size * sizeof(int));
-		A_temp[i] = (int*) malloc(size * sizeof(int));
-	}
-	for(int i = lb; i <= ub; ++i){
-		A(i-lb,0)=i;
-	}
-	for(int i = 0; i < size-1; ++i){
-		for(int j = 0; j < myPow(delta,(i+1)); ++j){
-			for(int z = 0; z < delta; ++z){
-				for(int x = 0; x < (i+1); ++x)
-					A_temp[j*delta+z][x]=A(j,x);
-				A_temp[j*delta+z][i+1]=z+lb;
+	if(cutoff < 0 || A_size <= cutoff){
+
+		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A(A_size, size);
+
+		//int** A = (int**) malloc(A_size * sizeof(int*));
+		int** A_temp = (int**) malloc(A_size * sizeof(int*));
+		for(int i = 0; i < A_size; ++i){
+			//A[i] = (int*) malloc(size * sizeof(int));
+			A_temp[i] = (int*) malloc(size * sizeof(int));
+		}
+
+		for(int i = lb; i <= ub; ++i){
+			A(i-lb,0)=i;
+		}
+
+		for(int i = 0; i < size-1; ++i){
+			for(int j = 0; j < myPow(delta,(i+1)); ++j){
+				for(int z = 0; z < delta; ++z){
+					for(int x = 0; x < (i+1); ++x)
+						A_temp[j*delta+z][x]=A(j,x);
+					A_temp[j*delta+z][i+1]=z+lb;
+				}
+			}
+			for(int j = 0; j < myPow(delta,(i+2)); ++j){
+				for(int z = 0; z < (i+2); ++z){
+					A(j,z)=A_temp[j][z];
+				}
 			}
 		}
-		for(int j = 0; j < myPow(delta,(i+2)); ++j){
-			for(int z = 0; z < (i+2); ++z){
-				A(j,z)=A_temp[j][z];
-			}
-		}
-	}
 
-	for(int i = 0; i < A_size; ++i){
-		free(A_temp[i]);
-	}free(A_temp);
-	return A;
+		for(int i = 0; i < A_size; ++i){
+			free(A_temp[i]);
+		}free(A_temp);
+		return A;
+	}else{ //return at most cutoff number of instances
+
+		if(lb != 0)
+			throw_runtime_error("LB=0 unimplemented");
+
+		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A(cutoff, size);
+
+		int lower = 0;
+		int upper = A_size-1;
+
+		// Create and seed the random number generator
+		auto gen = std::mt19937(seed);
+		auto dist = std::uniform_int_distribution<>(lower, upper);
+
+		bool colision;
+		for(int i = 0; i < cutoff; ++i){
+			colision = false;
+			Eigen::Vector<int, Eigen::Dynamic> rand_vect = convertFromBaseTo(size, dist(gen), delta);
+			for(int j = 0; j < i; ++j){
+				if(A.row(j).isApprox(rand_vect.transpose())){
+					i--;colision=true;break;
+				}
+			}
+			if(!colision)
+				A.row(i) = rand_vect;
+			if(A(i,0)>100){
+				std::cerr<<rand_vect<<std::endl;throw;}
+
+		}
+		return A;
+	}
 }
 
 InstanceGenerator generateQaryUniformFPLLLWay = [](GeneratorParam param){
@@ -124,7 +174,28 @@ InstanceGenerator generateQaryUniform = [](GeneratorParam param){
 	auto qid = param.q*param.q*Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic>::Identity(n,n);
 	auto id = Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic>::Identity(m-n,m-n);
 
-	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A = randomVectors(n*(m-n), 0, param.q-1);
+	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A;
+
+	if(param.cutoff < 0){
+
+		A = randomVectors(n*(m-n), 0, param.q-1, param.cutoff, param.seed);
+
+		for(auto row: A.rowwise()){
+			std::cerr<<row<<std::endl;
+		}throw;
+
+		if(param.shuffle){
+			std::mt19937 rand(param.seed);
+			Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic> permX(A.rows());
+			permX.setIdentity();
+			std::shuffle(permX.indices().data(), permX.indices().data()+permX.indices().size(), rand);
+			A = permX * A;   //shuffle row wise
+		}
+
+	}else{
+		A = randomVectors(n*(m-n), 0, param.q-1, param.cutoff, param.seed);
+	}
+
 	int i = 0;
 	for(auto row: A.rowwise()){
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> K = row.reshaped(n,(m-n));

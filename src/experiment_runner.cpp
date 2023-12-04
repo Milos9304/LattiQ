@@ -1,12 +1,44 @@
+#include "averaged_svp.h"
 #include "experiment_runner.h"
 #include "io/logger.h"
 #include <fstream>
+
+AngleSearchExperiment::AngleSearchExperiment(){
+	this->num_instances = pow(q,(m-n));
+	if(max_num_instances < this->num_instances)
+		this->num_instances = max_num_instances;
+	this->num_test_instances = this->num_instances * this->test_ratio;
+	this->num_train_instances = this->num_instances - this->num_test_instances;
+	logi("q="+std::to_string(q)+" "+"n="+std::to_string(n)+" "+"m="+std::to_string(m)+" : "+std::to_string(this->num_instances) + " instances");
+	logi("Test ratio="+std::to_string(this->test_ratio)+" "+"train_size="+std::to_string(this->num_train_instances)+" "+"test_size="+std::to_string(this->num_test_instances));
+
+	this->_generate_dataset();
+};
+
+void AngleSearchExperiment::_generate_dataset(){
+
+}
+
+void AngleSearchExperiment::run(){
+
+	int cutoff = 100;
+	GeneratorParam param(q, n, m, true, 97, cutoff);
+	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);
+
+	std::cerr<<gramian_wrappers.size()<<"\n";
+
+	for(int i = 0; i < cutoff; ++i)
+		std::cerr<<gramian_wrappers[i].hamiltonian<<std::endl;
+
+};
 
 void experiment_runner(ExperimentSetup* setup, std::string experiment_name){
 
 	FastVQA::Qaoa qaoa_instance;
 
-	if(setup->experiment_type == "manyParams"){
+	if(setup->experiment_type == "angleSearch"){
+		//this is handled by another function
+	}else if(setup->experiment_type == "manyParams"){
 
 		std::vector<std::vector<double>> results;
 

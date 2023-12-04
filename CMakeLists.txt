@@ -39,6 +39,7 @@ file(GLOB SRC_ORIG_AVERAGEDSVP
 	${PROJECT_SOURCE_DIR}/src/averaged_svp.cpp
 	${PROJECT_SOURCE_DIR}/src/averaged_svp_utils.cpp
 	${PROJECT_SOURCE_DIR}/src/experiment_runner.cpp
+	${PROJECT_SOURCE_DIR}/src/test_runner.cpp
 )
        
 add_subdirectory(src)

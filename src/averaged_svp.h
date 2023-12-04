@@ -37,11 +37,17 @@ struct GeneratorParam{
 	int num_instances = 100;
 
 	int n, m;
-	int q = 7;
+	int q;
 
-	GeneratorParam(int n){ //diagonal
+	bool shuffle;
+	int seed;
+
+	int cutoff = -1;
+
+	/*GeneratorParam(int q, int n, bool shuffle=false, int shuffle_seed=0){ //diagonal
 
 		this->__diagonal = true;
+		this->q = q;
 
 		if(n < 3)
 			throw_runtime_error("n should be larger than 2");
@@ -50,13 +56,23 @@ struct GeneratorParam{
 			throw_runtime_error("Invalid lambda values");
 
 		this->n = n;
-	}
 
-	GeneratorParam(int n, int m){ //nondiagonal
+		this->shuffle = shuffle;
+		this->shuffle_seed = shuffle_seed;
+	}*/
+
+	GeneratorParam(int q, int n, int m, bool shuffle=false, int shuffle_seed=0, int cutoff=-1){ //nondiagonal
 
 		this->__diagonal = false;
+		this->q = q;
 		this->n = n;
 		this->m = m;
+
+		this->shuffle = shuffle;
+		this->seed = shuffle_seed;
+
+		this->cutoff = cutoff;
+
 	}
 
 		bool __diagonal;
