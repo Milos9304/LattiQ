@@ -17,6 +17,7 @@ message(
 
 find_package(FastVQA)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Boost REQUIRED COMPONENTS system iostreams)
 
 find_package(MPI)
 if(MPI_FOUND AND DISTRIBUTED)
@@ -57,7 +58,11 @@ target_compile_definitions(${PROJECT_NAME}
     QuEST_PREC=4
 )
 
-target_link_libraries(averagedSvp fastVQA::FastVQA Eigen3::Eigen fplll gmpxx gmp)
+target_link_libraries(averagedSvp fastVQA::FastVQA Eigen3::Eigen fplll gmpxx gmp ${Boost_LIBRARIES})
+target_include_directories(averagedSvp
+	PRIVATE
+	${PROJECT_SOURCE_DIR}/gnuplot-iostream
+)
 target_compile_definitions(averagedSvp
     PRIVATE
     QuEST_PREC=4

@@ -10,7 +10,6 @@ using namespace popl;
 int main(int ac, char** av){
 
 	int seed = 1997;
-	int loglevel = 0;
 
 	OptionParser op("Allowed options");
 	auto help_option     		= op.add<Switch>("h", "help", "produce help message");
@@ -34,6 +33,8 @@ int main(int ac, char** av){
 		std::cout << op << "\n";
 		return 0;
 	}
+
+	int loglevel = log_level->value();
 
 	int n = n_opt->value();
 	int m = m_opt->value();
@@ -84,16 +85,15 @@ int main(int ac, char** av){
 		test_variable_substitution(&mapOptions);
 		return 0;
 	}else if(angle_search->is_set()){
-		logi("Running angleSearch experiment");
+		logi("Running angleSearch experiment", loglevel);
 		experimentSetup.experiment_type = "angleSearch";
 
-		AngleSearchExperiment angleSearchExp;
-
+		AngleSearchExperiment angleSearchExp(log_level->value(), &qaoaOptions, &mapOptions);
 		angleSearchExp.run();
 
 		return 0;
 	}else if(param_experiment->value() > 0){
-		logi("Running manyParams experiment");
+		logi("Running manyParams experiment", loglevel);
 		experimentSetup.experiment_type = "manyParams";
 		experimentSetup.num_rand_params=param_experiment->value();
 	}else{
@@ -167,7 +167,7 @@ int main(int ac, char** av){
 		experimentSetup.qaoaOptions = &qaoaOptions;
 		experimentSetup.hamiltonian = &h;
 		experimentSetup.minimum_energy = energy;
-		experiment_runner(&experimentSetup, name);
+		experiment_runner(&experimentSetup, name, loglevel);
 
 		/*FastVQA::ExperimentBuffer buffer;
 		qaoa_instance.run_qaoa(&buffer, &h, &qaoaOptions);
