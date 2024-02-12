@@ -47,7 +47,7 @@ void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool pri
 	expression_penalized = new FastVQA::Expression(*expression_bin);
 	expression_penalized->name = "expression_penalized";
 
-	if(mode == MapOptions::penalty_all){
+	if(mode == MapOptions::penalty_all && penalty > 0){
 
 		std::vector<FastVQA::Var*>::iterator xn_m1_it;
 

@@ -37,7 +37,7 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 
 	logi("Generating experiment dataset", this->loglevel);
 
-	GeneratorParam param(q, n, m, true, 97, this->max_num_instances);
+	GeneratorParam param(q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
 	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);
 
 	nbQubits = -1;
@@ -160,7 +160,6 @@ void AngleSearchExperiment::run(){
 	gp << "splot '-'\n";
 	gp.send2d(final_plot_means);
 
-
 	//gp << "set palette model HSV\n";
 	gp << "set palette rgb 13,10,33\n";
 
@@ -168,8 +167,6 @@ void AngleSearchExperiment::run(){
 	gp.send2d(final_plot_stdevs);
 
 	gp.flush();
-
-
 
 	/*double mx, my;int  mb;
 	 * while(true){

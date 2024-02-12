@@ -26,7 +26,7 @@ int main(int ac, char** av){
 	auto param_experiment 		= op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
 	auto angle_search	  		= op.add<Switch>("a", "anglesearch", "run the angle search experiment");
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
-
+	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
 
 	op.parse(ac, av);
 	if (help_option->is_set()){
@@ -39,13 +39,13 @@ int main(int ac, char** av){
 	int n = n_opt->value();
 	int m = m_opt->value();
 
-	if((qubits_per_x->value() == -1 && absolute_bound->value()==-1) || (qubits_per_x->value() != -1 && absolute_bound->value() !=-1)){
+	if( (!performance_calc->is_set()) && ((qubits_per_x->value() == -1 && absolute_bound->value()==-1) || (qubits_per_x->value() != -1 && absolute_bound->value() !=-1)) ){
 		throw_runtime_error("Exactly one of 'qubits_per_x' or 'absolute_bound' must be set.");
 	}
 
-		FastVQA::AcceleratorOptions acceleratorOptions;
+	FastVQA::AcceleratorOptions acceleratorOptions;
 	acceleratorOptions.accelerator_type = "quest";
-	acceleratorOptions.log_level = log_level->value();
+	acceleratorOptions.log_level = performance_calc->is_set() ? 3 : log_level->value();
 
 	FastVQA::NLOptimizer optimizer;
 
@@ -81,7 +81,10 @@ int main(int ac, char** av){
 	//return 0;
 
 	ExperimentSetup experimentSetup;
-	if(test_variable_subst->is_set()){
+	if(performance_calc->is_set()){
+		test_execution_time(&qaoaOptions);
+		return 0;
+	}else if(test_variable_subst->is_set()){
 		test_variable_substitution(&mapOptions);
 		return 0;
 	}else if(angle_search->is_set()){
@@ -102,7 +105,6 @@ int main(int ac, char** av){
 
 	GeneratorParam param(7,n,m);
 	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);//generateQaryUniformFPLLLWay(param); //generateQaryUniform(param);
-
 
 	std::vector<double> hit_rates;
 
