@@ -137,23 +137,34 @@ void Lattice::__single_variable_test(MapOptions* options){
 }
 
 
-void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print, bool testing_single_var){
+void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print, bool testing_single_var, bool __minus_one_qubit_firstVar){
 
 	Z_NR<mpz_t> coeff;
+	bool minus_one_qubit_firstVar=__minus_one_qubit_firstVar; // testing purposes only
 
 	auto addVar = [&](int k){
 		if(mode == MapOptions::x_symmetric){
-
 			if(num_qbits_per_x == 1){
-					int id = expression_int->addBinaryVar("x"+std::to_string(k));
-					x_ids.push_back(id);
+				if(minus_one_qubit_firstVar)
+					throw_runtime_error("__minus_one_qubit_firstVar=true and num_qbits_per_x=1");
+				int id = expression_int->addBinaryVar("x"+std::to_string(k));
+				x_ids.push_back(id);
 			}else if(num_qbits_per_x > 1){
 
-				int lb = -pow(2, num_qbits_per_x)/ 2 + 1;
-				int ub = 1-lb;
+				if(minus_one_qubit_firstVar && num_qbits_per_x == 2){
+					int id = expression_int->addBinaryVar("x"+std::to_string(k));
+					x_ids.push_back(id);
+					minus_one_qubit_firstVar = false;
+				}else{
+					int subtract = (minus_one_qubit_firstVar) ? 1 : 0;
+					minus_one_qubit_firstVar = false;
 
-				int id = expression_int->addIntegerVar("x"+std::to_string(k), lb, ub);
-				x_ids.push_back(id);
+					int lb = -pow(2, num_qbits_per_x - subtract)/ 2 + 1;
+					int ub = 1-lb;
+
+					int id = expression_int->addIntegerVar("x"+std::to_string(k), lb, ub);
+					x_ids.push_back(id);
+				}
 			}
 			else if(absolute_bound != -1){
 				int lb = -absolute_bound;
@@ -299,7 +310,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 		}
 
 		if(!x_initialized){
-			init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, print);
+			init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, print, false, options->__minus_one_qubit_firstvar);
 			x_initialized = true;
 		}
 

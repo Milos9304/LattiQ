@@ -49,6 +49,8 @@ class MapOptions{
 		int num_qbits_per_x;
 		int absolute_bound;
 
+		bool __minus_one_qubit_firstvar=false; //only for testing purposes!
+
 		MapOptions(x_init_mode x_mode=x_symmetric,
 				bin_mapping bin_map=naive_overapprox,
 				penalty_mode pen_mode=penalty_all,
@@ -117,6 +119,9 @@ class Lattice {
 			this -> current_lattice = MatrixInt(lattice);
 			this -> orig_gh_sq = calculate_gh_squared(&orig_lattice);
 
+			loge("firstVectorLengthSquared calculation not yet implemented");
+			this->firstVectorLengthSquared=0;
+
 			//if(lattice.get_rows()/*.rows()*/ != lattice.get_cols()/*.cols()*/){
 			//	loge("Non-square lattice not supported");
 			//	return;
@@ -135,6 +140,7 @@ class Lattice {
 			this -> name = name;
 
 			gso_current_initialized = true;
+			this->firstVectorLengthSquared=gramian(0,0);
 
 			this -> expression_int = new FastVQA::Expression("expression_int");
 		};
@@ -149,6 +155,7 @@ class Lattice {
 			this -> name = name;
 
 			gso_current_initialized = true;
+			this->firstVectorLengthSquared=gramian(0,0);
 
 			this -> expression_int = new FastVQA::Expression("expression_int");
 		};
@@ -169,6 +176,14 @@ class Lattice {
 		MatrixInt* get_current_lattice(){ return &current_lattice; }
 
 		FastVQA::PauliHamiltonian getHamiltonian(MapOptions* options);
+		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> getMatrix(){
+			if(gramian && gramian_diag)
+				return diagonalGramian;
+			if(gramian && !gramian_diag)
+				return nonDiagGramian;
+			throw_runtime_error("Non implemented");
+			//return orig_lattice;
+		}
 
 		/*std::string toHamiltonianString();
 		std::string toHamiltonianString(MapOptions* options);*/
@@ -177,6 +192,10 @@ class Lattice {
 		std::vector<long long unsigned int> getZeroReferenceStates();
 
 		void outputGramianToFile(std::string filename);
+
+		int getSquaredLengthOfFirstBasisVector(){
+			return this->firstVectorLengthSquared;
+		}
 
 		//xacc::quantum::PauliOperator getHamiltonian(MapOptions* options);
 
@@ -199,7 +218,7 @@ class Lattice {
 		std::map<int, int> qbit_to_varId_map;
 
 		bool x_initialized = false;
-		void init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int exponent_bound, bool print=false, bool testing_single_var=false);
+		void init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int exponent_bound, bool print=false, bool testing_single_var=false, bool __minus_one_qubit_firstvar=false);
 
 		std::vector<int> x_ids;
 		std::map<int, std::map<int, mpq_class>> int_to_bin_map;
@@ -223,6 +242,8 @@ class Lattice {
 		mpq_class calculate_gh_squared(MatrixInt* lattice);
 
 		void __single_variable_test(MapOptions*);
+
+		int firstVectorLengthSquared=0;
 
 };
 

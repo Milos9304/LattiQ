@@ -4,6 +4,8 @@
 #include "test_runner.h"
 #include "averaged_svp.h"
 
+std::string _experiment_output_directory = "../experiments";
+
 void test_variable_substitution(MapOptions* mapOptions){
 
 	Lattice l("variable_test", mapOptions);
@@ -23,41 +25,70 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions){
 	mapOptions.penalty = penalty;
 
 	qaoaOptions->log_level = 3;
-	qaoaOptions->max_iters = 10000;
+	qaoaOptions->ftol = 10e-6;
+	qaoaOptions->max_iters = 4000;
 
 	//int m_max = 10;
-	int num_samples = 2;
+	int num_samples = 10;
 	bool shuffle = false;
 
 		GeneratorParam param(7,1,2, shuffle, 0, num_samples);
 		std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);
 
-		for(int qs=1; qs<20; ++qs){
+		for(int qs=1; qs<=11; ++qs){
 
 			mapOptions.num_qbits_per_x = qs;
 
+			int counter=0;
 			for(auto w : gramian_wrappers){
+				for(int p = 1; p <= 3/*6*/; ++p){
+					for(int odd=0; odd < 2; ++odd){
 
-				Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
-				std::string name = w.name;
+						if(qs == 1 && odd)
+							continue;
 
-				Lattice l(G, name);
+						mapOptions.__minus_one_qubit_firstvar=odd;
+						qaoaOptions->p = p;
 
-				//std::cerr<<"G"<<G<<"\n";
-				FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
-				int nbQubits=h.nbQubits;
+						std::string filename = _experiment_output_directory+"/performance_experiment/test_interim_energies_q"+std::to_string(qs*2+(odd?(-1):0))+"_"+std::to_string(counter)+"_p"+std::to_string(p);
+						std::ifstream f(filename);
+						if(f.good())
+							continue;
 
-				logi("Running experiment with " + std::to_string(nbQubits) + " qubits");
+						std::ofstream interimEnergiesFile(filename);
 
-				qaoaOptions->accelerator->initialize(&h);
-				FastVQA::Qaoa qaoa_instance;
-				FastVQA::ExperimentBuffer buffer;
-				buffer.storeQuregPtr = false;
-				qaoa_instance.run_qaoa(&buffer, &h, qaoaOptions);
+						Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
+						std::string name = w.name;
 
-				std::cerr<<buffer.num_iters<<"\n";
-				std::cerr<<buffer.opt_message<<"\n";
+						Lattice l(G, name);
 
+						//std::cerr<<"G"<<G<<"\n";
+						FastVQA::PauliHamiltonian h = l.getHamiltonian(&mapOptions);
+						int nbQubits=h.nbQubits;
+
+						logi("Running experiment " + std::to_string(counter) + " with " + std::to_string(nbQubits) + " qubits and p="+std::to_string(p));
+
+						qaoaOptions->accelerator->initialize(&h);
+						FastVQA::Qaoa qaoa_instance;
+						FastVQA::ExperimentBuffer buffer;
+						buffer.storeQuregPtr = false;
+
+						time_t start_time = time(0);
+						qaoa_instance.run_qaoa(&buffer, &h, qaoaOptions);
+						time_t end_time = time(0);
+
+						int duration_s = difftime(end_time,start_time);
+
+						std::cerr<<buffer.num_iters<<"\n";
+						std::cerr<<buffer.opt_message<<"\n";
+						interimEnergiesFile << "Duration=" << duration_s <<"\n";
+						for(double e: buffer.intermediateEnergies)
+							interimEnergiesFile << e << " ";
+						interimEnergiesFile.close();
+					}
+
+				}
+				counter++;
 			}
 
 

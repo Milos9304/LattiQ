@@ -7,9 +7,15 @@
 #define GNUPLOT_ENABLE_PTY
 #include "gnuplot-iostream.h"
 
+const double pi = 3.141592654;
+
 AngleSearchExperiment::AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
+
+	logi("Setting p=2", this->loglevel);
+	qaoaOptions->p = 2;
+
 	this->num_instances = pow(q,(m-n));
 	if(max_num_instances < this->num_instances)
 		this->num_instances = max_num_instances;
@@ -47,6 +53,7 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 		Instance instance;
 
 		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
+		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squred
 		instance.h = l.getHamiltonian(mapOptions);
 		if(nbQubits < 0)
 			nbQubits = instance.h.nbQubits;
@@ -112,38 +119,94 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 
 void AngleSearchExperiment::run(){
 
+	run_p2_test();
+	return;
+
+	if(this->qaoaOptions->p == 1)
+		run_p1();
+	else if(this->qaoaOptions->p == 2)
+		run_p2();
+	else
+		throw_runtime_error("Not implemented");
+
+}
+
+void AngleSearchExperiment::run_p1(){
+
 	double *angles = (double*) malloc(this->num_params * sizeof(double));
 	for(int j = 0; j < this->num_params; ++j){
 		angles[j]=0;//dis(gen));
 	}
 
-	if(this->num_params != 2)
+	/*if(this->num_params != 2)
 		throw_runtime_error("unimplemented");
+	*/
 
-	double range = 2*3.141592654;
-	double incr = 0.04;
+	std::vector<std::tuple<double, double>> first_round_angles;
 
-	int axis_range = ceil(range / incr);
-	int num_iters = axis_range * axis_range;
+	double mean_threshold = 0.032;
+	double stdev_threshold = 0.019;
+
+	double beta_min = pi/16;
+	double beta_max = pi/8;
+
+	double gamma_min = 0;
+	double gamma_max = pi;
+
+	double range_beta = beta_max - beta_min;
+	double range_gamma = gamma_max - gamma_min;
+	double incr_beta = /*0.04*/0.12;
+	double incr_gamma = /*0.04*/0.01;
+
+	int axis_range_beta = ceil(range_beta / incr_beta);
+	int axis_range_gamma = ceil(range_gamma / incr_gamma);
+	int num_iters = axis_range_beta * axis_range_gamma;
 
 	int x = 0;
 	int y = 0;
 
-	std::vector<std::vector<double>> final_plot_means(axis_range);
-	std::vector<std::vector<double>> final_plot_stdevs(axis_range);
+	std::vector<std::vector<double>> final_plot_means(axis_range_gamma);
+	std::vector<std::vector<double>> final_plot_stdevs(axis_range_gamma);
+
+	ProgressBar bar{
+		option::BarWidth{50},
+		option::MaxProgress{num_iters},
+		option::Start{"["},
+		option::Fill{"="},
+		option::Lead{">"},
+		option::Remainder{" "},
+		option::End{"]"},
+		option::PostfixText{"Running Angle Search Experiment"},
+		option::ShowElapsedTime{true},
+		option::ShowRemainingTime{true},
+		option::ForegroundColor{Color::yellow},
+		option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+	};
 
 	double i = 0;
 	AngleSearchExperiment::Cost cost;
-	for(double a = -3.141592654; a < 3.141592654; a+=incr){
-		for(double b = -3.141592654; b < 3.141592654; b+=incr){
-			std::cerr<<(i++) / num_iters * 100 << "%" << std::endl;
-			angles[0] = a;angles[1] = b;
+	for(double gamma = gamma_min; gamma < gamma_max; gamma+=incr_gamma){
+		for(double beta = beta_min; beta < beta_max; beta+=incr_beta){
+			bar.tick();
+			angles[0] = gamma;
+			angles[1] = beta;
 			cost = this->_cost_fn(&this->train_set, angles);
 			final_plot_means[x].push_back(cost.mean);
 			final_plot_stdevs[x].push_back(cost.stdev);
+
+			if(cost.mean >= mean_threshold && cost.stdev <= stdev_threshold){
+				first_round_angles.push_back(std::tuple<double, double>(gamma, beta));
+
+				std::cerr<<"("<<gamma<<" "<<beta<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
+
+			}
+
 		}
 		x++;
 	}
+
+	logi("First round size: " + std::to_string(first_round_angles.size()), loglevel);
+
 
 	Gnuplot gp;
 	gp << "set multiplot layout 1,2 rowsfirst\n";
@@ -152,8 +215,10 @@ void AngleSearchExperiment::run(){
 	gp << "set hidden3d\n";
 	gp << "set palette rgb 33,13,10\n";
 	gp << "set view map\n";
-	gp << "set xrange [ 0 : " << axis_range-1 <<" ] \n";
-	gp << "set yrange [ 0 : " << axis_range-1 <<" ] \n";
+	gp << "set xrange [ 0 : " << axis_range_beta-1 <<" ] \n";
+	gp << "set yrange [ 0 : " << axis_range_gamma-1 <<" ] \n";
+	gp << "set xlabel 'Beta [0,pi/4]' \n";
+	gp << "set ylabel 'Gamma [-pi,pi]' \n";
 	//gp << "set title 'range="<< axis_range <<" nbQs="<< this->nbQubits <<" rg="<< 1./(pow(2,this->nbQubits)) <<" mean_nbSols="<<cost.mean_num_of_sols<<" rdmOverlap="<<1./(pow(2,this->nbQubits))*cost.mean_num_of_sols<<"'\n";
 	gp << "set title 'LHS: means RHS: stdev'\n";
 
@@ -179,6 +244,203 @@ void AngleSearchExperiment::run(){
 
 };
 
+void AngleSearchExperiment::run_p2(){
+
+	std::vector<std::tuple<double, double>> first_round_angles;
+	first_round_angles.push_back(std::tuple<double, double>(0.12, 0.31635));
+	first_round_angles.push_back(std::tuple<double, double>(0.13, 0.31635));
+	first_round_angles.push_back(std::tuple<double, double>(0.52, 0.31635));
+	first_round_angles.push_back(std::tuple<double, double>(0.93, 0.31635));
+	first_round_angles.push_back(std::tuple<double, double>(1.68, 0.31635));
+	first_round_angles.push_back(std::tuple<double, double>(2.09, 0.31635));
+	first_round_angles.push_back(std::tuple<double, double>(2.89, 0.31635));
+
+	double *angles = (double*) malloc(4 * sizeof(double));
+	for(int j = 0; j < this->num_params; ++j){
+		angles[j]=0;//dis(gen));
+	}
+
+	double mean_threshold = 0.04;
+		double stdev_threshold = 0.019;
+		double beta_min = 0;
+		double beta_max = pi/4;
+
+		double gamma_min = -pi;
+		double gamma_max = pi;
+
+		double range_beta = beta_max - beta_min;
+		double range_gamma = gamma_max - gamma_min;
+		double incr_beta = /*0.04*/0.12;
+		double incr_gamma = /*0.04*/0.01;
+
+		int axis_range_beta = ceil(range_beta / incr_beta);
+		int axis_range_gamma = ceil(range_gamma / incr_gamma);
+		int num_iters = axis_range_beta * axis_range_gamma;
+
+		int x = 0;
+		int y = 0;
+
+		std::vector<std::vector<double>> final_plot_means(axis_range_gamma);
+		std::vector<std::vector<double>> final_plot_stdevs(axis_range_gamma);
+
+		ProgressBar bar{
+			option::BarWidth{50},
+			option::MaxProgress{num_iters},
+			option::Start{"["},
+			option::Fill{"="},
+			option::Lead{">"},
+			option::Remainder{" "},
+			option::End{"]"},
+			option::PostfixText{"Running Angle Search Experiment"},
+			option::ShowElapsedTime{true},
+			option::ShowRemainingTime{true},
+			option::ForegroundColor{Color::yellow},
+			option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+		};
+
+		double i = 0;
+		AngleSearchExperiment::Cost cost;
+		for(double gamma2 = gamma_min; gamma2 < gamma_max; gamma2+=incr_gamma){
+			for(double beta2 = beta_min; beta2 < beta_max; beta2+=incr_beta){
+				bar.tick();
+				double max_mean = -1;
+
+				double max_gamma1=-1;
+				double max_beta1=-1;
+
+				for(auto &first_round : first_round_angles){
+
+					/*if(max_mean != -1)
+						break;*/
+					double gamma1 = std::get<0>(first_round);
+					double beta1 = std::get<1>(first_round);
+					angles[0] = gamma1;
+					angles[1] = beta1;
+					angles[2] = gamma2;
+					angles[3] = beta2;
+					cost = this->_cost_fn(&this->train_set, angles);
+					if(max_mean == -1){
+						final_plot_means[x].push_back(cost.mean);
+						final_plot_stdevs[x].push_back(cost.stdev);
+					}
+					if(cost.mean > max_mean){
+						final_plot_means[x][final_plot_means[x].size()-1]=cost.mean;
+						final_plot_stdevs[x][final_plot_stdevs[x].size()-1]=cost.stdev;
+						max_gamma1=gamma1;
+						max_beta1=beta1;
+						max_mean = cost.mean;
+					}
+				}
+				if(max_mean >= mean_threshold && final_plot_stdevs[x][final_plot_stdevs[x].size()-1] <= stdev_threshold){
+					//first_round_angles.push_back(std::tuple<double, double>(gamma, beta));
+					std::cerr<<"("<<max_gamma1<<","<<max_beta1<<","<<gamma2<<","<<beta2<<") m="<<max_mean<<" std="<<final_plot_stdevs[x][final_plot_stdevs[x].size()-1]<<"\n";
+				}
+
+			}
+			x++;
+		}
+
+		Gnuplot gp;
+			gp << "set multiplot layout 1,2 rowsfirst\n";
+			gp << "unset key\n";
+			gp << "set pm3d\n";
+			gp << "set hidden3d\n";
+			gp << "set palette rgb 33,13,10\n";
+			gp << "set view map\n";
+			gp << "set xrange [ 0 : " << axis_range_beta-1 <<" ] \n";
+			gp << "set yrange [ 0 : " << axis_range_gamma-1 <<" ] \n";
+			gp << "set xlabel 'Beta [0,pi/4]' \n";
+			gp << "set ylabel 'Gamma [-pi,pi]' \n";
+			//gp << "set title 'range="<< axis_range <<" nbQs="<< this->nbQubits <<" rg="<< 1./(pow(2,this->nbQubits)) <<" mean_nbSols="<<cost.mean_num_of_sols<<" rdmOverlap="<<1./(pow(2,this->nbQubits))*cost.mean_num_of_sols<<"'\n";
+			gp << "set title 'LHS: means RHS: stdev'\n";
+
+			gp << "splot '-'\n";
+			gp.send2d(final_plot_means);
+
+			//gp << "set palette model HSV\n";
+			gp << "set palette rgb 13,10,33\n";
+
+			gp << "splot '-'\n";
+			gp.send2d(final_plot_stdevs);
+
+			gp.flush();
+
+			/*double mx, my;int  mb;
+			 * while(true){
+				gp.getMouse(mx, my, mb, "");
+				printf("You pressed mouse button %d at x=%f y=%f\n", mb, mx, my);
+				//printf("%f", final_plot[(int)mx][(int)my]);
+			}*/
+
+
+	free(angles);
+
+}
+
+void AngleSearchExperiment::run_p2_test(){
+
+	struct Angl{
+		double g1,b1,g2,b2;
+		double train_mean;
+		double train_std;
+		Angl(double g1, double b1, double g2, double b2, double train_mean, double train_std){
+			this->g1=g1;this->b1=b1;this->g2=g2;this->b2=b2;this->train_mean=train_mean;this->train_std=train_std;
+		}
+	};
+
+/*	(0.12,0.31635,-0.121593,0.12) m=0.0430018 std=0.01738521m:22s<01m:28s] Running Angle Search Experiment
+	(0.12,0.31635,-0.121593,0.24) m=0.0472991 std=0.01866071m:22s<01m:28s] Running Angle Search Experiment
+	(1.68,0.31635,1.41841,0.12) m=0.0403283 std=0.0175522[02m:04s<00m:47s] Running Angle Search Experiment
+	(1.68,0.31635,1.42841,0.12) m=0.0417132 std=0.0188931[02m:04s<00m:46s] Running Angle Search Experiment
+	(0.93,0.31635,1.79841,0.12) m=0.0401401 std=0.017432 [02m:14s<00m:36s] Running Angle Search Experiment
+	(0.13,0.31635,1.79841,0.24) m=0.041746 std=0.0188806 [02m:14s<00m:36s] Running Angle Search Experiment
+	(0.93,0.31635,2.16841,0.12) m=0.0423418 std=0.0184396[02m:25s<00m:26s] Running Angle Search Experiment
+	(0.52,0.31635,2.58841,0.12) m=0.0402696 std=0.0185866[02m:36s<00m:15s] Running Angle Search Experiment
+	(0.52,0.31635,2.59841,0.12) m=0.0426105 std=0.0182783[02m:36s<00m:14s] Running Angle Search Experiment
+	(0.52,0.31635,2.60841,0.12) m=0.0413229 std=0.0182011[02m:36s<00m:14s] Running Angle Search Experiment
+	(0.13,0.31635,2.96841,0.12) m=0.0406699 std=0.0188591[02m:46s<00m:04s] Running Angle Search Experiment
+	(0.13,0.31635,2.97841,0.12) m=0.0401275 std=0.017309 [02m:46s<00m:04s] Running Angle Search Experiment
+	(0.13,0.31635,2.98841,0.12) m=0.0421467 std=0.0175874[02m:47s<00m:04s] Running Angle Search Experiment
+	(0.13,0.31635,2.98841,0.24) m=0.0473511 std=0.0178743[02m:47s<00m:04s] Running Angle Search Experiment
+	(0.13,0.31635,2.98841,0.36) m=0.0455804 std=0.0187591[02m:47s<00m:04s] Running Angle Search Experiment
+	(0.12,0.31635,3.00841,0.12) m=0.0425464 std=0.0188244[02m:47s<00m:03s] Running Angle Search Experiment
+	(0.12,0.31635,3.01841,0.12) m=0.0409526 std=0.0176841[02m:47s<00m:03s] Running Angle Search Experiment
+	[==================================================] [02m:51s<00m:00s] Running Angle Search Experiment */
+
+	std::vector<Angl> second_round_angles;
+
+	second_round_angles.push_back(Angl(0.12,0.31635,-0.121593,0.12,0.0430018,0.01738521));
+	second_round_angles.push_back(Angl(0.12,0.31635,-0.121593,0.24,0.0472991,0.01866071));
+	second_round_angles.push_back(Angl(1.68,0.31635,1.41841,0.12,0.0403283,0.0175522));
+	second_round_angles.push_back(Angl(1.68,0.31635,1.42841,0.12,0.0417132,0.0188931));
+	second_round_angles.push_back(Angl(0.93,0.31635,1.79841,0.12,0.0401401,0.017432 ));
+	second_round_angles.push_back(Angl(0.13,0.31635,1.79841,0.24,0.041746,0.0188806 ));
+	second_round_angles.push_back(Angl(0.93,0.31635,2.16841,0.12,0.0423418,0.0184396));
+	second_round_angles.push_back(Angl(0.52,0.31635,2.58841,0.12,0.0402696,0.0185866));
+	second_round_angles.push_back(Angl(0.52,0.31635,2.59841,0.12,0.0426105,0.0182783));
+	second_round_angles.push_back(Angl(0.52,0.31635,2.60841,0.12,0.0413229,0.0182011));
+	second_round_angles.push_back(Angl(0.13,0.31635,2.96841,0.12,0.0406699,0.0188591));
+	second_round_angles.push_back(Angl(0.13,0.31635,2.97841,0.12,0.0401275,0.017309 ));
+	second_round_angles.push_back(Angl(0.13,0.31635,2.98841,0.12,0.0421467,0.0175874));
+	second_round_angles.push_back(Angl(0.13,0.31635,2.98841,0.24,0.0473511,0.0178743));
+	second_round_angles.push_back(Angl(0.13,0.31635,2.98841,0.36,0.0455804,0.0187591));
+	second_round_angles.push_back(Angl(0.12,0.31635,3.00841,0.12,0.0425464,0.0188244));
+	second_round_angles.push_back(Angl(0.12,0.31635,3.01841,0.12,0.0409526,0.0176841));
+
+	for(auto &setting : second_round_angles){
+		double angles[4];
+		angles[0] = setting.g1;
+		angles[1] = setting.b1;
+		angles[2] = setting.g2;
+		angles[3] = setting.b2;
+		AngleSearchExperiment::Cost cost = this->_cost_fn(&this->train_set, angles);
+
+		std::cerr<<"Train/Test mean="<<setting.train_mean<<"/"<<cost.mean<<"   std="<<setting.train_std<<"/"<<cost.stdev<<"\n";
+
+	}
+
+
+}
 void experiment_runner(ExperimentSetup* setup, std::string experiment_name, int loglevel){
 
 	FastVQA::Qaoa qaoa_instance;
