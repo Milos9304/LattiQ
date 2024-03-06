@@ -46,7 +46,7 @@ public:
 
 	int q = 97;
 	int n = 1;
-	int m = 4;
+	int m = 5;
 
 	int max_num_instances = 100;
 

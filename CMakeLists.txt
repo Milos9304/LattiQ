@@ -41,9 +41,11 @@ file(GLOB SRC_ORIG_AVERAGEDSVP
 	${PROJECT_SOURCE_DIR}/src/averaged_svp_utils.cpp
 	${PROJECT_SOURCE_DIR}/src/experiment_runner.cpp
 	${PROJECT_SOURCE_DIR}/src/test_runner.cpp
+	${PROJECT_SOURCE_DIR}/src/io/sql_io.cpp
 )
        
 add_subdirectory(src)
+add_subdirectory(src/sqlite)
        
 add_executable(${PROJECT_NAME} ${SRC_ORIG})
 add_executable(averagedSvp ${SRC_ORIG_AVERAGEDSVP} ${PROJECT_SOURCE_DIR}/src/experiment_runner.cpp)
@@ -58,7 +60,18 @@ target_compile_definitions(${PROJECT_NAME}
     QuEST_PREC=4
 )
 
-target_link_libraries(averagedSvp fastVQA::FastVQA Eigen3::Eigen fplll gmpxx gmp ${Boost_LIBRARIES})
+target_link_libraries(averagedSvp
+	fastVQA::FastVQA
+	Eigen3::Eigen
+	fplll
+	gmpxx
+	gmp
+	${Boost_LIBRARIES}
+	SQLiteCpp
+ 	sqlite3
+  	pthread
+  	dl
+	)
 target_include_directories(averagedSvp
 	PRIVATE
 	${PROJECT_SOURCE_DIR}/gnuplot-iostream

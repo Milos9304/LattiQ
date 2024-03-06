@@ -2,10 +2,13 @@
 #include "lattice/lattice.h"
 #include "experiment_runner.h"
 #include "test_runner.h"
+#include "io/sql_io.h"
 
 #include "popl.hpp"
 
 using namespace popl;
+
+const std::string database_file = "../experiments/database.db";
 
 int main(int ac, char** av){
 
@@ -27,12 +30,31 @@ int main(int ac, char** av){
 	auto angle_search	  		= op.add<Switch>("a", "anglesearch", "run the angle search experiment");
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
 	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
+	auto database_info		   	= op.add<Switch>("", "dinfo", "get database info");
 
 	op.parse(ac, av);
 	if (help_option->is_set()){
 		std::cout << op << "\n";
 		return 0;
 	}
+
+	if(database_info->is_set()){
+		Database::print_sqlite_info(database_file);
+		return 0;
+	}
+
+	Database database(database_file);
+	Database::DatasetRow row;
+	row.type = "qary";
+	row.q = 7;
+	row.n = 1;
+	row.m = 4;
+	row.p = 1;
+	row.penalty = 2;
+	//database.write(&row);
+	std::cerr<<database.contains_qary(7,1,4,1,true);
+
+	return 0;
 
 	int loglevel = log_level->value();
 
@@ -82,7 +104,7 @@ int main(int ac, char** av){
 
 	ExperimentSetup experimentSetup;
 	if(performance_calc->is_set()){
-		test_execution_time(&qaoaOptions);
+		test_execution_time(&qaoaOptions, &database);
 		return 0;
 	}else if(test_variable_subst->is_set()){
 		test_variable_substitution(&mapOptions);

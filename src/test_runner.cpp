@@ -1,5 +1,4 @@
 #include "FastVQA/fastVQA.h"
-
 #include "lattice/lattice.h"
 #include "test_runner.h"
 #include "averaged_svp.h"
@@ -12,7 +11,7 @@ void test_variable_substitution(MapOptions* mapOptions){
 
 }
 
-void test_execution_time(FastVQA::QAOAOptions* qaoaOptions){
+void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 	int penalty = 0;
 
@@ -78,6 +77,16 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions){
 						time_t end_time = time(0);
 
 						int duration_s = difftime(end_time,start_time);
+
+						Database::DatasetRow row;
+						row.type = "qary";
+						row.q = param.q;
+						row.n = param.n;
+						row.m = param.m;
+						row.p = qaoaOptions->p;
+						row.penalty = mapOptions.penalty;
+						database->write(&row);
+
 
 						std::cerr<<buffer.num_iters<<"\n";
 						std::cerr<<buffer.opt_message<<"\n";

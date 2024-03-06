@@ -1,3 +1,6 @@
 [submodule "gnuplot-iostream"]
 	path = gnuplot-iostream
 	url = https://github.com/dstahlke/gnuplot-iostream.git
+[submodule "src/sqlite"]
+	path = src/sqlite
+	url = https://github.com/SRombauts/SQLiteCpp.git
