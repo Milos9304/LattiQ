@@ -3,14 +3,82 @@
 
 #define s(X) std::to_string(X)
 
-bool Database::contains_qary(int q, int n, int m, int p, bool penaltyUsed){
+bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed, Lattice *l, FastVQA::PauliHamiltonian* h, DatasetRow* output_row, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
+
+	assert(qaoaOptions->p == p);
+
+	bool found = false;
+	try{
+		SQLite::Statement query(*db, "SELECT * FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)");
+		std::cerr<<"SELECT * FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)";
+		while (query.executeStep()){
+			output_row->q 						= query.getColumn("q").getInt();
+			output_row->n 						= query.getColumn("n").getInt();
+			output_row->m 						= query.getColumn("m").getInt();
+			output_row->p 						= query.getColumn("p").getInt();
+			output_row->index 					= query.getColumn("indexx").getInt();
+			output_row->num_qs 					= query.getColumn("num_qs").getInt();
+			output_row->penalty					= query.getColumn("penalty").getInt();
+			output_row->volume					= query.getColumn("volume").getInt();
+			output_row->sv1Squared				= query.getColumn("sv1Squared").getInt();
+			output_row->degeneracy				= query.getColumn("degeneracy").getInt();
+			output_row->duration_s				= query.getColumn("duration_s").getInt();
+			output_row->iters					= query.getColumn("iters").getInt();
+			/*output_row->initAngles			= query.getColumn("initAngles");
+			output_row->finalStateVectorMap		= query.getColumn("finalStateVectorMap");
+			output_row->intermediateAngles		= query.getColumn("intermediateAngles");
+			output_row->intermediateEnergies	= query.getColumn("intermediateEnergies");
+			output_row->finalAngles				= query.getColumn("finalAngles");
+			output_row->probSv1					= query.getColumn("probSv1");*/
+			output_row->opt_res					= query.getColumn("opt_res").getText();
+			/*output_row->comment					= query.getColumn("comment");*/
+			found = true;
+			break;
+		}
+	}catch (std::exception& e){
+		throw_runtime_error(e.what());
+	}
+
+	if(found)
+		return true;
+
+	FastVQA::Qaoa qaoa_instance;
+	FastVQA::ExperimentBuffer buffer;
+	buffer.storeQuregPtr = false;
+
+	time_t start_time = time(0);
+	qaoa_instance.run_qaoa(&buffer, h, qaoaOptions);
+	time_t end_time = time(0);
+	int duration_s = difftime(end_time,start_time);
+
+	output_row->type					= "qary";
+	output_row->q 						= q;
+	output_row->n 						= n;
+	output_row->m 						= m;
+	output_row->p 						= p;
+	output_row->index 					= index;
+	output_row->num_qs 					= num_qs;
+	output_row->penalty					= mapOptions -> penalty;
+	output_row->volume					= l->getVolume();
+	output_row->sv1Squared				= l->getSquaredLengthOfFirstBasisVector();
+	output_row->degeneracy				= 0;
+	output_row->duration_s				= duration_s;
+	output_row->iters					= buffer.intermediateEnergies.size();
+
+
+	output_row->opt_res					= buffer.opt_message;
+	this->write(output_row);
+
+	return false;
+}
+
+
+bool Database::contains_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed){
 
 	bool found = false;
 
 	try{
-		//const std::string value = db->execAndGet("SELECT EXISTS ( SELECT q FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND penaltyBool="+s(penaltyUsed)+") LIMIT 1)");
-		//const std::string value = db->execAndGet("SELECT rowid, q, n FROM qary WHERE (q=" +s(q)+/*" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND penaltyBool="+s(penaltyUsed)+*/")");
-		SQLite::Statement query(*db, "SELECT q FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)");
+		SQLite::Statement query(*db, "SELECT q FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)");
 		while (query.executeStep()){
 			found = true;
 			break;
@@ -32,7 +100,10 @@ void Database::write(DatasetRow* row){
 	bool penaltyBool = row->penalty == 0 ? false : true;
 
 	try{
-		SQLite::Statement query(*db, "INSERT or IGNORE INTO " + row->type + " VALUES ("+s(row->q)+", "+s(row->n)+", "+s(row->m)+", "+s(row->p)+", "+s(penaltyBool)+", "+s(row->penalty)+", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+		SQLite::Statement query(*db, "INSERT or IGNORE INTO " + row->type + " VALUES ("+
+				s(row->q)+", "+s(row->n)+", "+s(row->m)+", "+s(row->p)+", "+s(row->index)+
+				", "+s(row->num_qs)+", "+s(penaltyBool)+", "+s(row->penalty)+", "+s(row->volume)+
+				", "+s(row->sv1Squared)+", "+s(row->degeneracy)+", "+s(row->duration_s)+", "+s(row->iters)+", ?, ?, ?, ?, ?, ?, \""+row->opt_res+"\", ?)");
 		//query.bind(1, blob, size);
 		query.exec();
 	}catch (std::exception& e){
@@ -49,10 +120,10 @@ Database::Database(std::string filename, int loglevel){
 		db = new SQLite::Database(filename, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE);
 		logd("SQLite database file '" + db->getFilename() + "' opened successfully\n", loglevel);
 
-		db->exec("CREATE TABLE IF NOT EXISTS qary (q INTEGER, n INTEGER, m INTEGER, p INTEGER, penaltyBool BOOL, penalty INTEGER, volume REAL, "
-				"sv1Squared INTEGER, degeneracy INTEGER, num_qs INTEGER, initAngles BLOB, finalStateVectorMap BLOB, "
-				"intermediateAngles BLOB, intermediateEnergies BLOB, finalAngles BLOB, probSv1 REAL, comment TEXT, "
-				"PRIMARY KEY (q, n, m, p, penaltyBool))");
+		db->exec("CREATE TABLE IF NOT EXISTS qary (q INTEGER, n INTEGER, m INTEGER, p INTEGER, indexx INTEGER, num_qs INTEGER, penaltyBool BOOL, penalty INTEGER, volume REAL, "
+				"sv1Squared INTEGER, degeneracy INTEGER, duration_s INTEGER, iters INTEGER, initAngles BLOB, finalStateVectorMap BLOB, "
+				"intermediateAngles BLOB, intermediateEnergies BLOB, finalAngles BLOB, probSv1 REAL, opt_res TEXT, comment TEXT, "
+				"PRIMARY KEY (q, n, m, p, indexx, num_qs, penaltyBool))");
 
 	}catch (std::exception& e){
 		throw_runtime_error(e.what());

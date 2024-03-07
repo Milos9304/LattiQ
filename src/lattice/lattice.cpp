@@ -10,6 +10,22 @@
 
 bool pen_initialized = false;
 
+double Lattice::getVolume(){
+
+	if(!gramian)
+		throw_runtime_error("Not implemented");
+
+	if(gramian_diag){
+		double res = 1;
+		for(int i = 0; i < n_rows; ++i)
+			res *= this->diagonalGramian(i);
+		return sqrt(res);
+	}
+
+	return sqrt(this->nonDiagGramian.cast<double>().determinant());
+
+}
+
 void Lattice::generate_qubo(bool print){
 
 	expression_qubo = new FastVQA::Expression(*expression_penalized);

@@ -44,7 +44,7 @@ int main(int ac, char** av){
 	}
 
 	Database database(database_file);
-	Database::DatasetRow row;
+	/*Database::DatasetRow row;
 	row.type = "qary";
 	row.q = 7;
 	row.n = 1;
@@ -52,9 +52,9 @@ int main(int ac, char** av){
 	row.p = 1;
 	row.penalty = 2;
 	//database.write(&row);
-	std::cerr<<database.contains_qary(7,1,4,1,true);
+	std::cerr<<database.contains_qary(7,1,4,1,0,true);
 
-	return 0;
+	return 0;*/
 
 	int loglevel = log_level->value();
 

@@ -86,7 +86,7 @@ class Lattice {
 	MatrixInt* lll_transformation;
 	bool lll_preprocessed;
 
-	long long int svLenSquared;
+	//long long int svLenSquared;
 
 		Lattice(std::string s, MapOptions* mapOptions){
 			if(s!="variable_test")
@@ -168,6 +168,7 @@ class Lattice {
 		VectorInt quboToXvector(bool* measurement, int n);
 
 		int getNumQubits(){return expression_qubo->getIdMapSize()-1;}
+		double getVolume();
 
 		mpq_class get_orig_gh(){return orig_gh_sq;}
 
@@ -196,6 +197,8 @@ class Lattice {
 		int getSquaredLengthOfFirstBasisVector(){
 			return this->firstVectorLengthSquared;
 		}
+
+		long long int firstVectorLengthSquared=0;
 
 		//xacc::quantum::PauliOperator getHamiltonian(MapOptions* options);
 
@@ -243,7 +246,6 @@ class Lattice {
 
 		void __single_variable_test(MapOptions*);
 
-		int firstVectorLengthSquared=0;
 
 };
 

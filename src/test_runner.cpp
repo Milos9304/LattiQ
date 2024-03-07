@@ -51,9 +51,10 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 						std::string filename = _experiment_output_directory+"/performance_experiment/test_interim_energies_q"+std::to_string(qs*2+(odd?(-1):0))+"_"+std::to_string(counter)+"_p"+std::to_string(p);
 						std::ifstream f(filename);
-						if(f.good())
-							continue;
 
+						/*if(f.good())
+							continue;
+						*/
 						std::ofstream interimEnergiesFile(filename);
 
 						Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
@@ -79,13 +80,21 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 						int duration_s = difftime(end_time,start_time);
 
 						Database::DatasetRow row;
-						row.type = "qary";
+						bool found = database->getOrCalculate_qary(param.q, param.n, param.m, qaoaOptions->p,
+								counter, nbQubits, penalty > 0 ? true : false,
+										&l, &h, &row, qaoaOptions, &mapOptions);
+
+						logd(std::to_string(found));
+
+						/*row.type = "qary";
 						row.q = param.q;
 						row.n = param.n;
 						row.m = param.m;
 						row.p = qaoaOptions->p;
 						row.penalty = mapOptions.penalty;
-						database->write(&row);
+						database->write(&row);*/
+
+
 
 
 						std::cerr<<buffer.num_iters<<"\n";

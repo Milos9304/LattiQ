@@ -204,7 +204,7 @@ int main(int ac, char** av){
 			acceleratorOptions.checkHessian = true;
 			acceleratorOptions.printGroundStateOverlap = true;
 			acceleratorOptions.checkSolutions = true;
-			acceleratorOptions.solutionExpectation = lattice->svLenSquared;
+			acceleratorOptions.solutionExpectation = lattice->getSquaredLengthOfFirstBasisVector();
 			acceleratorOptions.initialGroundState = FastVQA::InitialGroundState::PlusState;
 
 
