@@ -15,6 +15,8 @@
 #include "FastVQA/pauliHamiltonian.h"
 #include <vector>
 
+using namespace fplll;
+
 typedef ZZ_mat<mpz_t> MatrixInt;
 typedef std::vector<mpz_class> VectorInt;
 typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;

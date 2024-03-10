@@ -13,7 +13,7 @@ void test_variable_substitution(MapOptions* mapOptions){
 
 void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
-	int penalty = 0;
+	int penalty = 1000;
 
 	MapOptions mapOptions;
 	mapOptions.verbose = false;//true;
