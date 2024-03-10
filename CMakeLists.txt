@@ -17,7 +17,7 @@ message(
 
 find_package(FastVQA)
 find_package (Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(Boost REQUIRED COMPONENTS system iostreams)
+find_package(Boost REQUIRED COMPONENTS system serialization iostreams)
 
 find_package(MPI)
 if(MPI_FOUND AND DISTRIBUTED)

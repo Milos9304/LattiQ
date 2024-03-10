@@ -23,6 +23,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 	mapOptions.bin_map = penalty > 0 ? MapOptions::zeta_omega_exact : MapOptions::naive_overapprox;
 	mapOptions.penalty = penalty;
 
+	qaoaOptions->accelerator->options.exclude_zero_state = true;
 	qaoaOptions->log_level = 3;
 	qaoaOptions->ftol = 10e-6;
 	qaoaOptions->max_iters = 4000;
@@ -40,7 +41,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 			int counter=0;
 			for(auto w : gramian_wrappers){
-				for(int p = 1; p <= 3/*6*/; ++p){
+				for(int p = 1; p <= 6; ++p){
 					for(int odd=0; odd < 2; ++odd){
 
 						if(qs == 1 && odd)
@@ -49,13 +50,13 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 						mapOptions.__minus_one_qubit_firstvar=odd;
 						qaoaOptions->p = p;
 
-						std::string filename = _experiment_output_directory+"/performance_experiment/test_interim_energies_q"+std::to_string(qs*2+(odd?(-1):0))+"_"+std::to_string(counter)+"_p"+std::to_string(p);
-						std::ifstream f(filename);
+						//std::string filename = _experiment_output_directory+"/performance_experiment/test_interim_energies_q"+std::to_string(qs*2+(odd?(-1):0))+"_"+std::to_string(counter)+"_p"+std::to_string(p);
+						//std::ifstream f(filename);
 
 						/*if(f.good())
 							continue;
 						*/
-						std::ofstream interimEnergiesFile(filename);
+						//std::ofstream interimEnergiesFile(filename);
 
 						Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
 						std::string name = w.name;
@@ -73,18 +74,16 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 						FastVQA::ExperimentBuffer buffer;
 						buffer.storeQuregPtr = false;
 
-						time_t start_time = time(0);
-						qaoa_instance.run_qaoa(&buffer, &h, qaoaOptions);
-						time_t end_time = time(0);
+						//time_t start_time = time(0);
+						//qaoa_instance.run_qaoa(&buffer, &h, qaoaOptions);
+						//time_t end_time = time(0);
 
-						int duration_s = difftime(end_time,start_time);
+						//int duration_s = difftime(end_time,start_time);
 
 						Database::DatasetRow row;
 						bool found = database->getOrCalculate_qary(param.q, param.n, param.m, qaoaOptions->p,
 								counter, nbQubits, penalty > 0 ? true : false,
 										&l, &h, &row, qaoaOptions, &mapOptions);
-
-						logd(std::to_string(found));
 
 						/*row.type = "qary";
 						row.q = param.q;
@@ -97,12 +96,12 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 
 
-						std::cerr<<buffer.num_iters<<"\n";
-						std::cerr<<buffer.opt_message<<"\n";
-						interimEnergiesFile << "Duration=" << duration_s <<"\n";
-						for(double e: buffer.intermediateEnergies)
-							interimEnergiesFile << e << " ";
-						interimEnergiesFile.close();
+						//std::cerr<<buffer.num_iters<<"\n";
+						//std::cerr<<buffer.opt_message<<"\n";
+						//interimEnergiesFile << "Duration=" << duration_s <<"\n";
+						//for(double e: buffer.intermediateEnergies)
+						//	interimEnergiesFile << e << " ";
+						//interimEnergiesFile.close();
 					}
 
 				}

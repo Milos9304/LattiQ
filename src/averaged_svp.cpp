@@ -67,7 +67,7 @@ int main(int ac, char** av){
 
 	FastVQA::AcceleratorOptions acceleratorOptions;
 	acceleratorOptions.accelerator_type = "quest";
-	acceleratorOptions.log_level = performance_calc->is_set() ? 3 : log_level->value();
+	acceleratorOptions.log_level = /*performance_calc->is_set() ? 3 :*/ log_level->value();
 
 	FastVQA::NLOptimizer optimizer;
 

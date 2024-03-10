@@ -14,7 +14,7 @@
 
 #include "logger.h"
 
-typedef std::vector<std::tuple<long, double>> FinalStateVectorMap;
+typedef std::vector<std::pair<qreal, double>> FinalStateVectorMap;
 
 class Database{
 public:
