@@ -69,7 +69,6 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 						logi("Running experiment " + std::to_string(counter) + " with " + std::to_string(nbQubits) + " qubits and p="+std::to_string(p));
 
-						qaoaOptions->accelerator->initialize(&h);
 						FastVQA::Qaoa qaoa_instance;
 						FastVQA::ExperimentBuffer buffer;
 						buffer.storeQuregPtr = false;
