@@ -13,7 +13,7 @@ void test_variable_substitution(MapOptions* mapOptions){
 
 void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
-	int penalty = 1000;
+	int penalty = 0;
 
 	MapOptions mapOptions;
 	mapOptions.verbose = false;//true;
@@ -84,6 +84,44 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 						bool found = database->getOrCalculate_qary(param.q, param.n, param.m, qaoaOptions->p,
 								counter, nbQubits, penalty > 0 ? true : false,
 										&l, &h, &row, qaoaOptions, &mapOptions);
+
+						/*if(found){
+							std::cerr<<row.q<<"\n";
+							std::cerr<<row.n<<"\n";
+							std::cerr<<row.m<<"\n";
+							std::cerr<<row.p<<"\n";
+							std::cerr<<row.index<<"\n";
+							std::cerr<<row.num_qs<<"\n";
+							std::cerr<<row.penalty<<"\n";
+							std::cerr<<row.volume<<"\n";
+							std::cerr<<row.sv1Squared<<"\n";
+							std::cerr<<row.degeneracy<<"\n";
+							std::cerr<<row.duration_s<<"\n";
+							std::cerr<<row.iters<<" iters\n";
+							for(auto&a: row.initAngles)
+								std::cerr<<a<<" ";
+							std::cerr<<"\n\n";
+							for(auto&a: row.finalStateVectorMap)
+								std::cerr<<a.first<<" "<<a.second<<"\n";
+							std::cerr<<"\n\n";
+							for(auto&a: row.intermediateAngles){
+								std::cerr<<"{";
+								for(auto&aa: a)
+									std::cerr<<aa<<" ";
+								std::cerr<<"}";
+							}
+							std::cerr<<"\n\n";
+							for(auto&a: row.intermediateEnergies)
+								std::cerr<<a<<" ";
+							std::cerr<<"\n\n";
+							for(auto&a: row.finalAngles)
+								std::cerr<<a<<" ";
+							std::cerr<<"\n\n";
+							std::cerr<<row.probSv1<<" probability\n";
+							std::cerr<<row.opt_res<<"\n";
+							std::cerr<<row.comment<<"\n";
+							return;
+						}*/
 
 						/*row.type = "qary";
 						row.q = param.q;

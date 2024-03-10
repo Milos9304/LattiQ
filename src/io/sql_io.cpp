@@ -81,7 +81,7 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 			output_row->index 					= query.getColumn("indexx").getInt();
 			output_row->num_qs 					= query.getColumn("num_qs").getInt();
 			output_row->penalty					= query.getColumn("penalty").getInt();
-			output_row->volume					= query.getColumn("volume").getInt();
+			output_row->volume					= query.getColumn("volume").getDouble();
 			output_row->sv1Squared				= query.getColumn("sv1Squared").getInt();
 			output_row->degeneracy				= query.getColumn("degeneracy").getInt();
 			output_row->duration_s				= query.getColumn("duration_s").getInt();
@@ -119,7 +119,7 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 			boost::archive::binary_iarchive ia5(ss);
 			ia5 >> output_row->finalAngles;
 
-			output_row->probSv1					= query.getColumn("probSv1").getInt();
+			output_row->probSv1					= query.getColumn("probSv1").getDouble();
 			output_row->opt_res					= query.getColumn("opt_res").getText();
 			output_row->comment					= query.getColumn("comment").getText();
 			found = true;
