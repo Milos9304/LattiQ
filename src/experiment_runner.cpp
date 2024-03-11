@@ -10,11 +10,9 @@
 const double pi = 3.141592654;
 
 AngleSearchExperiment::AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
+
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
-
-	logi("Setting p=2", this->loglevel);
-	qaoaOptions->p = 2;
 
 	this->num_instances = pow(q,(m-n));
 	if(max_num_instances < this->num_instances)
@@ -48,12 +46,14 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 
 	nbQubits = -1;
 
+	loge("Saving eigenspaaace which is not needed and very costly");
+
 	for(int i = 0; i < num_instances; ++i){
 
 		Instance instance;
 
 		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
-		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squred
+		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
 		instance.h = l.getHamiltonian(mapOptions);
 		if(nbQubits < 0)
 			nbQubits = instance.h.nbQubits;
@@ -62,8 +62,12 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 		qaoaOptions->accelerator->initialize(&instance.h);
 		qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
 		instance.solutions = qaoaOptions->accelerator->getSolutions();
-		instance.min_energy = std::get<0>(instance.solutions[0]);
 
+		instance.eigenspace = qaoaOptions->accelerator->getEigenspace();//delete
+
+
+		instance.min_energy = std::get<0>(instance.solutions[0]);
+		instance.random_guess = l.get_random_guess_one_vect() * instance.solutions.size();
 
 		if(i < num_train_instances)
 			this->train_set.push_back(instance);
@@ -86,7 +90,6 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 
 		FastVQA::ExperimentBuffer buffer;
 		buffer.storeQuregPtr = true;
-		//qaoaOptions->accelerator->initialize(&instance.h);
 		qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
 		double ground_state_overlap = 0;
 		for(auto &sol: instance.solutions){
@@ -99,9 +102,22 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 
 			ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 		}
+
+		for(auto &e: instance.eigenspace){
+			std::cerr<<e.first<<" "<<e.second<<"\n";
+		}
+
+		std::cerr<<"degeneracy = " << instance.solutions.size() << "\n";
+		std::cerr<<"GS_overlap = " << ground_state_overlap << "\n";
+		std::cerr<<"random guess = " << instance.random_guess << "\n";
+
 		num_sols.push_back(instance.solutions.size());
-		gs_overlaps.push_back(ground_state_overlap);
+		gs_overlaps.push_back(ground_state_overlap / instance.random_guess);
 		i++;
+
+		loge("Tried only one instance");
+		break;
+
 	}
 
 	double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
@@ -436,6 +452,9 @@ void AngleSearchExperiment::run_p2_test(){
 		AngleSearchExperiment::Cost cost = this->_cost_fn(&this->train_set, angles);
 
 		std::cerr<<"Train/Test mean="<<setting.train_mean<<"/"<<cost.mean<<"   std="<<setting.train_std<<"/"<<cost.stdev<<"\n";
+
+		loge("Break from second_roung_angles");
+		break;
 
 	}
 

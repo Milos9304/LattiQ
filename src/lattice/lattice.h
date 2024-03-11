@@ -15,12 +15,9 @@
 #include "FastVQA/pauliHamiltonian.h"
 #include <vector>
 
-using namespace fplll;
-
-typedef ZZ_mat<mpz_t> MatrixInt;
+typedef fplll::ZZ_mat<mpz_t> MatrixInt;
 typedef std::vector<mpz_class> VectorInt;
 typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;
-
 
 class MapOptions{
 
@@ -41,11 +38,11 @@ class MapOptions{
 		 *
 		 *
 		 */
-		enum penalty_mode { penalty_all, no_hml_penalization };
+		//enum penalty_mode { penalty_all, no_hml_penalization };
 
 		x_init_mode x_mode;
 		bin_mapping bin_map;
-		penalty_mode pen_mode;
+		//penalty_mode pen_mode;
 
 		int penalty;
 		int num_qbits_per_x;
@@ -55,7 +52,7 @@ class MapOptions{
 
 		MapOptions(x_init_mode x_mode=x_symmetric,
 				bin_mapping bin_map=naive_overapprox,
-				penalty_mode pen_mode=penalty_all,
+				//penalty_mode pen_mode=penalty_all,
 				int penalty_val=1000,
 				int num_qbits_per_x=1,
 				int absolute_bound=-1,
@@ -70,7 +67,7 @@ class MapOptions{
 
 			this->x_mode = x_mode;
 			this->bin_map = bin_map;
-			this->pen_mode = pen_mode;
+			//this->pen_mode = pen_mode;
 			this->penalty = penalty_val;
 			this->num_qbits_per_x = num_qbits_per_x;
 			this->absolute_bound = absolute_bound;
@@ -202,7 +199,11 @@ class Lattice {
 
 		long long int firstVectorLengthSquared=0;
 
-		//xacc::quantum::PauliOperator getHamiltonian(MapOptions* options);
+		qreal get_random_guess_one_vect(){
+			if(bin_initialized)
+				return random_guess_one_vect;
+			throw_runtime_error("random_guess_one_vect_prior_penalization cannot be returned at this point");return -1;
+		}
 
 	private:
 
@@ -215,9 +216,14 @@ class Lattice {
 		MatrixInt orig_lattice, orig_lattice_transposed, current_lattice;
 
 		bool gso_current_initialized = false, gso_orig_initialized = false;
-		MatGSO<Z_NR<mpz_t>, FP_NR<double>>* gso_current, *gso_orig;
+		MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>* gso_current, *gso_orig;
 
 		FastVQA::Expression *expression_int, *expression_bin, *expression_penalized, *expression_qubo;
+		std::vector<std::map<FastVQA::Var*, int>> solutions;
+		bool solutions_calculated = false;
+		mpq_class solutions_length_squared=-1;
+		void calculate_solutions(bool print=false);
+		void _bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i);
 
 		//std::map<std::string, Var*> qubo_to_bin_map;
 		std::map<int, int> qbit_to_varId_map;
@@ -234,14 +240,15 @@ class Lattice {
 		bool bin_initialized = false;
 		void init_expr_bin(MapOptions::bin_mapping mapping, bool print=false);
 
+		qreal random_guess_one_vect;
+
 		int zn_id=0, zn_m1_id=0, xn_m1_id;
 		bool pen_initialized = false;
-		void penalize_expr(int penalty, MapOptions::penalty_mode mode, bool print=false);
+		void penalize_expr(int penalty, /*MapOptions::penalty_mode mode, */bool print=false);
 
 		bool qubo_generated = false;
 		void generate_qubo(bool print=false);
 
-		//xacc::quantum::PauliOperator hamiltonian;
 		void calcHamiltonian(MapOptions* options, bool print);
 
 		mpq_class calculate_gh_squared(MatrixInt* lattice);

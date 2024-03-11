@@ -150,11 +150,14 @@ int main(int ac, char** av){
 		MapOptions* mapOptions = new MapOptions();
 		mapOptions->verbose = print_hml->is_set();
 		mapOptions->num_qbits_per_x = qubits_per_x->value();
-		mapOptions->penalty=overlap_penalty->value();
-		if(ansatz_name->value() == "qaoa")
-			mapOptions->pen_mode = MapOptions::penalty_all;
+
+		if(ansatz_name->value() != "qaoa"){
+			mapOptions->penalty = 0;
+			logw("Penalty value overriden because qaoa ansatz not used");
+		}
 		else
-			mapOptions->pen_mode = MapOptions::no_hml_penalization;
+			mapOptions->penalty=overlap_penalty->value();
+
 
 		int inst_counter = 0;
 		for(auto &lattice : lattices){
@@ -211,8 +214,13 @@ int main(int ac, char** av){
 			MapOptions* mapOptions = new MapOptions();
 			mapOptions->verbose = print_hml->is_set();
 			mapOptions->num_qbits_per_x = qubits_per_x->value();
-			mapOptions->penalty=overlap_penalty->value();
-			mapOptions->pen_mode = MapOptions::penalty_all;
+			if(ansatz_name->value() != "qaoa"){
+				mapOptions->penalty = 0;
+				logw("Penalty value overriden because qaoa ansatz not used");
+			}
+			else
+				mapOptions->penalty=overlap_penalty->value();
+			//mapOptions->pen_mode = MapOptions::penalty_all;
 			//mapOptions->pen_mode = MapOptions::no_hml_penalization;
 
 			FastVQA::PauliHamiltonian h1 = lattice->getHamiltonian(mapOptions);

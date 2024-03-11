@@ -8,8 +8,6 @@
 
 using namespace popl;
 
-const std::string database_file = "../experiments/database.db";
-
 int main(int ac, char** av){
 
 	int seed = 1997;
@@ -38,12 +36,6 @@ int main(int ac, char** av){
 		return 0;
 	}
 
-	if(database_info->is_set()){
-		Database::print_sqlite_info(database_file);
-		return 0;
-	}
-
-	Database database(database_file);
 	/*Database::DatasetRow row;
 	row.type = "qary";
 	row.q = 7;
@@ -89,7 +81,7 @@ int main(int ac, char** av){
 	mapOptions.verbose = print_hml->is_set();
 	mapOptions.num_qbits_per_x = qubits_per_x->value();
 	mapOptions.absolute_bound = absolute_bound->value();
-	mapOptions.pen_mode = MapOptions::penalty_all;
+	//mapOptions.pen_mode = MapOptions::penalty_all;
 	mapOptions.bin_map = penalty->value() > 0 ? MapOptions::zeta_omega_exact : MapOptions::naive_overapprox;
 	mapOptions.penalty = penalty->value();
 
@@ -104,8 +96,18 @@ int main(int ac, char** av){
 
 	ExperimentSetup experimentSetup;
 	if(performance_calc->is_set()){
+
+		const std::string database_file = "../experiments/database.db";
+
+		if(database_info->is_set()){
+			Database::print_sqlite_info(database_file);
+			return 0;
+		}
+
+		Database database(database_file);
 		test_execution_time(&qaoaOptions, &database);
 		return 0;
+
 	}else if(test_variable_subst->is_set()){
 		test_variable_substitution(&mapOptions);
 		return 0;
@@ -113,7 +115,9 @@ int main(int ac, char** av){
 		logi("Running angleSearch experiment", loglevel);
 		experimentSetup.experiment_type = "angleSearch";
 
-		AngleSearchExperiment angleSearchExp(log_level->value(), &qaoaOptions, &mapOptions);
+		logi("Setting p=2", loglevel);
+		qaoaOptions.p = 2;
+		AngleSearchExperiment angleSearchExp(loglevel, &qaoaOptions, &mapOptions);
 		angleSearchExp.run();
 
 		return 0;

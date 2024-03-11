@@ -5,10 +5,188 @@
  *      Author: Milos Prokop
  */
 
-
 #include "lattice.h"
+#include "fplll/pruner/pruner.h"
+#include <cmath>
+#include <bitset>
+#include <fstream>
 
-bool pen_initialized = false;
+#define log_pi 1.1447298858494
+
+FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
+
+	FastVQA::PauliHamiltonian result;
+	this->calcHamiltonian(options, options->verbose);
+
+	if(!qubo_generated){
+		loge("Hamiltonian referenced but not yet generated!");
+		throw;
+	}
+
+	result.nbQubits = expression_qubo->getIdMapSize()-1; //-1 bc of identity
+
+	for(auto &term : expression_qubo->polynomial){
+
+		if(term.second == 0)
+			continue;
+
+		int id1 = term.first.first;
+		int id2 = term.first.second;
+
+		int pos1, pos2;
+
+		result.coeffs.push_back(term.second.get_d());
+
+		if(id1 == -1 && id2 == -1){ //id
+			pos1=pos2=-1; //never matches
+		}
+		else if(id1 == -1){
+			pos1=expression_qubo->getQubit(id2);
+			pos2=pos1;
+		}
+		else if(id2 == -1){
+			pos1=expression_qubo->getQubit(id1);
+			pos2=pos1;
+		}else{
+			pos1=expression_qubo->getQubit(id1);
+			pos2=expression_qubo->getQubit(id2);
+		}
+
+		for(int i = 0; i < result.nbQubits; ++i){
+			if(i == result.nbQubits-1-pos1 || i == result.nbQubits-1-pos2)
+				result.pauliOpts.push_back(3); //3 is pauli op code for z in qiskit
+			else
+				result.pauliOpts.push_back(0);
+		}
+	}
+
+	return result;
+}
+
+mpq_class Lattice::calculate_gh_squared(MatrixInt* lattice){
+
+	if(n_rows != n_cols){
+		//loge("Gaussian heuristics not implemented for low rank matrices. Returning 1.");
+		return 1;
+	}
+
+	int n = n_rows;
+
+	if(!gso_orig_initialized){
+		ZZ_mat<mpz_t> blank;
+
+		gso_orig = new MatGSO<Z_NR<mpz_t>, FP_NR<double>>(orig_lattice, blank, blank, GSO_INT_GRAM);
+		gso_orig->update_gso();
+
+		gso_orig_initialized = true;
+	}
+
+	double ball_log_vol = (n/2.) * log_pi - lgamma(n/2. + 1);
+	double log_vol = gso_orig->get_log_det(0, n).get_d();
+	double log_gh =  1./n * (log_vol - 2 * ball_log_vol);
+
+	return exp(log_gh);
+}
+
+//
+//  @dst: destination vector
+//  @measurement: optimal config measurement x_n-1 x_n-2 ... x_0
+//
+VectorInt Lattice::quboToXvector(std::string measurement){
+
+	int n = measurement.size();
+
+	std::map<int, int> penalized_varId_map;
+
+	for (int i = 0; i < n; ++i) {
+		int varId = qbit_to_varId_map[i];
+
+		//std::cerr<<i<<"-th qubit has " << expression_penalized->getName(varId)<<"\n";
+		if(expression_penalized->getName(varId)[0] != 'z'){
+			penalized_varId_map[varId] = measurement[n-1-i]-'0';
+			//std::cerr<<expression_penalized->getName(varId)<<" gets " << measurement[n-1-i]-'0'<<"\n";
+		}
+
+	}
+	//std::cerr<<"in X:\n";
+	VectorInt res;
+	for(auto &x: x_ids){
+
+		mpq_class val = 0;
+		for(auto &id_val:int_to_bin_map[x]){
+			if(id_val.first == -1){ //lower bound
+				val += id_val.second;
+			}else{
+				val += id_val.second * penalized_varId_map[id_val.first]; //binary var times its coeff
+			}
+			//std::cerr<<expression_penalized->getName(id_val.first)<<"\n";
+			//std::cerr<<"val: "<<id_val.second<<"\n";
+		}
+
+		if(val.get_den() != 1){
+			stringstream ss;
+			ss << "Lattice::quboToXvector: decimal " << val << " to int conversion\n";
+		}
+		//std::cerr<<"pushing "<<val<<"\n";
+		res.push_back(mpz_class(val));
+
+
+	}
+	return res;
+}
+
+VectorInt Lattice::quboToXvector(bool* measurement, int n){
+
+	std::map<int, int> penalized_varId_map;
+
+	for (int i = 0; i < n; ++i) {
+		int varId = qbit_to_varId_map[i];
+
+		if(expression_penalized->getName(varId)[0] != 'z'){
+			penalized_varId_map[varId] = measurement[n-1-i]/*-'0'*/;
+		}
+	}
+
+	VectorInt res;
+	for(auto &x: x_ids){
+
+		mpq_class val = 0;
+		for(auto &id_val:int_to_bin_map[x]){
+			val += id_val.second * penalized_varId_map[id_val.first]; //binary var times its coeff
+		}
+
+		if(val.get_den() != 1){
+			stringstream ss;
+			ss << "Lattice::quboToXvector: decimal " << val << " to int conversion\n";
+		}
+
+		res.push_back(mpz_class(val));
+
+
+	}
+	return res;
+}
+
+VectorInt Lattice::quboToXvector(long long int measurement, int nbQubits){
+	std::string binary = std::bitset<100>(measurement).to_string();
+	binary=binary.substr(binary.size() - nbQubits);
+	std::reverse(binary.begin(), binary.end());
+	//std::cerr<<"M:"<<measurement<<" "<<nbQubits<<" "<<binary<<"\n";
+	return quboToXvector(binary);
+}
+
+void Lattice::outputGramianToFile(std::string filename){
+	std::ofstream f;
+		f.open(filename+".gram");
+		if(!gramian)
+			loge("outputGramianToFile not implemented for this case");
+		if(gramian_diag)
+			f << diagonalGramian;
+		else
+			f << nonDiagGramian;
+		f << gramian;
+		f.close();
+}
 
 double Lattice::getVolume(){
 
@@ -26,132 +204,58 @@ double Lattice::getVolume(){
 
 }
 
-void Lattice::generate_qubo(bool print){
+void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
-	expression_qubo = new FastVQA::Expression(*expression_penalized);
-	expression_qubo->name = "QUBO";
+		if(!gso_current_initialized){
 
-	int qubit = 0;
-	for(auto &var : expression_qubo->getVariables()){
+			ZZ_mat<mpz_t> blank;
 
-		if(var->id < 0) //id
-			continue;
+			gso_current = new MatGSO<Z_NR<mpz_t>, FP_NR<double>>(current_lattice, blank, blank, GSO_INT_GRAM);
+			gso_current->update_gso();
 
-		std::pair<int, std::string> z = expression_qubo -> addZ(qubit);
-		//qubo_to_bin_map.emplace(z.second, var);
-
-		std::map<int, mpq_class> subs_expr; //id, coeff
-
-		//(1-z)/2
-		subs_expr.emplace(-1, 0.5);
-		subs_expr.emplace(z.first, -0.5);
-		expression_qubo->substitute(var->id, subs_expr);
-
-		qbit_to_varId_map.emplace(qubit, var->id);
-
-		qubit++;
-
-	}
-
-	if(print)
-		expression_qubo -> print();
-
-}
-
-void Lattice::penalize_expr(int penalty, MapOptions::penalty_mode mode, bool print){
-
-	expression_penalized = new FastVQA::Expression(*expression_bin);
-	expression_penalized->name = "expression_penalized";
-
-	if(mode == MapOptions::penalty_all && penalty > 0){
-
-		std::vector<FastVQA::Var*>::iterator xn_m1_it;
-
-		expression_penalized -> addConstant(penalty);
-		std::vector<FastVQA::Var*> variables = expression_penalized->getVariables();
-		std::vector<FastVQA::Var*> variables_to_be_penalized;
-
-		if(variables[0]->id != -1){
-			loge("Error! id not the first val");
-			return;
+			gso_current_initialized = true;
 		}
 
-		int counter = 0;
-		int num_penalized_vars = 0;
-		for(std::vector<FastVQA::Var*>::iterator it = variables.begin() + 1;
-				it != variables.end(); ++it){
-
-			if((*it)->extra_information=="P0" || (*it)->extra_information=="P1"){
-				variables_to_be_penalized.push_back((*it));
-				num_penalized_vars++;
-			}
+		if(!x_initialized){
+			init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, print, false, options->__minus_one_qubit_firstvar);
+			x_initialized = true;
 		}
 
-		for(std::vector<FastVQA::Var*>::iterator it = variables_to_be_penalized.begin()/* + 1*/;
-				it != variables_to_be_penalized.end(); ++it){
+		if(!bin_initialized){
+			init_expr_bin(options->bin_map, print);
+			bin_initialized = true;
+		}
 
-			//if((*it)->extra_information!="P0" || (*it)->extra_information!="P1")
-			//	continue;
+		if(!solutions_calculated){
+			calculate_solutions(print);
+			solutions_calculated = true;
+		}
 
-			int z_id = expression_penalized -> addBinaryVar("z_"+(*it)->name);
+		if(!pen_initialized){
 
-			if(counter == num_penalized_vars-1)
-				zn_id = z_id;
-			else if(counter == num_penalized_vars-2){
-				zn_m1_id = z_id;
-				xn_m1_it = it;
-			}
-			if((*it)->extra_information=="P0"){
-				expression_penalized -> addNewTerm((*it)->id, z_id, -penalty);
-			}else{ //(*it)->extra_information[0]=="P1"
-				expression_penalized -> addNewTerm(-1, z_id, -penalty);
-				expression_penalized -> addNewTerm((*it)->id, z_id, penalty);
-			}
+			if(gramian){
+				logi("Penalty="+std::to_string(options->penalty), print ? 0 : 3);
+				if(options->penalty < this->getSquaredLengthOfFirstBasisVector())
+					loge("Check if the penalty " + std::to_string(options->penalty) + " is not set too low! (|b1|^2="+std::to_string(this->getSquaredLengthOfFirstBasisVector())+")");
+			}else{
+				int first_vect_len = 0;
 
-			for(std::vector<FastVQA::Var*>::iterator it2 = it+1; it2 != variables_to_be_penalized.end(); it2++){
-				if((*it)->extra_information=="P0"){
-					expression_penalized -> addNewTerm((*it2)->id, z_id, penalty);
-				}else{ //(*it)->extra_information[0]=="P1"
-					expression_penalized -> addTermCoeff(-1, z_id, penalty);
-					expression_penalized -> addNewTerm((*it2)->id, z_id, -penalty);
+				for(int i = 0; i < n_cols; ++i){
+					first_vect_len+=current_lattice.matrix[0][i].get_si()*current_lattice.matrix[0][i].get_si();
 				}
+				options->penalty = 5 * first_vect_len;
+				logi("Overriding penalty with 5*firstVectLenSq="+std::to_string(options->penalty), print ? 0 : 3);
 			}
 
-		counter++;
+			penalize_expr(options->penalty, /*options->pen_mode, */print);
+			pen_initialized = true;
 		}
 
-		//add z_n=1, z_n-1=x_n-1
-		expression_penalized->substituteVarToDouble(zn_id, 1);
-		std::map<int, mpq_class> subs_expr;//id, coeff
-
-		if(num_penalized_vars > 1){
-			xn_m1_id = (*xn_m1_it)->id;
-			if((*xn_m1_it)->extra_information=="P0")
-				subs_expr.emplace(xn_m1_id, 1);
-			else{ //(*xn_m1_it)->extra_information=="P1")
-				subs_expr.emplace(-1, 1);
-				subs_expr.emplace(xn_m1_id, -1);
-			}
-			expression_penalized->substitute(zn_m1_id, subs_expr);
+		if(!qubo_generated){
+			generate_qubo(print);
+			qubo_generated = true;
 		}
-		//std::cout << "subs " << z1_id << " c" << 1 << "\n";
-		//std::cout << "subs " << z2_id << " " << (*x2_it)->id << "\n";
-	}else if(mode == MapOptions::no_hml_penalization){
-		//do nothing as no penalty qubits needed
-	}
-
-	if(print)
-		expression_penalized->print();
-
 }
-
-
-void Lattice::__single_variable_test(MapOptions* options){
-	init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, true, true);
-	init_expr_bin(options->bin_map, true);
-
-}
-
 
 void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print, bool testing_single_var, bool __minus_one_qubit_firstVar){
 
@@ -309,106 +413,183 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 		int_to_bin_map.emplace(var->id, subs_expr);
 	}
 
+	//-1 because of identity
+	random_guess_one_vect=((qreal)1)/(pow(2,expression_bin->getIdMapSize()-1));
+
 	if(print)
 		expression_bin->print();
 }
 
-void Lattice::calcHamiltonian(MapOptions* options, bool print){
+// Function to generate all binary strings
+void Lattice::_bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i)
+{
+	if (i == n) {
+		mpq_class result = expression_bin->evaluate_bin_expr(varBoolMap);
+		if(result == 0)
+			return;
 
-		if(!gso_current_initialized){
-
-			ZZ_mat<mpz_t> blank;
-
-			gso_current = new MatGSO<Z_NR<mpz_t>, FP_NR<double>>(current_lattice, blank, blank, GSO_INT_GRAM);
-			gso_current->update_gso();
-
-			gso_current_initialized = true;
+		if(solutions_length_squared == -1 || result < this->solutions_length_squared){
+			solutions.clear();
+			this->solutions_length_squared = result;
 		}
 
-		if(!x_initialized){
-			init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, print, false, options->__minus_one_qubit_firstvar);
-			x_initialized = true;
+		if(result == this->solutions_length_squared){
+			solutions.push_back(*varBoolMap);
+		}
+		return;
+	}
+	std::next(varBoolMap->begin(), i)->second=0;
+	_bruteForceSolutions(n, varBoolMap, i + 1);
+
+	std::next(varBoolMap->begin(), i)->second=1;
+	_bruteForceSolutions(n, varBoolMap, i + 1);
+}
+void Lattice::calculate_solutions(bool print){
+
+	std::vector<FastVQA::Var*> variables = expression_bin->getVariables();
+	if(variables[0]->id != -1){
+		loge("Error! id not the first val");
+		return;
+	}
+
+	std::map<FastVQA::Var*, int> varBoolMap;
+	for(int i = 1; i < variables.size(); ++i)
+		varBoolMap.emplace(variables[i], 0);
+
+	this->solutions_length_squared=-1;
+	this->_bruteForceSolutions(variables.size()-1, &varBoolMap, 0);
+
+	if(print){
+		logd("Solution length squared: "+std::to_string(this->solutions_length_squared.get_d()), 0);
+		for(const auto &sol: solutions){
+			for (const auto & [key, value] : sol){
+				std::cout<<key->name<<"="<<value<<" ";
+			}std::cout<<std::endl<<std::endl;
+		}
+	}
+
+
+
+}
+
+void Lattice::penalize_expr(int penalty, /*MapOptions::penalty_mode mode, */bool print){
+
+	expression_penalized = new FastVQA::Expression(*expression_bin);
+	expression_penalized->name = "expression_penalized";
+
+	if(/*mode == MapOptions::penalty_all &&*/penalty > 0){
+
+		std::vector<FastVQA::Var*>::iterator xn_m1_it;
+
+		expression_penalized -> addConstant(penalty);
+		std::vector<FastVQA::Var*> variables = expression_penalized->getVariables();
+		std::vector<FastVQA::Var*> variables_to_be_penalized;
+
+		if(variables[0]->id != -1){
+			loge("Error! id not the first val");
+			return;
 		}
 
-		if(!bin_initialized){
-			init_expr_bin(options->bin_map, print);
-			bin_initialized = true;
+		int counter = 0;
+		int num_penalized_vars = 0;
+		for(std::vector<FastVQA::Var*>::iterator it = variables.begin() + 1;
+				it != variables.end(); ++it){
+
+			if((*it)->extra_information=="P0" || (*it)->extra_information=="P1"){
+				variables_to_be_penalized.push_back((*it));
+				num_penalized_vars++;
+			}
 		}
 
-		if(!pen_initialized){
+		for(std::vector<FastVQA::Var*>::iterator it = variables_to_be_penalized.begin()/* + 1*/;
+				it != variables_to_be_penalized.end(); ++it){
 
-			if(gramian){
-				logi("Penalty="+std::to_string(options->penalty), print ? 0 : 3);
-			}else{
-				int first_vect_len = 0;
+			//if((*it)->extra_information!="P0" || (*it)->extra_information!="P1")
+			//	continue;
 
-				for(int i = 0; i < n_cols; ++i){
-					first_vect_len+=current_lattice.matrix[0][i].get_si()*current_lattice.matrix[0][i].get_si();
+			int z_id = expression_penalized -> addBinaryVar("z_"+(*it)->name);
+
+			if(counter == num_penalized_vars-1)
+				zn_id = z_id;
+			else if(counter == num_penalized_vars-2){
+				zn_m1_id = z_id;
+				xn_m1_it = it;
+			}
+			if((*it)->extra_information=="P0"){
+				expression_penalized -> addNewTerm((*it)->id, z_id, -penalty);
+			}else{ //(*it)->extra_information[0]=="P1"
+				expression_penalized -> addNewTerm(-1, z_id, -penalty);
+				expression_penalized -> addNewTerm((*it)->id, z_id, penalty);
+			}
+
+			for(std::vector<FastVQA::Var*>::iterator it2 = it+1; it2 != variables_to_be_penalized.end(); it2++){
+				if((*it)->extra_information=="P0"){
+					expression_penalized -> addNewTerm((*it2)->id, z_id, penalty);
+				}else{ //(*it)->extra_information[0]=="P1"
+					expression_penalized -> addTermCoeff(-1, z_id, penalty);
+					expression_penalized -> addNewTerm((*it2)->id, z_id, -penalty);
 				}
-				options->penalty = 5 * first_vect_len;
-				logi("Overriding penalty with 5*firstVectLenSq="+std::to_string(options->penalty), print ? 0 : 3);
 			}
 
-			penalize_expr(options->penalty, options->pen_mode, print);
-			pen_initialized = true;
+		counter++;
 		}
 
-		if(!qubo_generated){
-			generate_qubo(print);
-			qubo_generated = true;
-		}
-}
+		//add z_n=1, z_n-1=x_n-1
+		expression_penalized->substituteVarToDouble(zn_id, 1);
+		std::map<int, mpq_class> subs_expr;//id, coeff
 
-
-
-/*xacc::quantum::PauliOperator Lattice::getHamiltonian(MapOptions* options){
-
-	calcHamiltonian(options, options->verbose);
-
-	std::map<int, std::pair<std::string, std::complex<double>>> operators;
-
-	for(auto &term : expression_qubo->polynomial){
-
-		std::pair<int, int> vars = term.first;
-		if(vars.first == -1){
-
-			if(vars.second == -1){
-				//operators.emplace(expression_qubo->getQubit(var), std::pair<std::string, std::complex<double>>("Z", std::complex<double>(term.second.get_d(),0)));
-			}else{
-				operators.emplace(expression_qubo->getQubit(vars.second), std::pair<std::string, std::complex<double>>("Z", std::complex<double>(term.second.get_d(),0)));
+		if(num_penalized_vars > 1){
+			xn_m1_id = (*xn_m1_it)->id;
+			if((*xn_m1_it)->extra_information=="P0")
+				subs_expr.emplace(xn_m1_id, 1);
+			else{ //(*xn_m1_it)->extra_information=="P1")
+				subs_expr.emplace(-1, 1);
+				subs_expr.emplace(xn_m1_id, -1);
 			}
-
-		}else{
-			//operators.emplace(expression_qubo->getQubit(vars.second), std::pair<std::string, std::complex<double>>("Z", std::complex<double>(term.second.get_d(),0)));
+			expression_penalized->substitute(zn_m1_id, subs_expr);
 		}
-
-
+		//std::cout << "subs " << z1_id << " c" << 1 << "\n";
+		//std::cout << "subs " << z2_id << " " << (*x2_it)->id << "\n";
+	}else/* if(mode == MapOptions::no_hml_penalization)*/{
+		//do nothing as no penalty qubits needed
 	}
 
-	operators.emplace(0, std::pair<std::string, std::complex<double>>("Z", std::complex<double>(5,0)));
-	operators.emplace(1, std::pair<std::string, std::complex<double>>("Z", std::complex<double>(6,0)));
-
-	hamiltonian = xacc::quantum::PauliOperator(operators);
-
-	return hamiltonian;
-
-}*/
-
-/*std::string Lattice::toHamiltonianString(){
-	if(!qubo_generated){
-		loge("Hamiltonian referenced but not yet generated!");
-		return "";
-	}
-	return expression_qubo->expression_line_print();
+	if(print)
+		expression_penalized->print();
 
 }
 
-std::string Lattice::toHamiltonianString(MapOptions* options){
+void Lattice::generate_qubo(bool print){
 
-	calcHamiltonian(options, options->verbose);
-	return expression_qubo->expression_line_print();
+	expression_qubo = new FastVQA::Expression(*expression_penalized);
+	expression_qubo->name = "QUBO";
 
-}*/
+	int qubit = 0;
+	for(auto &var : expression_qubo->getVariables()){
+
+		if(var->id < 0) //id
+			continue;
+
+		std::pair<int, std::string> z = expression_qubo -> addZ(qubit);
+		//qubo_to_bin_map.emplace(z.second, var);
+
+		std::map<int, mpq_class> subs_expr; //id, coeff
+
+		//(1-z)/2
+		subs_expr.emplace(-1, 0.5);
+		subs_expr.emplace(z.first, -0.5);
+		expression_qubo->substitute(var->id, subs_expr);
+
+		qbit_to_varId_map.emplace(qubit, var->id);
+
+		qubit++;
+
+	}
+
+	if(print)
+		expression_qubo -> print();
+
+}
 
 std::vector<long long unsigned int> Lattice::getZeroReferenceStates(){
 	if(!qubo_generated){
@@ -437,5 +618,10 @@ void Lattice::reduce_rank(int reduced_rank){
 	}
 
 	this -> n_rows = reduced_rank;//lattice.get_rows();
+}
+
+void Lattice::__single_variable_test(MapOptions* options){
+	init_x(options->x_mode, options->num_qbits_per_x, options->absolute_bound, true, true);
+	init_expr_bin(options->bin_map, true);
 }
 

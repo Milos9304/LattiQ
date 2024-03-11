@@ -61,7 +61,9 @@ private:
 	struct Instance{
 		FastVQA::PauliHamiltonian h;
 		FastVQA::RefEnergies solutions;
+		FastVQA::RefEnergies eigenspace; //for debug
 		qreal min_energy;
+		qreal random_guess;
 	};
 
 	const double test_ratio = 0.2;

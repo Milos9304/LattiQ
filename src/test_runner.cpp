@@ -19,7 +19,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 	mapOptions.verbose = false;//true;
 	//mapOptions.num_qbits_per_x = qubits_per_x->value();
 	//mapOptions.absolute_bound = absolute_bound->value();
-	mapOptions.pen_mode = MapOptions::penalty_all;
+	//mapOptions.pen_mode = MapOptions::penalty_all;
 	mapOptions.bin_map = penalty > 0 ? MapOptions::zeta_omega_exact : MapOptions::naive_overapprox;
 	mapOptions.penalty = penalty;
 
