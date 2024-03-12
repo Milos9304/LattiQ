@@ -143,13 +143,13 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 		throw_runtime_error("eigenSpace.size() != stateVector->numAmpsTotal");
 
 	//here we sort in their indices
-	std::sort(eigenSpace.begin(), eigenSpace.end(), [&](FastVQA::RefEnergy i, FastVQA::RefEnergy j){return std::get<1>(i) < std::get<1>(j);});
+	std::sort(eigenSpace.begin(), eigenSpace.end(), [&](FastVQA::RefEnergy i, FastVQA::RefEnergy j){return i.index < j.index;});
 	//for(auto e: eigenSpace){
 	//	std::cerr<<std::get<1>(e) <<" "<<std::get<0>(e)<<"\n";
 	//}
 
 	for(long long int i = 0; i < stateVector->numAmpsTotal; ++i){
-		finalStateVectorMap[i] = std::pair<qreal, double>(std::get<0>(eigenSpace[i]), stateVector->stateVec.real[i]*stateVector->stateVec.real[i]+stateVector->stateVec.imag[i]*stateVector->stateVec.imag[i]);
+		finalStateVectorMap[i] = std::pair<qreal, double>(eigenSpace[i].value, stateVector->stateVec.real[i]*stateVector->stateVec.real[i]+stateVector->stateVec.imag[i]*stateVector->stateVec.imag[i]);
 	}
 
 	output_row->finalStateVectorMap 	= finalStateVectorMap;

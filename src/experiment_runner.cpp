@@ -65,9 +65,13 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 
 		instance.eigenspace = qaoaOptions->accelerator->getEigenspace();//delete
 
-
-		instance.min_energy = std::get<0>(instance.solutions[0]);
-		instance.random_guess = l.get_random_guess_one_vect() * instance.solutions.size();
+		qreal min_energy = instance.solutions[0].value;
+		for(const auto &sol: instance.solutions){
+			if(sol.value < min_energy)
+				min_energy = sol.value;
+		}
+		instance.min_energy = min_energy;
+		instance.random_guess = l.get_random_guess_one_vect() * instance.h.custom_solutions.size();
 
 		if(i < num_train_instances)
 			this->train_set.push_back(instance);
@@ -93,9 +97,7 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 		qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
 		double ground_state_overlap = 0;
 		for(auto &sol: instance.solutions){
-			if(instance.min_energy != std::get<0>(sol))
-				logw("An outcome with different energy marked as a solution!");
-			long long int index = std::get<1>(sol);
+			long long int index = sol.index;
 
 			/*if(instance.h.getMatrixRepresentation2(true)(index, index) != instance.min_energy+1)
 				logw("An outcome with different energy marked as a solution!");*/
@@ -103,20 +105,20 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 			ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 		}
 
-		for(auto &e: instance.eigenspace){
-			std::cerr<<e.first<<" "<<e.second<<"\n";
-		}
+		//for(auto &e: instance.eigenspace){
+		//	std::cerr<<e.first<<" "<<e.second<<"\n";
+		//}
 
-		std::cerr<<"degeneracy = " << instance.solutions.size() << "\n";
-		std::cerr<<"GS_overlap = " << ground_state_overlap << "\n";
-		std::cerr<<"random guess = " << instance.random_guess << "\n";
+		//std::cerr<<"degeneracy = " << instance.h.custom_solutions.size() << "\n";
+		//std::cerr<<"GS_overlap = " << ground_state_overlap << "\n";
+		//std::cerr<<"random guess = " << instance.random_guess << "\n";
 
-		num_sols.push_back(instance.solutions.size());
+		num_sols.push_back(instance.h.custom_solutions.size());
 		gs_overlaps.push_back(ground_state_overlap / instance.random_guess);
 		i++;
 
-		loge("Tried only one instance");
-		break;
+		//loge("Tried only one instance");
+		//break;
 
 	}
 
@@ -135,7 +137,9 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 
 void AngleSearchExperiment::run(){
 
-	run_p2_test();
+	//run_p2_test();
+	run_p1();
+
 	return;
 
 	if(this->qaoaOptions->p == 1)
@@ -163,16 +167,16 @@ void AngleSearchExperiment::run_p1(){
 	double mean_threshold = 0.032;
 	double stdev_threshold = 0.019;
 
-	double beta_min = pi/16;
-	double beta_max = pi/8;
+	double beta_min = 0;//pi/16;
+	double beta_max = pi;//;pi/8;
 
 	double gamma_min = 0;
-	double gamma_max = pi;
+	double gamma_max = 2*pi;
 
 	double range_beta = beta_max - beta_min;
 	double range_gamma = gamma_max - gamma_min;
-	double incr_beta = /*0.04*/0.12;
-	double incr_gamma = /*0.04*/0.01;
+	double incr_beta = 0.04;///0.12;
+	double incr_gamma = 0.04;///0.01;
 
 	int axis_range_beta = ceil(range_beta / incr_beta);
 	int axis_range_gamma = ceil(range_gamma / incr_gamma);
@@ -213,7 +217,7 @@ void AngleSearchExperiment::run_p1(){
 			if(cost.mean >= mean_threshold && cost.stdev <= stdev_threshold){
 				first_round_angles.push_back(std::tuple<double, double>(gamma, beta));
 
-				std::cerr<<"("<<gamma<<" "<<beta<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
+				//std::cerr<<"("<<gamma<<" "<<beta<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
 
 			}
 

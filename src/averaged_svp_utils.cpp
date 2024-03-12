@@ -13,8 +13,8 @@ void saveEigenspaceToFile(std::string filename, FastVQA::RefEnergies eigenspace)
 	std::ofstream f (filename);
 	if (f.is_open()){
 		for(auto &p: eigenspace){
-			qreal energy = std::get<0>(p);
-			long long int index = std::get<1>(p);
+			qreal energy = p.value;
+			long long int index = p.index;
 			f << index << " " << energy << "\n";
 		}
 	}

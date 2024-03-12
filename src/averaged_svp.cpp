@@ -159,13 +159,17 @@ int main(int ac, char** av){
 
 		//std::cerr<<"q="<<w.K<<"\n\n";
 		//std::cerr<<"G="<<G<<"\n";
-		qreal energy = std::get<0>(solutions[0]);
+		qreal energy = solutions[0].value;
+		for(const auto &sol: solutions){
+			if(sol.value < energy)
+				energy = sol.value;
+		}
 		for(auto &sol: solutions){
 
 			//energy index
-			if(energy != std::get<0>(sol))
-				logw("An outcome with different energy marked as a solution!");
-			long long int index = std::get<1>(sol);
+			if(energy != sol.value)
+				logw("An outcome with different energy marked as a solution! TODO: This was expected. Need to change code for RefEnergies.isConsideredSolution");
+			long long int index = sol.index;
 			//std::cerr<<index<<"    "<<energy<<"\n";
 			VectorInt solVectFromAcc = l.quboToXvector(index, nbQubits);
 			Eigen::Vector<int, Eigen::Dynamic> solVect(solVectFromAcc.size());

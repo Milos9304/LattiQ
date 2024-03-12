@@ -18,10 +18,8 @@ FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 	FastVQA::PauliHamiltonian result;
 	this->calcHamiltonian(options, options->verbose);
 
-	if(!qubo_generated){
-		loge("Hamiltonian referenced but not yet generated!");
-		throw;
-	}
+	if(!qubo_generated)
+		throw_runtime_error("Hamiltonian referenced but not yet generated!");
 
 	result.nbQubits = expression_qubo->getIdMapSize()-1; //-1 bc of identity
 
@@ -58,6 +56,28 @@ FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 			else
 				result.pauliOpts.push_back(0);
 		}
+	}
+
+	if(!solutions_calculated)
+		throw_runtime_error("Solutions referenced but not yet calculated");
+
+	for(const auto & sol: this->solutions){
+		std::string s="";
+		for(int i = 0; i < result.nbQubits; ++i){
+
+			bool found = false;
+			for(const auto & [var_ptr, value]: sol){
+				if(qbit_to_varId_map[i] == var_ptr->id){
+					s += value ? '1' : '0';
+					found = true;
+					break;
+				}
+			}
+			if(!found)
+				s+=".";
+
+		}
+		result.custom_solutions.push_back(s);
 	}
 
 	return result;
