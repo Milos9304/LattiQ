@@ -208,7 +208,7 @@ void AngleSearchExperiment::run_p2_full_bruteforce(){
 
 	std::vector<std::tuple<double, double>> first_round_angles;
 
-	double mean_threshold = 1.3;
+	double mean_threshold = 1.34;
 	double stdev_threshold = 20;//0.019;
 
 	double beta_min = 0;//pi/16;
