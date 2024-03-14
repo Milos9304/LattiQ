@@ -230,7 +230,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 			fplll::ZZ_mat<mpz_t> blank;
 
-			gso_current = new fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>(current_lattice, blank, blank, GSO_INT_GRAM);
+			gso_current = new fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>(current_lattice, blank, blank, fplll::GSO_INT_GRAM);
 			gso_current->update_gso();
 
 			gso_current_initialized = true;
