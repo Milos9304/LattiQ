@@ -95,7 +95,7 @@ mpq_class Lattice::calculate_gh_squared(MatrixInt* lattice){
 	if(!gso_orig_initialized){
 		fplll::ZZ_mat<mpz_t> blank;
 
-		gso_orig = new fplll::MatGSO<Z_NR<mpz_t>, FP_NR<double>>(orig_lattice, blank, blank, GSO_INT_GRAM);
+		gso_orig = new fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>(orig_lattice, blank, blank, GSO_INT_GRAM);
 		gso_orig->update_gso();
 
 		gso_orig_initialized = true;
@@ -230,7 +230,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 			fplll::ZZ_mat<mpz_t> blank;
 
-			gso_current = new fplll::MatGSO<Z_NR<mpz_t>, FP_NR<double>>(current_lattice, blank, blank, GSO_INT_GRAM);
+			gso_current = new fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>(current_lattice, blank, blank, GSO_INT_GRAM);
 			gso_current->update_gso();
 
 			gso_current_initialized = true;
@@ -279,7 +279,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print, bool testing_single_var, bool __minus_one_qubit_firstVar){
 
-	Z_NR<mpz_t> coeff;
+	fplll::Z_NR<mpz_t> coeff;
 	bool minus_one_qubit_firstVar=__minus_one_qubit_firstVar; // testing purposes only
 
 	auto addVar = [&](int k){
