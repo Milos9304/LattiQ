@@ -117,55 +117,14 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 		for(auto &sol: instance.solutions){
 			long long int index = sol.index;
 
-			/*if(instance.h.getMatrixRepresentation2(true)(index, index) != instance.min_energy+1)
-				logw("An outcome with different energy marked as a solution!");*/
-
-			/*if(i == 73){
-				std::cerr << index<<" "<<std::bitset<5>(index)<<"\n";
-			}*/
-
 			ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 		}
-
-		//for(auto &e: instance.eigenspace){
-		//	std::cerr<<e.first<<" "<<e.second<<"\n";
-		//}
-
-		//std::cerr<<"degeneracy = " << instance.h.custom_solutions.size() << "\n";
-		//std::cerr<<"GS_overlap = " << ground_state_overlap << "\n";
-		//std::cerr<<"random guess = " << instance.random_guess << "\n";
-
-		/*if(i == 73){
-			std::cerr<<ground_state_overlap / instance.random_guess<<std::endl;
-			std::cerr<<ground_state_overlap<<std::endl; //0.00119142
-			std::cerr<<instance.random_guess<<std::endl;
-
-			for(int j = 0; j < buffer.stateVector->numAmpsTotal; ++j){
-				double c = buffer.stateVector->stateVec.real[j]*buffer.stateVector->stateVec.real[j]+buffer.stateVector->stateVec.imag[j]*buffer.stateVector->stateVec.imag[j];
-				if(c > 0.01)
-					std::cerr<<j<<"   "<<std::bitset<8>(j)<<":   "<<c<<std::endl;
-			}
-		}*/
 
 		num_sols.push_back(instance.h.custom_solutions.size());
 		gs_overlaps.push_back(ground_state_overlap / instance.random_guess);
 		i++;
 
-		//loge("Tried only one instance");
-		//break;
-
 	}
-
-	double debug_min=10, debug_i;
-
-	/*i=0;
-	for(const auto &o: gs_overlaps){
-		if(o < debug_min){
-			debug_min = o;
-			debug_i = i;
-		}i++;
-	}
-	std::cerr<<debug_min<<" "<<debug_i<<"\n";*/
 
 	double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
 	double mean = sum / gs_overlaps.size();
