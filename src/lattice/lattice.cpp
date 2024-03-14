@@ -95,7 +95,7 @@ mpq_class Lattice::calculate_gh_squared(MatrixInt* lattice){
 	if(!gso_orig_initialized){
 		fplll::ZZ_mat<mpz_t> blank;
 
-		gso_orig = new fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>(orig_lattice, blank, blank, GSO_INT_GRAM);
+		gso_orig = new fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>(orig_lattice, blank, blank, fplll::GSO_INT_GRAM);
 		gso_orig->update_gso();
 
 		gso_orig_initialized = true;
@@ -144,7 +144,7 @@ VectorInt Lattice::quboToXvector(std::string measurement){
 		}
 
 		if(val.get_den() != 1){
-			stringstream ss;
+			std::stringstream ss;
 			ss << "Lattice::quboToXvector: decimal " << val << " to int conversion\n";
 		}
 		//std::cerr<<"pushing "<<val<<"\n";
@@ -176,7 +176,7 @@ VectorInt Lattice::quboToXvector(bool* measurement, int n){
 		}
 
 		if(val.get_den() != 1){
-			stringstream ss;
+			std::stringstream ss;
 			ss << "Lattice::quboToXvector: decimal " << val << " to int conversion\n";
 		}
 
