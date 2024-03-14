@@ -216,7 +216,7 @@ class Lattice {
 		MatrixInt orig_lattice, orig_lattice_transposed, current_lattice;
 
 		bool gso_current_initialized = false, gso_orig_initialized = false;
-		MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>* gso_current, *gso_orig;
+		fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>>* gso_current, *gso_orig;
 
 		FastVQA::Expression *expression_int, *expression_bin, *expression_penalized, *expression_qubo;
 		std::vector<std::map<FastVQA::Var*, int>> solutions;

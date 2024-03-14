@@ -93,9 +93,9 @@ mpq_class Lattice::calculate_gh_squared(MatrixInt* lattice){
 	int n = n_rows;
 
 	if(!gso_orig_initialized){
-		ZZ_mat<mpz_t> blank;
+		fplll::ZZ_mat<mpz_t> blank;
 
-		gso_orig = new MatGSO<Z_NR<mpz_t>, FP_NR<double>>(orig_lattice, blank, blank, GSO_INT_GRAM);
+		gso_orig = new fplll::MatGSO<Z_NR<mpz_t>, FP_NR<double>>(orig_lattice, blank, blank, GSO_INT_GRAM);
 		gso_orig->update_gso();
 
 		gso_orig_initialized = true;
@@ -228,9 +228,9 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 		if(!gso_current_initialized){
 
-			ZZ_mat<mpz_t> blank;
+			fplll::ZZ_mat<mpz_t> blank;
 
-			gso_current = new MatGSO<Z_NR<mpz_t>, FP_NR<double>>(current_lattice, blank, blank, GSO_INT_GRAM);
+			gso_current = new fplll::MatGSO<Z_NR<mpz_t>, FP_NR<double>>(current_lattice, blank, blank, GSO_INT_GRAM);
 			gso_current->update_gso();
 
 			gso_current_initialized = true;
