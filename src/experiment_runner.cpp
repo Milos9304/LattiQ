@@ -9,6 +9,24 @@
 
 const double pi = 3.141592654;
 
+std::string nlopt_res_to_str(int result){
+  switch(result)
+  {
+    case -1: return "FAILURE";
+    case -2: return "INVALID_ARGS";
+    case -3: return "OUT_OF_MEMORY";
+    case -4: return "ROUNDOFF_LIMITED";
+    case -5: return "FORCED_STOP";
+    case 1: return "SUCCESS";
+    case 2: return "STOPVAL_REACHED";
+    case 3: return "FTOL_REACHED";
+    case 4: return "XTOL_REACHED";
+    case 5: return "MAXEVAL_REACHED";
+    case 6: return "MAXTIME_REACHED";
+    default: return NULL;
+  }
+}
+
 AngleSearchExperiment::AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
 
 	this->loglevel = loglevel;
@@ -102,6 +120,10 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 			/*if(instance.h.getMatrixRepresentation2(true)(index, index) != instance.min_energy+1)
 				logw("An outcome with different energy marked as a solution!");*/
 
+			/*if(i == 73){
+				std::cerr << index<<" "<<std::bitset<5>(index)<<"\n";
+			}*/
+
 			ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 		}
 
@@ -113,6 +135,18 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 		//std::cerr<<"GS_overlap = " << ground_state_overlap << "\n";
 		//std::cerr<<"random guess = " << instance.random_guess << "\n";
 
+		/*if(i == 73){
+			std::cerr<<ground_state_overlap / instance.random_guess<<std::endl;
+			std::cerr<<ground_state_overlap<<std::endl; //0.00119142
+			std::cerr<<instance.random_guess<<std::endl;
+
+			for(int j = 0; j < buffer.stateVector->numAmpsTotal; ++j){
+				double c = buffer.stateVector->stateVec.real[j]*buffer.stateVector->stateVec.real[j]+buffer.stateVector->stateVec.imag[j]*buffer.stateVector->stateVec.imag[j];
+				if(c > 0.01)
+					std::cerr<<j<<"   "<<std::bitset<8>(j)<<":   "<<c<<std::endl;
+			}
+		}*/
+
 		num_sols.push_back(instance.h.custom_solutions.size());
 		gs_overlaps.push_back(ground_state_overlap / instance.random_guess);
 		i++;
@@ -121,6 +155,17 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 		//break;
 
 	}
+
+	double debug_min=10, debug_i;
+
+	/*i=0;
+	for(const auto &o: gs_overlaps){
+		if(o < debug_min){
+			debug_min = o;
+			debug_i = i;
+		}i++;
+	}
+	std::cerr<<debug_min<<" "<<debug_i<<"\n";*/
 
 	double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
 	double mean = sum / gs_overlaps.size();
@@ -137,21 +182,180 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 
 void AngleSearchExperiment::run(){
 
+	//run_cobyla_p2();
 	//run_p2_test();
-	run_p1();
-
-	return;
+	//run_p2();
+	//return;
 
 	if(this->qaoaOptions->p == 1)
 		run_p1();
 	else if(this->qaoaOptions->p == 2)
-		run_p2();
+		run_p2_full_bruteforce();//run_p2();
 	else
 		throw_runtime_error("Not implemented");
 
 }
 
+void AngleSearchExperiment::run_p2_full_bruteforce(){
+
+	if(this->num_params != 4)
+		throw_runtime_error("Unimplemented for other depth than 2");
+
+	double *angles = (double*) malloc(this->num_params * sizeof(double));
+		for(int j = 0; j < this->num_params; ++j){
+			angles[j]=0;//dis(gen));
+		}
+
+	std::vector<std::tuple<double, double>> first_round_angles;
+
+	double mean_threshold = 1.3;
+	double stdev_threshold = 20;//0.019;
+
+	double beta_min = 0;//pi/16;
+	double beta_max = pi/4;//pi;//;pi/8;
+
+	double gamma_min = 0;//0;
+	double gamma_max = /*2**/pi;//2*pi;
+
+	double range_beta = beta_max - beta_min;
+	double range_gamma = gamma_max - gamma_min;
+	double incr_beta = 0.1;///0.12;
+	double incr_gamma = 0.05;//0.04;///0.01;
+
+	int axis_range_beta = ceil(range_beta / incr_beta);
+	int axis_range_gamma = ceil(range_gamma / incr_gamma);
+	int num_iters = axis_range_beta *  axis_range_beta * axis_range_gamma * axis_range_gamma;
+
+	int x = 0;
+	int y = 0;
+
+	std::vector<std::vector<double>> final_plot_means(axis_range_gamma);
+	std::vector<std::vector<double>> final_plot_stdevs(axis_range_gamma);
+
+	ProgressBar bar{
+		option::BarWidth{50},
+		option::MaxProgress{num_iters},
+		option::Start{"["},
+		option::Fill{"="},
+		option::Lead{">"},
+		option::Remainder{" "},
+		option::End{"]"},
+		option::PostfixText{"Running Angle Search Experiment FULL BRUTEFORCE p=2"},
+		option::ShowElapsedTime{true},
+		option::ShowRemainingTime{true},
+		option::ForegroundColor{Color::yellow},
+		option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+	};
+
+	double debug_lowest_mean=100000;
+	double lgamma1, lbeta1, lgamma2, lbeta2;
+
+	double i = 0;
+	AngleSearchExperiment::Cost cost;
+	for(double gamma1 = gamma_min; gamma1 < gamma_max; gamma1+=incr_gamma){
+		for(double beta1 = beta_min; beta1 < beta_max; beta1+=incr_beta){
+			for(double gamma2 = gamma_min; gamma2 < gamma_max; gamma2+=incr_gamma){
+				for(double beta2 = beta_min; beta2 < beta_max; beta2+=incr_beta){
+					bar.tick();
+					angles[0] = gamma1;
+					angles[1] = beta1;
+					angles[2] = gamma2;
+					angles[3] = beta2;
+					cost = this->_cost_fn(&this->train_set, angles);
+					//final_plot_means[x].push_back(cost.mean);
+					//final_plot_stdevs[x].push_back(cost.stdev);
+
+					if(cost.mean < debug_lowest_mean){
+						debug_lowest_mean = cost.mean;
+						lgamma1=gamma1;
+						lbeta1=beta1;
+						lgamma2=gamma2;
+						lbeta2=beta2;
+					}
+
+					if(cost.mean >= mean_threshold && cost.stdev <= stdev_threshold){
+						//first_round_angles.push_back(std::tuple<double, double>(gamma, beta));
+
+						std::cerr<<"("<<gamma1<<", "<<beta1<<", "<<gamma2<<", "<<beta2<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
+
+					}
+				}
+			}
+		}
+		//x++;
+	}
+
+	std::cerr<<debug_lowest_mean <<" "<<lgamma1<<" "<<lbeta1<<" "<<lgamma2<<" "<<lbeta2<<std::endl;
+
+	//logi("First round size: " + std::to_string(first_round_angles.size()), loglevel);
+
+}
+
+
+void AngleSearchExperiment::run_cobyla_p2(){
+
+	if(this->num_params != 4)
+		throw_runtime_error("Unimplemented for other depth than 2");
+
+	this->qaoaOptions->ftol = 1e-16;
+	this->qaoaOptions->max_iters = 10000;
+
+	ProgressBar bar{
+			option::BarWidth{50},
+			option::MaxProgress{this->qaoaOptions->max_iters},
+			option::Start{"["},
+			option::Fill{"="},
+			option::Lead{">"},
+			option::Remainder{" "},
+			option::End{"]"},
+			option::PostfixText{"Running Angle Search Experiment p=2 with COBYLA"},
+			option::ShowElapsedTime{true},
+			option::ShowRemainingTime{true},
+			option::ForegroundColor{Color::yellow},
+			option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+		};
+
+	unsigned int iteration_i = 0;
+
+	FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
+		iteration_i++;
+		bar.tick();
+		std::vector<double> angles(x);
+		//std::cerr<<this->_cost_fn(&this->train_set, &angles[0]).mean<<std::endl;
+		return -this->_cost_fn(&this->train_set, &angles[0]).mean;
+	}, this->num_params);
+
+	std::vector<double> initial_params;
+	std::mt19937 gen(0); //rd() instead of 0 - seed
+	std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
+	for(int i = 0; i < this->num_params/2; ++i){
+		double param1 = dis(gen);
+		double param2 = dis(gen);
+		std::cerr<<param1<<" "<<param2<<std::endl;
+		initial_params.push_back(param1);
+		initial_params.push_back(param2);
+	}
+
+	std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
+	std::vector<double> upperBounds(initial_params.size(), 3.141592654);
+
+	logd("QAOA starting optimization", this->loglevel);
+	FastVQA::OptResult result = this->qaoaOptions->optimizer->optimize(f, initial_params, this->qaoaOptions->ftol, this->qaoaOptions->max_iters, lowerBounds, upperBounds);
+	logd("QAOA finishing optimization", this->loglevel);
+
+	std::cerr<<"e: "<< -result.first.first <<"\n";
+	std::cerr<<"num_iters: "<<iteration_i<<std::endl;
+	for(auto &a: result.first.second){
+		std::cerr<<a<<" ";
+	}
+	std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
+
+}
+
 void AngleSearchExperiment::run_p1(){
+
+	if(this->num_params != 2)
+		throw_runtime_error("Depth must be 1");
 
 	double *angles = (double*) malloc(this->num_params * sizeof(double));
 	for(int j = 0; j < this->num_params; ++j){
@@ -164,19 +368,19 @@ void AngleSearchExperiment::run_p1(){
 
 	std::vector<std::tuple<double, double>> first_round_angles;
 
-	double mean_threshold = 0.032;
-	double stdev_threshold = 0.019;
+	double mean_threshold = 1.2;
+	double stdev_threshold = 2;//0.019;
 
 	double beta_min = 0;//pi/16;
-	double beta_max = pi;//;pi/8;
+	double beta_max = pi/2;//pi;//;pi/8;
 
-	double gamma_min = 0;
-	double gamma_max = 2*pi;
+	double gamma_min = 0;//0;
+	double gamma_max = pi;//2*pi;
 
 	double range_beta = beta_max - beta_min;
 	double range_gamma = gamma_max - gamma_min;
 	double incr_beta = 0.04;///0.12;
-	double incr_gamma = 0.04;///0.01;
+	double incr_gamma = 0.04;//0.04;///0.01;
 
 	int axis_range_beta = ceil(range_beta / incr_beta);
 	int axis_range_gamma = ceil(range_gamma / incr_gamma);
@@ -196,12 +400,15 @@ void AngleSearchExperiment::run_p1(){
 		option::Lead{">"},
 		option::Remainder{" "},
 		option::End{"]"},
-		option::PostfixText{"Running Angle Search Experiment"},
+		option::PostfixText{"Running Angle Search Experiment p=1"},
 		option::ShowElapsedTime{true},
 		option::ShowRemainingTime{true},
 		option::ForegroundColor{Color::yellow},
 		option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
 	};
+
+	double debug_lowest_mean=100000;
+	double lgamma, lbeta;
 
 	double i = 0;
 	AngleSearchExperiment::Cost cost;
@@ -214,10 +421,18 @@ void AngleSearchExperiment::run_p1(){
 			final_plot_means[x].push_back(cost.mean);
 			final_plot_stdevs[x].push_back(cost.stdev);
 
+			//loge("ahoj");
+
+			if(cost.mean < debug_lowest_mean){
+				debug_lowest_mean = cost.mean;
+				lgamma=gamma;
+				lbeta=beta;
+			}
+
 			if(cost.mean >= mean_threshold && cost.stdev <= stdev_threshold){
 				first_round_angles.push_back(std::tuple<double, double>(gamma, beta));
 
-				//std::cerr<<"("<<gamma<<" "<<beta<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
+				std::cerr<<"("<<gamma<<" "<<beta<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
 
 			}
 
@@ -225,33 +440,36 @@ void AngleSearchExperiment::run_p1(){
 		x++;
 	}
 
+	std::cerr<<debug_lowest_mean <<" "<<lgamma<<" "<<lbeta<<std::endl;
+
 	logi("First round size: " + std::to_string(first_round_angles.size()), loglevel);
 
+	if(!false){
+		Gnuplot gp;
+		gp << "set multiplot layout 1,2 rowsfirst\n";
+		gp << "unset key\n";
+		gp << "set pm3d\n";
+		gp << "set hidden3d\n";
+		gp << "set palette rgb 33,13,10\n";
+		gp << "set view map\n";
+		gp << "set xrange [ 0 : " << axis_range_beta-1 <<" ] \n";
+		gp << "set yrange [ 0 : " << axis_range_gamma-1 <<" ] \n";
+		gp << "set xlabel 'Beta [0,pi/4]' \n";
+		gp << "set ylabel 'Gamma [-pi,pi]' \n";
+		//gp << "set title 'range="<< axis_range <<" nbQs="<< this->nbQubits <<" rg="<< 1./(pow(2,this->nbQubits)) <<" mean_nbSols="<<cost.mean_num_of_sols<<" rdmOverlap="<<1./(pow(2,this->nbQubits))*cost.mean_num_of_sols<<"'\n";
+		gp << "set title 'LHS: means RHS: stdev'\n";
 
-	Gnuplot gp;
-	gp << "set multiplot layout 1,2 rowsfirst\n";
-	gp << "unset key\n";
-	gp << "set pm3d\n";
-	gp << "set hidden3d\n";
-	gp << "set palette rgb 33,13,10\n";
-	gp << "set view map\n";
-	gp << "set xrange [ 0 : " << axis_range_beta-1 <<" ] \n";
-	gp << "set yrange [ 0 : " << axis_range_gamma-1 <<" ] \n";
-	gp << "set xlabel 'Beta [0,pi/4]' \n";
-	gp << "set ylabel 'Gamma [-pi,pi]' \n";
-	//gp << "set title 'range="<< axis_range <<" nbQs="<< this->nbQubits <<" rg="<< 1./(pow(2,this->nbQubits)) <<" mean_nbSols="<<cost.mean_num_of_sols<<" rdmOverlap="<<1./(pow(2,this->nbQubits))*cost.mean_num_of_sols<<"'\n";
-	gp << "set title 'LHS: means RHS: stdev'\n";
+		gp << "splot '-'\n";
+		gp.send2d(final_plot_means);
 
-	gp << "splot '-'\n";
-	gp.send2d(final_plot_means);
+		//gp << "set palette model HSV\n";
+		gp << "set palette rgb 13,10,33\n";
 
-	//gp << "set palette model HSV\n";
-	gp << "set palette rgb 13,10,33\n";
+		gp << "splot '-'\n";
+		gp.send2d(final_plot_stdevs);
 
-	gp << "splot '-'\n";
-	gp.send2d(final_plot_stdevs);
-
-	gp.flush();
+		gp.flush();
+	}
 
 	/*double mx, my;int  mb;
 	 * while(true){
@@ -266,32 +484,43 @@ void AngleSearchExperiment::run_p1(){
 
 void AngleSearchExperiment::run_p2(){
 
+	if(this->num_params != 4)
+		throw_runtime_error("Depth must be 2");
+
+/*
+(0.4 0.56) m=1.35427 std=1.17801                   ] [00m:08s<00m:59s] Running Angle Search Experiment
+(0.4 1.2) m=1.2138 std=1.06883                     ] [00m:09s<00m:58s] Running Angle Search Experiment
+(0.84 0.56) m=1.20434 std=1.22635                  ] [00m:18s<00m:50s] Running Angle Search Experiment
+(1.24 0.64) m=1.21043 std=0.977747                 ] [00m:27s<00m:41s] Running Angle Search Experiment
+(1.24 0.68) m=1.21611 std=0.97851                  ] [00m:27s<00m:41s] Running Angle Search Experiment
+(1.24 0.72) m=1.21713 std=0.974095                 ] [00m:27s<00m:41s] Running Angle Search Experiment
+[==================================================] [01m:06s<00m:00s] Running Angle Search Experiment
+ *
+ */
+
 	std::vector<std::tuple<double, double>> first_round_angles;
-	first_round_angles.push_back(std::tuple<double, double>(0.12, 0.31635));
-	first_round_angles.push_back(std::tuple<double, double>(0.13, 0.31635));
-	first_round_angles.push_back(std::tuple<double, double>(0.52, 0.31635));
-	first_round_angles.push_back(std::tuple<double, double>(0.93, 0.31635));
-	first_round_angles.push_back(std::tuple<double, double>(1.68, 0.31635));
-	first_round_angles.push_back(std::tuple<double, double>(2.09, 0.31635));
-	first_round_angles.push_back(std::tuple<double, double>(2.89, 0.31635));
+	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.56));
+	first_round_angles.push_back(std::tuple<double, double>(0.84, 0.56));
+	first_round_angles.push_back(std::tuple<double, double>(1.24, 0.72));
+
 
 	double *angles = (double*) malloc(4 * sizeof(double));
 	for(int j = 0; j < this->num_params; ++j){
 		angles[j]=0;//dis(gen));
 	}
 
-	double mean_threshold = 0.04;
-		double stdev_threshold = 0.019;
+		double mean_threshold = 1.4;
+		double stdev_threshold = 100;
 		double beta_min = 0;
-		double beta_max = pi/4;
+		double beta_max = pi/2;
 
-		double gamma_min = -pi;
-		double gamma_max = pi;
+		double gamma_min = 0;
+		double gamma_max = 2*pi;
 
 		double range_beta = beta_max - beta_min;
 		double range_gamma = gamma_max - gamma_min;
-		double incr_beta = /*0.04*/0.12;
-		double incr_gamma = /*0.04*/0.01;
+		double incr_beta = 0.04;//0.12;
+		double incr_gamma = 0.04;//0.01;
 
 		int axis_range_beta = ceil(range_beta / incr_beta);
 		int axis_range_gamma = ceil(range_gamma / incr_gamma);
@@ -311,7 +540,7 @@ void AngleSearchExperiment::run_p2(){
 			option::Lead{">"},
 			option::Remainder{" "},
 			option::End{"]"},
-			option::PostfixText{"Running Angle Search Experiment"},
+			option::PostfixText{"Running Angle Search Experiment p=2"},
 			option::ShowElapsedTime{true},
 			option::ShowRemainingTime{true},
 			option::ForegroundColor{Color::yellow},
@@ -408,44 +637,57 @@ void AngleSearchExperiment::run_p2_test(){
 		}
 	};
 
-/*	(0.12,0.31635,-0.121593,0.12) m=0.0430018 std=0.01738521m:22s<01m:28s] Running Angle Search Experiment
-	(0.12,0.31635,-0.121593,0.24) m=0.0472991 std=0.01866071m:22s<01m:28s] Running Angle Search Experiment
-	(1.68,0.31635,1.41841,0.12) m=0.0403283 std=0.0175522[02m:04s<00m:47s] Running Angle Search Experiment
-	(1.68,0.31635,1.42841,0.12) m=0.0417132 std=0.0188931[02m:04s<00m:46s] Running Angle Search Experiment
-	(0.93,0.31635,1.79841,0.12) m=0.0401401 std=0.017432 [02m:14s<00m:36s] Running Angle Search Experiment
-	(0.13,0.31635,1.79841,0.24) m=0.041746 std=0.0188806 [02m:14s<00m:36s] Running Angle Search Experiment
-	(0.93,0.31635,2.16841,0.12) m=0.0423418 std=0.0184396[02m:25s<00m:26s] Running Angle Search Experiment
-	(0.52,0.31635,2.58841,0.12) m=0.0402696 std=0.0185866[02m:36s<00m:15s] Running Angle Search Experiment
-	(0.52,0.31635,2.59841,0.12) m=0.0426105 std=0.0182783[02m:36s<00m:14s] Running Angle Search Experiment
-	(0.52,0.31635,2.60841,0.12) m=0.0413229 std=0.0182011[02m:36s<00m:14s] Running Angle Search Experiment
-	(0.13,0.31635,2.96841,0.12) m=0.0406699 std=0.0188591[02m:46s<00m:04s] Running Angle Search Experiment
-	(0.13,0.31635,2.97841,0.12) m=0.0401275 std=0.017309 [02m:46s<00m:04s] Running Angle Search Experiment
-	(0.13,0.31635,2.98841,0.12) m=0.0421467 std=0.0175874[02m:47s<00m:04s] Running Angle Search Experiment
-	(0.13,0.31635,2.98841,0.24) m=0.0473511 std=0.0178743[02m:47s<00m:04s] Running Angle Search Experiment
-	(0.13,0.31635,2.98841,0.36) m=0.0455804 std=0.0187591[02m:47s<00m:04s] Running Angle Search Experiment
-	(0.12,0.31635,3.00841,0.12) m=0.0425464 std=0.0188244[02m:47s<00m:03s] Running Angle Search Experiment
-	(0.12,0.31635,3.01841,0.12) m=0.0409526 std=0.0176841[02m:47s<00m:03s] Running Angle Search Experiment
-	[==================================================] [02m:51s<00m:00s] Running Angle Search Experiment */
+/*	(0.4,0.56,3.6,0.08) m=1.42399 std=1.23366          ] [04m:37s<03m:29s] Running Angle Search Experiment
+(0.4,0.56,3.6,0.12) m=1.4455 std=1.25496           ] [04m:37s<03m:29s] Running Angle Search Experiment
+(0.4,0.56,3.6,0.16) m=1.45727 std=1.27018          ] [04m:38s<03m:29s] Running Angle Search Experiment
+(0.4,0.56,3.6,0.2) m=1.4595 std=1.27838            ] [04m:38s<03m:29s] Running Angle Search Experiment
+
+(0.4,0.56,3.6,0.24) m=1.45298 std=1.27902          ] [04m:38s<03m:29s] Running Angle Search Experiment
+(0.4,0.56,3.6,0.28) m=1.43904 std=1.272            ] [04m:38s<03m:29s] Running Angle Search Experiment
+(0.4,0.56,3.6,0.32) m=1.41933 std=1.2577           ] [04m:38s<03m:29s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.08) m=1.41008 std=1.18321===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.12) m=1.42966 std=1.18758===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
+
+(0.4,0.56,5.56,0.16) m=1.44393 std=1.19591===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.2) m=1.45345 std=1.20976====>     ] [07m:10s<00m:58s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.24) m=1.45897 std=1.22983===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
+
+(0.4,0.56,5.56,0.28) m=1.4613 std=1.25567====>     ] [07m:10s<00m:58s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.32) m=1.4612 std=1.28581====>     ] [07m:10s<00m:58s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.36) m=1.45931 std=1.31806===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.4) m=1.45608 std=1.35009====>     ] [07m:10s<00m:57s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.44) m=1.45168 std=1.37988===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
+
+(0.4,0.56,5.56,0.48) m=1.44609 std=1.40612===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.52) m=1.43906 std=1.42829===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.56) m=1.43023 std=1.44644===>     ] [07m:11s<00m:57s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.6) m=1.41918 std=1.46087====>     ] [07m:11s<00m:57s] Running Angle Search Experiment
+(0.4,0.56,5.56,0.64) m=1.40553 std=1.47168===>     ] [07m:11s<00m:57s] Running Angle Search Experiment
+[==================================================] [08m:08s<00m:00s] Running Angle Search Experiment */
 
 	std::vector<Angl> second_round_angles;
-
-	second_round_angles.push_back(Angl(0.12,0.31635,-0.121593,0.12,0.0430018,0.01738521));
-	second_round_angles.push_back(Angl(0.12,0.31635,-0.121593,0.24,0.0472991,0.01866071));
-	second_round_angles.push_back(Angl(1.68,0.31635,1.41841,0.12,0.0403283,0.0175522));
-	second_round_angles.push_back(Angl(1.68,0.31635,1.42841,0.12,0.0417132,0.0188931));
-	second_round_angles.push_back(Angl(0.93,0.31635,1.79841,0.12,0.0401401,0.017432 ));
-	second_round_angles.push_back(Angl(0.13,0.31635,1.79841,0.24,0.041746,0.0188806 ));
-	second_round_angles.push_back(Angl(0.93,0.31635,2.16841,0.12,0.0423418,0.0184396));
-	second_round_angles.push_back(Angl(0.52,0.31635,2.58841,0.12,0.0402696,0.0185866));
-	second_round_angles.push_back(Angl(0.52,0.31635,2.59841,0.12,0.0426105,0.0182783));
-	second_round_angles.push_back(Angl(0.52,0.31635,2.60841,0.12,0.0413229,0.0182011));
-	second_round_angles.push_back(Angl(0.13,0.31635,2.96841,0.12,0.0406699,0.0188591));
-	second_round_angles.push_back(Angl(0.13,0.31635,2.97841,0.12,0.0401275,0.017309 ));
-	second_round_angles.push_back(Angl(0.13,0.31635,2.98841,0.12,0.0421467,0.0175874));
-	second_round_angles.push_back(Angl(0.13,0.31635,2.98841,0.24,0.0473511,0.0178743));
-	second_round_angles.push_back(Angl(0.13,0.31635,2.98841,0.36,0.0455804,0.0187591));
-	second_round_angles.push_back(Angl(0.12,0.31635,3.00841,0.12,0.0425464,0.0188244));
-	second_round_angles.push_back(Angl(0.12,0.31635,3.01841,0.12,0.0409526,0.0176841));
+	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.08, 1.42399, 1.23366));
+	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.12, 1.4455 ,1.25496  ));
+	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.16,1.45727 ,1.27018 ));
+	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.2,1.4595, 1.27838));
+	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.24, 1.45298, 1.27902));
+	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.28,1.43904 ,1.272 ));
+	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.32, 1.41933, 1.2577 ));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.08, 1.41008, 1.18321));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.12, 1.42966 ,1.18758));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.16, 1.44393 ,1.19591));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.2, 1.45345 ,1.20976));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.24, 1.45897 ,1.22983));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.28, 1.4613, 1.25567));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.32, 1.4612, 1.28581));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.36, 1.45931, 1.31806));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.4,1.45608, 1.35009));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.44,1.45168, 1.37988));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.48, 1.44609, 1.40612));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.52,1.43906, 1.42829));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.56,1.43023, 1.44644));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.6, 1.41918, 1.46087));
+	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.64,1.40553, 1.4716));
 
 	for(auto &setting : second_round_angles){
 		double angles[4];
@@ -453,12 +695,12 @@ void AngleSearchExperiment::run_p2_test(){
 		angles[1] = setting.b1;
 		angles[2] = setting.g2;
 		angles[3] = setting.b2;
-		AngleSearchExperiment::Cost cost = this->_cost_fn(&this->train_set, angles);
+		AngleSearchExperiment::Cost cost = this->_cost_fn(&this->test_set, angles);
 
 		std::cerr<<"Train/Test mean="<<setting.train_mean<<"/"<<cost.mean<<"   std="<<setting.train_std<<"/"<<cost.stdev<<"\n";
 
-		loge("Break from second_roung_angles");
-		break;
+		//loge("Break from second_roung_angles");
+		//break;
 
 	}
 

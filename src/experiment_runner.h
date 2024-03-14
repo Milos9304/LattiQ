@@ -81,7 +81,9 @@ private:
 	Cost _cost_fn(std::vector<Instance>*, double *angles);
 	void run_p1();
 	void run_p2();
+	void run_p2_full_bruteforce();
 	void run_p2_test();
+	void run_cobyla_p2();
 
 };
 

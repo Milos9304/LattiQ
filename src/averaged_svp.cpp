@@ -115,8 +115,6 @@ int main(int ac, char** av){
 		logi("Running angleSearch experiment", loglevel);
 		experimentSetup.experiment_type = "angleSearch";
 
-		logi("Setting p=2", loglevel);
-		qaoaOptions.p = 2;
 		AngleSearchExperiment angleSearchExp(loglevel, &qaoaOptions, &mapOptions);
 		angleSearchExp.run();
 
