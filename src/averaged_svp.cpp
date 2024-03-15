@@ -26,6 +26,7 @@ int main(int ac, char** av){
 	auto save_eigenspace  		= op.add<Switch>("", "espace", "save eigenspace to file");
 	auto param_experiment 		= op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
 	auto angle_search	  		= op.add<Switch>("a", "anglesearch", "run the angle search experiment");
+	auto angle_results	  		= op.add<Switch>("", "angleres", "results of constant angles experiment");
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
 	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
 	auto database_info		   	= op.add<Switch>("", "dinfo", "get database info");
@@ -117,6 +118,11 @@ int main(int ac, char** av){
 
 		AngleSearchExperiment angleSearchExp(loglevel, &qaoaOptions, &mapOptions);
 		angleSearchExp.run();
+
+		return 0;
+	}else if(angle_results->is_set()){
+		AngleResultsExperiment angleResultsExp(loglevel, &qaoaOptions, &mapOptions);
+		angleResultsExp.run();
 
 		return 0;
 	}else if(param_experiment->value() > 0){

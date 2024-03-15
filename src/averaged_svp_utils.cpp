@@ -3,10 +3,11 @@
 
 //#include <iostream>
 
-int myPow (int x, int p) {
-  int i = 1;
-  for (int j = 1; j <= p; j++)  i *= x;
-  return i;
+unsigned long long int myPow (int x, int p) {
+	unsigned long long int i = 1;
+	for (int j = 1; j <= p; j++)
+		i *= x;
+	return i;
 }
 
 void saveEigenspaceToFile(std::string filename, FastVQA::RefEnergies eigenspace){
@@ -38,7 +39,7 @@ Eigen::Vector<int, Eigen::Dynamic> convertFromBaseTo(int length, unsigned long l
 Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> randomVectors(int size, int lb, int ub, int cutoff=-1, int seed=0){
 
 	int delta = ub-lb+1;
-	int A_size = myPow(delta, size);
+	unsigned long long int A_size = myPow(delta, size);
 
 	if(cutoff < 0 || A_size <= cutoff){
 
@@ -82,16 +83,17 @@ Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> randomVectors(int size, int l
 		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A(cutoff, size);
 
 		int lower = 0;
-		int upper = A_size-1;
+		unsigned long long int upper = A_size-1;
 
 		// Create and seed the random number generator
 		auto gen = std::mt19937(seed);
-		auto dist = std::uniform_int_distribution<>(lower, upper);
+		auto dist = std::uniform_int_distribution<unsigned long long int>(lower, upper);
 
 		bool colision;
 		for(int i = 0; i < cutoff; ++i){
 			colision = false;
 			Eigen::Vector<int, Eigen::Dynamic> rand_vect = convertFromBaseTo(size, dist(gen), delta);
+
 			for(int j = 0; j < i; ++j){
 				if(A.row(j).isApprox(rand_vect.transpose())){
 					i--;colision=true;break;

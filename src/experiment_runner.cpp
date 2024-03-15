@@ -6,6 +6,7 @@
 #include <boost/tuple/tuple.hpp>
 #define GNUPLOT_ENABLE_PTY
 #include "gnuplot-iostream.h"
+#include <iomanip>
 
 const double pi = 3.141592654;
 
@@ -25,6 +26,73 @@ std::string nlopt_res_to_str(int result){
     case 6: return "MAXTIME_REACHED";
     default: return NULL;
   }
+}
+
+AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
+
+	this->loglevel = loglevel;
+	this->qaoaOptions = qaoaOptions;
+
+}
+
+std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_dataset(int n, int m){
+
+	std::vector<AngleResultsExperiment::Instance> dataset;
+
+
+
+	return dataset;
+}
+
+
+void AngleResultsExperiment::run(){
+
+	std::map<std::pair<int, int>, double> stdev_map;
+
+	const int colWidth = 7;
+	std::cout<<"   Averages:"<<std::endl;
+	std::cout << " n \\ m";
+	for(int m = this->m_start; m <= this->m_end; ++m)
+		std::cout << std::setw(colWidth) << std::internal << m;
+	std::cout<<std::endl;
+
+	for(int n = 1; n < m_end; ++n){
+		std::cout << std::setw(3) << std::internal << n << "   ";
+		for(int m = this->m_start; m <= m_end; ++m){
+			if(n >= m){
+				std::cout << std::setw(colWidth) << std::internal << "x";
+				continue;
+			}
+
+
+			double mean = 15.62;
+			double stdev = 14.52;
+
+			stdev_map.emplace(std::pair<int, int>(n,m), stdev);
+			std::cout << std::setw(colWidth) << std::internal << mean;
+		}
+		std::cout<<std::endl;
+	}
+
+	std::cout<<std::endl<<std::endl;
+	std::cout<<"   Standard deviations:"<<std::endl;
+	std::cout << " n \\ m";
+		for(int m = this->m_start; m <= this->m_end; ++m)
+			std::cout << std::setw(colWidth) << std::internal << m;
+		std::cout<<std::endl;
+
+		for(int n = 1; n < m_end; ++n){
+			std::cout << std::setw(3) << std::internal << n << "   ";
+			for(int m = this->m_start; m <= m_end; ++m){
+				if(n >= m){
+					std::cout << std::setw(colWidth) << std::internal << "x";
+					continue;
+				}
+				std::cout << std::setw(colWidth) << std::internal << stdev_map[std::pair<int, int>(n,m)];
+			}
+			std::cout<<std::endl;
+		}
+
 }
 
 AngleSearchExperiment::AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
@@ -64,7 +132,8 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 
 	nbQubits = -1;
 
-	loge("Saving eigenspaaace which is not needed and very costly");
+	logw("Saving eigensace which is not needed and very costly");
+	logw("!!!Random guess is now after the penalization!!!");
 
 	for(int i = 0; i < num_instances; ++i){
 
@@ -84,12 +153,22 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 		instance.eigenspace = qaoaOptions->accelerator->getEigenspace();//delete
 
 		qreal min_energy = instance.solutions[0].value;
+		int num_sols_with_min_energy = 0;
 		for(const auto &sol: instance.solutions){
-			if(sol.value < min_energy)
+			if(sol.value < min_energy){
 				min_energy = sol.value;
+				num_sols_with_min_energy = 1;
+			}else if(sol.value == min_energy)
+				num_sols_with_min_energy++;
 		}
 		instance.min_energy = min_energy;
-		instance.random_guess = l.get_random_guess_one_vect() * instance.h.custom_solutions.size();
+
+
+		//THIS CHOOSES WHICH RANDOM GUESS IS BEING USED
+		instance.random_guess = (qreal)(1./pow(2, nbQubits)) * num_sols_with_min_energy;
+		//instance.random_guess = l.get_random_guess_one_vect() * instance.h.custom_solutions.size();
+
+		//std::cerr<<nbQubits<<" "<<instance.solutions.size()<<" "<<instance.random_guess<<std::endl;
 
 		if(i < num_train_instances)
 			this->train_set.push_back(instance);
@@ -116,12 +195,17 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 		double ground_state_overlap = 0;
 		for(auto &sol: instance.solutions){
 			long long int index = sol.index;
-
+			//std::cerr<<instance.min_energy<<" "<<sol.value<<" "<<index<<std::endl;
 			ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 		}
 
 		num_sols.push_back(instance.h.custom_solutions.size());
-		gs_overlaps.push_back(ground_state_overlap / instance.random_guess);
+		qreal improvement_ratio = ground_state_overlap / instance.random_guess;
+		/*if(improvement_ratio < 1){
+			std::cerr<<ground_state_overlap <<" "<< instance.random_guess << std::endl;
+			logw("Improvement ratio < 1", loglevel);
+		}*/
+		gs_overlaps.push_back(improvement_ratio);
 		i++;
 
 	}
@@ -149,7 +233,8 @@ void AngleSearchExperiment::run(){
 	if(this->qaoaOptions->p == 1)
 		run_p1();
 	else if(this->qaoaOptions->p == 2)
-		run_p2_full_bruteforce();//run_p2();
+		run_p2_test();//run_p2_full_bruteforce();
+		//run_p2();
 	else
 		throw_runtime_error("Not implemented");
 
@@ -327,8 +412,8 @@ void AngleSearchExperiment::run_p1(){
 
 	std::vector<std::tuple<double, double>> first_round_angles;
 
-	double mean_threshold = 1.2;
-	double stdev_threshold = 2;//0.019;
+	double mean_threshold = 9.3;//1.2;
+	double stdev_threshold = 2000000;//0.019;
 
 	double beta_min = 0;//pi/16;
 	double beta_max = pi/2;//pi;//;pi/8;
@@ -447,20 +532,20 @@ void AngleSearchExperiment::run_p2(){
 		throw_runtime_error("Depth must be 2");
 
 /*
-(0.4 0.56) m=1.35427 std=1.17801                   ] [00m:08s<00m:59s] Running Angle Search Experiment
-(0.4 1.2) m=1.2138 std=1.06883                     ] [00m:09s<00m:58s] Running Angle Search Experiment
-(0.84 0.56) m=1.20434 std=1.22635                  ] [00m:18s<00m:50s] Running Angle Search Experiment
-(1.24 0.64) m=1.21043 std=0.977747                 ] [00m:27s<00m:41s] Running Angle Search Experiment
-(1.24 0.68) m=1.21611 std=0.97851                  ] [00m:27s<00m:41s] Running Angle Search Experiment
-(1.24 0.72) m=1.21713 std=0.974095                 ] [00m:27s<00m:41s] Running Angle Search Experiment
+(0.4 0.4) m=9.30907 std=8.70639                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
+(0.4 0.44) m=9.40437 std=8.96823                   ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
+(0.4 0.48) m=9.44947 std=9.1068                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
+(0.4 0.52) m=9.44697 std=9.14503                   ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
+(0.4 0.56) m=9.4025 std=9.11298                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
+(0.4 0.6) m=9.32416 std=9.04324                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
 [==================================================] [01m:06s<00m:00s] Running Angle Search Experiment
  *
  */
 
 	std::vector<std::tuple<double, double>> first_round_angles;
-	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.56));
-	first_round_angles.push_back(std::tuple<double, double>(0.84, 0.56));
-	first_round_angles.push_back(std::tuple<double, double>(1.24, 0.72));
+	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.4));
+	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.48));
+	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.6));
 
 
 	double *angles = (double*) malloc(4 * sizeof(double));
@@ -468,8 +553,8 @@ void AngleSearchExperiment::run_p2(){
 		angles[j]=0;//dis(gen));
 	}
 
-		double mean_threshold = 1.4;
-		double stdev_threshold = 100;
+		double mean_threshold = 9.5;
+		double stdev_threshold = 1000;
 		double beta_min = 0;
 		double beta_max = pi/2;
 
@@ -596,57 +681,70 @@ void AngleSearchExperiment::run_p2_test(){
 		}
 	};
 
-/*	(0.4,0.56,3.6,0.08) m=1.42399 std=1.23366          ] [04m:37s<03m:29s] Running Angle Search Experiment
-(0.4,0.56,3.6,0.12) m=1.4455 std=1.25496           ] [04m:37s<03m:29s] Running Angle Search Experiment
-(0.4,0.56,3.6,0.16) m=1.45727 std=1.27018          ] [04m:38s<03m:29s] Running Angle Search Experiment
-(0.4,0.56,3.6,0.2) m=1.4595 std=1.27838            ] [04m:38s<03m:29s] Running Angle Search Experiment
-
-(0.4,0.56,3.6,0.24) m=1.45298 std=1.27902          ] [04m:38s<03m:29s] Running Angle Search Experiment
-(0.4,0.56,3.6,0.28) m=1.43904 std=1.272            ] [04m:38s<03m:29s] Running Angle Search Experiment
-(0.4,0.56,3.6,0.32) m=1.41933 std=1.2577           ] [04m:38s<03m:29s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.08) m=1.41008 std=1.18321===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.12) m=1.42966 std=1.18758===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
-
-(0.4,0.56,5.56,0.16) m=1.44393 std=1.19591===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.2) m=1.45345 std=1.20976====>     ] [07m:10s<00m:58s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.24) m=1.45897 std=1.22983===>     ] [07m:10s<00m:58s] Running Angle Search Experiment
-
-(0.4,0.56,5.56,0.28) m=1.4613 std=1.25567====>     ] [07m:10s<00m:58s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.32) m=1.4612 std=1.28581====>     ] [07m:10s<00m:58s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.36) m=1.45931 std=1.31806===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.4) m=1.45608 std=1.35009====>     ] [07m:10s<00m:57s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.44) m=1.45168 std=1.37988===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
-
-(0.4,0.56,5.56,0.48) m=1.44609 std=1.40612===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.52) m=1.43906 std=1.42829===>     ] [07m:10s<00m:57s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.56) m=1.43023 std=1.44644===>     ] [07m:11s<00m:57s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.6) m=1.41918 std=1.46087====>     ] [07m:11s<00m:57s] Running Angle Search Experiment
-(0.4,0.56,5.56,0.64) m=1.40553 std=1.47168===>     ] [07m:11s<00m:57s] Running Angle Search Experiment
-[==================================================] [08m:08s<00m:00s] Running Angle Search Experiment */
+/*	 */
 
 	std::vector<Angl> second_round_angles;
-	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.08, 1.42399, 1.23366));
-	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.12, 1.4455 ,1.25496  ));
-	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.16,1.45727 ,1.27018 ));
-	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.2,1.4595, 1.27838));
-	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.24, 1.45298, 1.27902));
-	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.28,1.43904 ,1.272 ));
-	second_round_angles.push_back(Angl(0.4,0.56,3.6,0.32, 1.41933, 1.2577 ));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.08, 1.41008, 1.18321));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.12, 1.42966 ,1.18758));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.16, 1.44393 ,1.19591));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.2, 1.45345 ,1.20976));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.24, 1.45897 ,1.22983));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.28, 1.4613, 1.25567));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.32, 1.4612, 1.28581));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.36, 1.45931, 1.31806));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.4,1.45608, 1.35009));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.44,1.45168, 1.37988));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.48, 1.44609, 1.40612));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.52,1.43906, 1.42829));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.56,1.43023, 1.44644));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.6, 1.41918, 1.46087));
-	second_round_angles.push_back(Angl(0.4,0.56,5.56,0.64,1.40553, 1.4716));
+
+	/*
+	 * (0.4,0.48,0.32,0.04) m=9.50037 std=9.18755         ] [00m:23s<07m:20s] Running Angle Search Experiment p=2
+(0.4,0.48,0.32,0.08) m=9.50689 std=9.17675         ] [00m:23s<07m:20s] Running Angle Search Experiment p=2
+(0.4,0.48,0.36,0.04) m=9.5999 std=9.31231          ] [00m:26s<07m:17s] Running Angle Search Experiment p=2
+(0.4,0.48,0.36,0.08) m=9.68412 std=9.43483         ] [00m:26s<07m:17s] Running Angle Search Experiment p=2
+(0.4,0.48,0.36,0.12) m=9.69658 std=9.46659         ] [00m:26s<07m:17s] Running Angle Search Experiment p=2
+(0.4,0.48,0.36,0.16) m=9.63625 std=9.40428         ] [00m:26s<07m:17s] Running Angle Search Experiment p=2
+(0.4,0.48,0.36,0.2) m=9.50667 std=9.24941          ] [00m:26s<07m:17s] Running Angle Search Experiment p=2
+(0.4,0.48,1.84,0.04) m=9.5038 std=9.10692          ] [02m:17s<05m:33s] Running Angle Search Experiment p=2
+(0.4,0.48,1.84,0.08) m=9.51616 std=8.96549         ] [02m:17s<05m:33s] Running Angle Search Experiment p=2
+(0.4,0.48,1.92,0.08) m=9.51976 std=8.81561         ] [02m:23s<05m:27s] Running Angle Search Experiment p=2
+(0.4,0.48,1.92,0.12) m=9.51127 std=8.56281         ] [02m:23s<05m:27s] Running Angle Search Experiment p=2
+(0.4,0.6,2.04,0.08) m=9.54653 std=9.23614          ] [02m:32s<05m:19s] Running Angle Search Experiment p=2
+(0.4,0.6,2.04,0.12) m=9.61485 std=9.25598          ] [02m:32s<05m:19s] Running Angle Search Experiment p=2
+(0.4,0.6,2.04,0.16) m=9.65381 std=9.21634          ] [02m:32s<05m:19s] Running Angle Search Experiment p=2
+(0.4,0.6,2.04,0.2) m=9.66276 std=9.11257           ] [02m:32s<05m:19s] Running Angle Search Experiment p=2
+(0.4,0.6,2.04,0.24) m=9.64084 std=8.94321          ] [02m:32s<05m:19s] Running Angle Search Experiment p=2
+(0.4,0.6,2.04,0.28) m=9.58708 std=8.71132          ] [02m:32s<05m:18s] Running Angle Search Experiment p=2
+(0.4,0.6,2.04,0.32) m=9.50059 std=8.42482          ] [02m:32s<05m:18s] Running Angle Search Experiment p=2
+(0.4,0.48,2.32,0.04) m=9.55894 std=9.20883         ] [02m:53s<04m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,2.32,0.08) m=9.61263 std=9.19993         ] [02m:53s<04m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,2.32,0.12) m=9.60944 std=9.08295         ] [02m:53s<04m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,2.32,0.16) m=9.55174 std=8.86525         ] [02m:53s<04m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,2.72,0.04) m=9.51443 std=9.23339         ] [03m:23s<04m:28s] Running Angle Search Experiment p=2
+(0.4,0.48,2.72,0.08) m=9.52894 std=9.26695         ] [03m:23s<04m:28s] Running Angle Search Experiment p=2
+(0.4,0.48,2.84,0.04) m=9.51777 std=9.13546         ] [03m:32s<04m:19s] Running Angle Search Experiment p=2
+(0.4,0.48,2.84,0.08) m=9.51957 std=9.05822         ] [03m:32s<04m:19s] Running Angle Search Experiment p=2
+(0.4,0.48,3.6,0.04) m=9.64408 std=9.20377          ] [04m:29s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.08) m=9.88224 std=9.57883           ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.12) m=10.0794 std=9.80599           ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.16) m=10.2137 std=9.99014           ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.2) m=10.2839 std=10.12              ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.24) m=10.2931 std=10.1862           ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.28) m=10.2478 std=10.1827           ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.32) m=10.1574 std=10.1085           ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.36) m=10.033 std=9.96919            ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.4) m=9.88659 std=9.7783             ] [04m:30s<03m:23s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.44) m=9.72935 std=9.55716           ] [04m:30s<03m:22s] Running Angle Search Experiment p=2
+(0.4,0.6,3.6,0.48) m=9.57116 std=9.33294           ] [04m:30s<03m:22s] Running Angle Search Experiment p=2
+(0.4,0.48,5.08,0.04) m=9.51092 std=9.0222>         ] [06m:27s<01m:34s] Running Angle Search Experiment p=2
+(0.4,0.48,5.08,0.08) m=9.51696 std=8.82539         ] [06m:27s<01m:34s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.04) m=9.7166 std=9.19306====>     ] [07m:09s<00m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.08) m=9.94835 std=9.27002===>     ] [07m:09s<00m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.12) m=10.1402 std=9.35094===>     ] [07m:09s<00m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.16) m=10.2898 std=9.44933===>     ] [07m:09s<00m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.2) m=10.3968 std=9.57607====>     ] [07m:09s<00m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.24) m=10.4627 std=9.73631===>     ] [07m:09s<00m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.28) m=10.4903 std=9.92731===>     ] [07m:09s<00m:58s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.32) m=10.4835 std=10.138====>     ] [07m:09s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.36) m=10.4465 std=10.3505===>     ] [07m:09s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.4) m=10.3833 std=10.5436====>     ] [07m:09s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.44) m=10.2976 std=10.6967===>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.48) m=10.1923 std=10.793====>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.48,5.56,0.52) m=10.0696 std=10.8221===>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.4,5.56,0.56) m=9.93796 std=10.5708====>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.4,5.56,0.6) m=9.80455 std=10.4657=====>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.4,5.56,0.64) m=9.65913 std=10.3145====>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
+(0.4,0.4,5.56,0.68) m=9.50213 std=10.1239====>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
+[==================================================] [08m:10s<00m:00s] Running Angle Search Experiment p=2  */
+	second_round_angles.push_back(Angl(0.4,0.48,5.56,0.28, 10.4903, 9.92731));
 
 	for(auto &setting : second_round_angles){
 		double angles[4];

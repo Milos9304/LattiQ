@@ -24,29 +24,66 @@ public:
 	int num_rand_params;
 };
 
-class AngleSearchExperiment{
+class AngleExperimentBase{
+public:
+	struct Cost{
+			double mean;
+			double stdev;
+			double mean_num_of_sols;
+
+			Cost(){}
+
+			Cost(double mean, double stdev, double mean_num_of_sols){
+				this->mean = mean;
+				this->stdev = stdev;
+				this->mean_num_of_sols=mean_num_of_sols;
+			}
+		};
+protected:
+	struct Instance{
+			FastVQA::PauliHamiltonian h;
+			FastVQA::RefEnergies solutions;
+			FastVQA::RefEnergies eigenspace; //for debug
+			qreal min_energy;
+			qreal random_guess;
+		};
+};
+
+
+
+class AngleResultsExperiment : AngleExperimentBase{
 
 public:
 
-	struct Cost{
-		double mean;
-		double stdev;
-		double mean_num_of_sols;
+	int q = 97;
 
-		Cost(){}
+	int m_start = 4;
+	int m_end = 6;
 
-		Cost(double mean, double stdev, double mean_num_of_sols){
-			this->mean = mean;
-			this->stdev = stdev;
-			this->mean_num_of_sols=mean_num_of_sols;
-		}
-	};
+	const std::vector<double> angles{0,1,2,3};
+
+	int loglevel = 1;
+	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
+
+	FastVQA::QAOAOptions* qaoaOptions;
+	MapOptions* mapOptions;
+
+	void run();
+
+private:
+	std::vector<Instance> _generate_dataset(int n, int m);
+
+};
+
+class AngleSearchExperiment : AngleExperimentBase{
+
+public:
 
 	int loglevel = 1;
 
 	int q = 97;
 	int n = 1;
-	int m = 5;
+	int m = 7;
 
 	int max_num_instances = 100;
 
@@ -58,16 +95,8 @@ public:
 
 private:
 
-	struct Instance{
-		FastVQA::PauliHamiltonian h;
-		FastVQA::RefEnergies solutions;
-		FastVQA::RefEnergies eigenspace; //for debug
-		qreal min_energy;
-		qreal random_guess;
-	};
-
 	const double test_ratio = 0.2;
-	int num_instances;
+	long long int num_instances;
 	int num_train_instances;
 	int num_test_instances;
 
