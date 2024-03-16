@@ -26,6 +26,9 @@ public:
 
 class AngleExperimentBase{
 public:
+
+	FastVQA::QAOAOptions* qaoaOptions;
+
 	struct Cost{
 			double mean;
 			double stdev;
@@ -40,13 +43,18 @@ public:
 			}
 		};
 protected:
+
 	struct Instance{
 			FastVQA::PauliHamiltonian h;
 			FastVQA::RefEnergies solutions;
 			FastVQA::RefEnergies eigenspace; //for debug
 			qreal min_energy;
 			qreal random_guess;
-		};
+
+			int m,n;
+	};
+
+	Cost _cost_fn(std::vector<Instance>*, const double *angles);
 };
 
 
@@ -60,12 +68,13 @@ public:
 	int m_start = 4;
 	int m_end = 6;
 
-	const std::vector<double> angles{0,1,2,3};
+	int max_num_instances = 1000;
+
+	const std::vector<double> angles{0.4,0.48,5.56,0.28};
 
 	int loglevel = 1;
 	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
 
-	FastVQA::QAOAOptions* qaoaOptions;
 	MapOptions* mapOptions;
 
 	void run();
@@ -83,31 +92,27 @@ public:
 
 	int q = 97;
 	int n = 1;
-	int m = 7;
+	int m = 5;//7;
 
 	int max_num_instances = 100;
-
-	FastVQA::QAOAOptions* qaoaOptions;
 
 	AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
 
 	void run();
 
 private:
-
-	const double test_ratio = 0.2;
 	long long int num_instances;
+	int nbQubits;
+	const double test_ratio = 0.2;
 	int num_train_instances;
 	int num_test_instances;
 
-	int nbQubits;
 	int num_params;
 
 	std::vector<Instance> train_set;
 	std::vector<Instance> test_set;
 
 	void _generate_dataset(MapOptions*);
-	Cost _cost_fn(std::vector<Instance>*, double *angles);
 	void run_p1();
 	void run_p2();
 	void run_p2_full_bruteforce();

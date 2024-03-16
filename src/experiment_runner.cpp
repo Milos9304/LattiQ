@@ -32,6 +32,10 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOption
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
+	this->mapOptions = mapOptions;
+
+	if(this->qaoaOptions->p != 2)
+		throw_runtime_error("Angleres is only for p=2!");
 
 }
 
@@ -39,7 +43,65 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 
 	std::vector<AngleResultsExperiment::Instance> dataset;
 
+	GeneratorParam param(q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
+	std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);
 
+	int nbQubits = -1;
+
+	//logw("Saving eigensace which is not needed and very costly");
+	//logw("!!!Random guess is now after the penalization!!!");
+
+	long long int num_instances = pow(q,(m-n));
+	if(max_num_instances < num_instances)
+		num_instances = max_num_instances;
+
+	for(int i = 0; i < num_instances; ++i){
+
+		AngleResultsExperiment:Instance instance;
+
+		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
+		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
+
+		instance.h = l.getHamiltonian(mapOptions);
+		if(nbQubits < 0)
+			nbQubits = instance.h.nbQubits;
+		else if(nbQubits != instance.h.nbQubits)
+			loge("Instances with different number of qubits found");
+
+		qaoaOptions->accelerator->initialize(&instance.h);
+		qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
+		instance.solutions = qaoaOptions->accelerator->getSolutions();
+
+		//instance.eigenspace = qaoaOptions->accelerator->getEigenspace();//delete
+
+		qreal min_energy = instance.solutions[0].value;
+		int num_sols_with_min_energy = 0;
+		for(const auto &sol: instance.solutions){
+			if(sol.value < min_energy){
+				min_energy = sol.value;
+				num_sols_with_min_energy = 1;
+			}else if(sol.value == min_energy)
+				num_sols_with_min_energy++;
+		}
+		instance.min_energy = min_energy;
+
+		//THIS CHOOSES WHICH RANDOM GUESS IS BEING USED
+		instance.random_guess = (qreal)(1./pow(2, nbQubits)) * num_sols_with_min_energy;
+		//instance.random_guess = l.get_random_guess_one_vect() * instance.h.custom_solutions.size();
+
+		//std::cerr<<nbQubits<<" "<<instance.solutions.size()<<" "<<instance.random_guess<<std::endl;
+
+		instance.m = m;
+		instance.n = n;
+
+		dataset.push_back(instance);
+	}
+
+	//Need to destroy qureg, because next time experiments with different number of qubits will be run
+	qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+	qaoaOptions->accelerator->finalize();
+
+	//logi("Experiment dataset generated", this->loglevel);
 
 	return dataset;
 }
@@ -49,7 +111,8 @@ void AngleResultsExperiment::run(){
 
 	std::map<std::pair<int, int>, double> stdev_map;
 
-	const int colWidth = 7;
+	const int colWidth = 12;
+	std::cout<<" q="<<this->q<<std::endl;
 	std::cout<<"   Averages:"<<std::endl;
 	std::cout << " n \\ m";
 	for(int m = this->m_start; m <= this->m_end; ++m)
@@ -63,13 +126,15 @@ void AngleResultsExperiment::run(){
 				std::cout << std::setw(colWidth) << std::internal << "x";
 				continue;
 			}
+			std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m);
 
+			Cost cost = this->_cost_fn(&dataset, &this->angles[0]);
 
-			double mean = 15.62;
-			double stdev = 14.52;
+			double mean = cost.mean;
+			double stdev = cost.stdev;
 
 			stdev_map.emplace(std::pair<int, int>(n,m), stdev);
-			std::cout << std::setw(colWidth) << std::internal << mean;
+			std::cout << std::setw(colWidth) << std::internal << mean << std::flush;
 		}
 		std::cout<<std::endl;
 	}
@@ -179,19 +244,40 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 	logi("Experiment dataset generated", this->loglevel);
 
 }
+// Function for calculating median
+double median(vector<double> v, int n)
+{
+    // Sort the vector
+    sort(v.begin(), v.end());
 
-AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance>* dataset, double *angles){
+    // Check if the number of elements is odd
+    if (n % 2 != 0)
+        return (double)v[n / 2];
+
+    // If the number of elements is even, return the average
+    // of the two middle elements
+    return (double)(v[(n - 1) / 2] + v[n / 2]) / 2.0;
+}
+AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* dataset, const double *angles){
 
 	FastVQA::Qaoa qaoa_instance;
 	std::vector<double> gs_overlaps;
 	std::vector<int> num_sols;
 
 	int i = 0;
+
+	if((*dataset)[0].h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
+		this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+		this->qaoaOptions->accelerator->finalize();
+	}
+	//this->qaoaOptions->accelerator->finalize();
+
 	for(auto &instance: (*dataset)){
 
 		FastVQA::ExperimentBuffer buffer;
 		buffer.storeQuregPtr = true;
 		qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
+
 		double ground_state_overlap = 0;
 		for(auto &sol: instance.solutions){
 			long long int index = sol.index;
@@ -206,7 +292,10 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 			logw("Improvement ratio < 1", loglevel);
 		}*/
 		gs_overlaps.push_back(improvement_ratio);
+		//std::cerr<<ground_state_overlap<<" "<<instance.random_guess<<"\n";
 		i++;
+
+		this->qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
 
 	}
 
@@ -216,8 +305,19 @@ AngleSearchExperiment::Cost AngleSearchExperiment::_cost_fn(std::vector<Instance
 	double sq_sum = std::inner_product(gs_overlaps.begin(), gs_overlaps.end(), gs_overlaps.begin(), 0.0);
 	double stdev = std::sqrt(sq_sum / gs_overlaps.size() - mean * mean);
 
+	std::ofstream f("a"+std::to_string((*dataset)[0].n)+"_"+std::to_string((*dataset)[0].m));
+	for(auto &a: gs_overlaps)
+		f<<a<<" ";
+	f.close();
+	//mean = median(gs_overlaps, gs_overlaps.size());
+
+
+
 	double sum_mean_num_of_sols = std::accumulate(num_sols.begin(), num_sols.end(), 0.0);
 	double mean_num_of_sols = sum_mean_num_of_sols / num_sols.size();
+
+	this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+	this->qaoaOptions->accelerator->finalize();
 
 	return Cost(mean, stdev, mean_num_of_sols);
 
