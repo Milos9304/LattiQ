@@ -105,7 +105,7 @@ int main(int ac, char** av){
 			return 0;
 		}
 
-		Database database(database_file);
+		Database database(database_file, Database::DATABASE_QARY_PERFORMANCE);
 		test_execution_time(&qaoaOptions, &database);
 		return 0;
 
@@ -121,7 +121,15 @@ int main(int ac, char** av){
 
 		return 0;
 	}else if(angle_results->is_set()){
-		AngleResultsExperiment angleResultsExp(loglevel, &qaoaOptions, &mapOptions);
+
+		const std::string database_file = "../experiments/database_angleres.db";
+		if(database_info->is_set()){
+			Database::print_sqlite_info(database_file);
+			return 0;
+		}
+
+		Database database(database_file, Database::DATABASE_ANGLERES);
+		AngleResultsExperiment angleResultsExp(loglevel, &qaoaOptions, &mapOptions, &database);
 		angleResultsExp.run();
 
 		return 0;

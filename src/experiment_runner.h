@@ -10,6 +10,7 @@
 
 #include "FastVQA/fastVQA.h"
 #include "lattice/lattice.h"
+#include "io/sql_io.h"
 #include <string>
 
 class ExperimentSetup{
@@ -44,6 +45,8 @@ public:
 		};
 protected:
 
+	Database* database;
+
 	struct Instance{
 			FastVQA::PauliHamiltonian h;
 			FastVQA::RefEnergies solutions;
@@ -51,10 +54,13 @@ protected:
 			qreal min_energy;
 			qreal random_guess;
 
-			int m,n;
+			double volume;
+			int sv1Squared;
+
+			int q,m,n;
 	};
 
-	Cost _cost_fn(std::vector<Instance>*, const double *angles);
+	Cost _cost_fn(std::vector<Instance>*, const double *angles, bool use_database=false);
 };
 
 
@@ -73,7 +79,7 @@ public:
 	const std::vector<double> angles{0.4,0.48,5.56,0.28};
 
 	int loglevel = 1;
-	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
+	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*);
 
 	MapOptions* mapOptions;
 

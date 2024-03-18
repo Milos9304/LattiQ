@@ -13,6 +13,13 @@ inline unsigned int to_uint(char ch){
     return static_cast<unsigned int>(static_cast<unsigned char>(ch));
 }
 
+template <typename T>
+std::string to_string_with_precision(const T a_value, const int n = 6){
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return out.str();
+}
 
 inline std::stringstream query_unbind(std::string col_name, SQLite::Statement* query){
 
@@ -35,6 +42,78 @@ inline std::stringstream query_unbind(std::string col_name, SQLite::Statement* q
 
 }
 
+bool Database::getOrCalculate_qary_with_fixed_angles(FastVQA::ExperimentBuffer* buffer,const double *angles, int angle_size, FastVQA::PauliHamiltonian* h, DatasetRow* output_row, FastVQA::QAOAOptions* qaoaOptions, FastVQA::Qaoa* qaoa_instance){
+
+	if(angle_size != 4 || qaoaOptions->p != 2)
+		throw_runtime_error("Unimplemented case in getOrCalculate_qary_with_fixed_angles.");
+
+	bool found = false;
+	std::string gramian = h->getPauliHamiltonianString(2);
+	std::string gamma1 = to_string_with_precision(angles[0], 4);
+	std::string beta1 = to_string_with_precision(angles[1], 4);
+	std::string gamma2 = to_string_with_precision(angles[2], 4);
+	std::string beta2 = to_string_with_precision(angles[3], 4);
+	try{
+		SQLite::Statement query(*db, "SELECT * FROM qary_angleres WHERE (gramian=\""+gramian+"\" AND comment=\""+gamma1+'~'+beta1+'~'+gamma2+'~'+beta2+"\")");
+		//std::cerr<<"SELECT * FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)";
+		while (query.executeStep()){
+			output_row->p 						= query.getColumn("p").getInt();
+			output_row->num_qs 					= query.getColumn("num_qs").getInt();
+			std::stringstream ss = query_unbind("finalStateVectorMap", &query);
+			boost::archive::binary_iarchive ia2(ss);
+			ia2 >> output_row->finalStateVectorMap;
+			found = true;
+			output_row->comment					= query.getColumn("comment").getText();
+
+			break;
+		}
+	}catch (std::exception& e){
+		throw_runtime_error(e.what());
+	}
+
+	if(found)
+		return true;
+
+	buffer->storeQuregPtr = true;
+
+	time_t start_time = time(0);
+	qaoa_instance->run_qaoa_fixed_angles(buffer, h, qaoaOptions, angles);
+	time_t end_time = time(0);
+	int duration_s = difftime(end_time,start_time);
+
+	output_row->type					= gramian;
+	output_row->p 						= qaoaOptions->p;
+	output_row->num_qs 					= h->nbQubits;
+
+	std::shared_ptr<Qureg> stateVector = buffer->stateVector;
+	FinalStateVectorMap finalStateVectorMap(stateVector->numAmpsTotal);
+
+	//they are sorted in their energy
+	FastVQA::RefEnergies eigenSpace = qaoaOptions->accelerator->getEigenspace();
+	if(stateVector->numAmpsTotal != pow(2, output_row->num_qs))
+		throw_runtime_error("stateVector->numAmpsTotal != pow(2, output_row->num_qs)");
+
+	if(eigenSpace.size() != stateVector->numAmpsTotal)
+		throw_runtime_error("eigenSpace.size() != stateVector->numAmpsTotal");
+
+	//here we sort in their indices
+	std::sort(eigenSpace.begin(), eigenSpace.end(), [&](FastVQA::RefEnergy i, FastVQA::RefEnergy j){return i.index < j.index;});
+	//for(auto e: eigenSpace){
+	//	std::cerr<<std::get<1>(e) <<" "<<std::get<0>(e)<<"\n";
+	//}
+
+	for(long long int i = 0; i < stateVector->numAmpsTotal; ++i){
+		finalStateVectorMap[i] = std::pair<qreal, double>(eigenSpace[i].value, stateVector->stateVec.real[i]*stateVector->stateVec.real[i]+stateVector->stateVec.imag[i]*stateVector->stateVec.imag[i]);
+	}
+
+	output_row->finalStateVectorMap 	= finalStateVectorMap;
+	output_row->opt_res					= buffer->opt_message;
+	output_row->comment					= gamma1+'~'+beta1+'~'+gamma2+'~'+beta2;
+	this->write(output_row, DATABASE_ANGLERES);
+
+	return false;
+}
+
 bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed, Lattice *l, FastVQA::PauliHamiltonian* h, DatasetRow* output_row, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
 
 	assert(qaoaOptions->p == p);
@@ -48,7 +127,6 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 			output_row->n 						= query.getColumn("n").getInt();
 			output_row->m 						= query.getColumn("m").getInt();
 			output_row->p 						= query.getColumn("p").getInt();
-			output_row->index 					= query.getColumn("indexx").getInt();
 			output_row->num_qs 					= query.getColumn("num_qs").getInt();
 			output_row->penalty					= query.getColumn("penalty").getInt();
 			output_row->volume					= query.getColumn("volume").getDouble();
@@ -57,21 +135,9 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 			output_row->duration_s				= query.getColumn("duration_s").getInt();
 			output_row->iters					= query.getColumn("iters").getInt();
 
-			//"initAngles"
-
-			/*std::stringstream ss;
-			SQLite::Column colInitAngles		= query.getColumn("initAngles");
-			const void* const blob_init_angles	= colInitAngles.getBlob();
-			const size_t size_init_angles   	= colInitAngles.getBytes();
-			std::string initAngles_str((const char* const)blob_init_angles, size_init_angles+1);
-			ss<<initAngles_str;
-			std::cerr<<size_init_angles;
-			//std::cerr<<ss.str();
-			boost::archive::binary_iarchive ia(ss);*/
 			std::stringstream ss = query_unbind("initAngles", &query);
 			boost::archive::binary_iarchive ia(ss);
 			ia >> output_row->initAngles;
-			//ss.str(std::string());
 
 			ss = query_unbind("finalStateVectorMap", &query);
 			boost::archive::binary_iarchive ia2(ss);
@@ -116,7 +182,6 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 	output_row->n 						= n;
 	output_row->m 						= m;
 	output_row->p 						= p;
-	output_row->index 					= index;
 	output_row->num_qs 					= num_qs;
 	output_row->penalty					= mapOptions -> penalty;
 	output_row->volume					= l->getVolume();
@@ -159,7 +224,7 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 	output_row->probSv1					= buffer.getTotalHitRate();
 	output_row->opt_res					= buffer.opt_message;
 	output_row->comment					= "";
-	this->write(output_row);
+	this->write(output_row, DATABASE_QARY_PERFORMANCE);
 
 	return false;
 }
@@ -195,47 +260,43 @@ inline void query_bind(int i, SQLite::Statement* query, std::vector<POD> const& 
 	//query->exec();
 }
 
-void Database::write(DatasetRow* row){
-
-	if(row->type != "qary")
-		throw_runtime_error("Not implemented");
+void Database::write(DatasetRow* row, DATABASE_TYPE database_type){
 
 	bool penaltyBool = row->penalty == 0 ? false : true;
 
 	try{
-		SQLite::Statement query(*db, "INSERT or IGNORE INTO " + row->type + " VALUES ("+
-				s(row->q)+", "+s(row->n)+", "+s(row->m)+", "+s(row->p)+", "+s(row->index)+
-				", "+s(row->num_qs)+", "+s(penaltyBool)+", "+s(row->penalty)+", "+s(row->volume)+
-				", "+s(row->sv1Squared)+", "+s(row->degeneracy)+", "+s(row->duration_s)+", "+s(row->iters)+", ?, ?, ?, ?, ?," +s(row->probSv1)+", \""+row->opt_res+"\", \""+row->comment+"\")");
+		if(database_type == DATABASE_QARY_PERFORMANCE){
+			if(row->type != "qary")
+					throw_runtime_error("Not implemented");
 
-		query_bind(1, &query, row->initAngles);
-		query_bind(2, &query, row->finalStateVectorMap);
-		query_bind(3, &query, row->intermediateAngles);
-		query_bind(4, &query, row->intermediateEnergies);
-		query_bind(5, &query, row->finalAngles);
-		query.exec();
+			SQLite::Statement query(*db, "INSERT or IGNORE INTO " + row->type + " VALUES ("+
+					s(row->q)+", "+s(row->n)+", "+s(row->m)+", "+s(row->p)+", "+s(row->index)+
+					", "+s(row->num_qs)+", "+s(penaltyBool)+", "+s(row->penalty)+", "+s(row->volume)+
+					", "+s(row->sv1Squared)+", "+s(row->degeneracy)+", "+s(row->duration_s)+", "+s(row->iters)+", ?, ?, ?, ?, ?," +s(row->probSv1)+", \""+row->opt_res+"\", \""+row->comment+"\")");
 
-		/*std::stringstream ss;
-		boost::archive::binary_oarchive oa(ss);
-		oa << row->initAngles;
+			query_bind(1, &query, row->initAngles);
+			query_bind(2, &query, row->finalStateVectorMap);
+			query_bind(3, &query, row->intermediateAngles);
+			query_bind(4, &query, row->intermediateEnergies);
+			query_bind(5, &query, row->finalAngles);
+			query.exec();
+		}else if(database_type == DATABASE_ANGLERES){
 
-		std::string blob_str = ss.str();
-		query.bind(1, (void*)blob_str.c_str(), blob_str.size());
-		query.exec();
+			SQLite::Statement query(*db, "INSERT or IGNORE INTO qary_angleres VALUES (\""+
+								row->type+"\", "+s(row->p)+", "+s(row->num_qs)+", ?,\""+row->comment+"\")");
 
-		boost::archive::binary_iarchive ia(ss);
-		ia >> row->initAngles;
-		for(auto &a:row->initAngles)
-			std::cerr<<a<<" ";*/
-
-
+			query_bind(1, &query, row->finalStateVectorMap);
+			query.exec();
+		}
+		else
+			throw_runtime_error("Unimplemented switch case.");
 	}catch (std::exception& e){
 		throw_runtime_error(e.what());
 	}
 
 }
 
-Database::Database(std::string filename, int loglevel){
+Database::Database(std::string filename, DATABASE_TYPE database_type, int loglevel){
 
 	this->loglevel = loglevel;
 
@@ -243,10 +304,21 @@ Database::Database(std::string filename, int loglevel){
 		db = new SQLite::Database(filename, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE);
 		logd("SQLite database file '" + db->getFilename() + "' opened successfully\n", loglevel);
 
-		db->exec("CREATE TABLE IF NOT EXISTS qary (q INTEGER, n INTEGER, m INTEGER, p INTEGER, indexx INTEGER, num_qs INTEGER, penaltyBool BOOL, penalty INTEGER, volume REAL, "
+		switch(database_type){
+		case DATABASE_QARY_PERFORMANCE:
+			db->exec("CREATE TABLE IF NOT EXISTS qary (q INTEGER, n INTEGER, m INTEGER, p INTEGER, indexx INTEGER, num_qs INTEGER, penaltyBool BOOL, penalty INTEGER, volume REAL, "
 				"sv1Squared INTEGER, degeneracy INTEGER, duration_s INTEGER, iters INTEGER, initAngles BLOB, finalStateVectorMap BLOB, "
 				"intermediateAngles BLOB, intermediateEnergies BLOB, finalAngles BLOB, probSv1 REAL, opt_res TEXT, comment TEXT, "
 				"PRIMARY KEY (q, n, m, p, indexx, num_qs, penaltyBool))");
+			break;
+		case Database::DATABASE_ANGLERES:
+				db->exec("CREATE TABLE IF NOT EXISTS qary_angleres (gramian TEXT, p INTEGER, num_qs INTEGER,  "
+					"finalStateVectorMap BLOB, comment TEXT, "
+					"PRIMARY KEY (gramian, comment))");
+				break;
+		default:
+			throw_runtime_error("Unimplemented switch case.");
+		}
 
 	}catch (std::exception& e){
 		throw_runtime_error(e.what());

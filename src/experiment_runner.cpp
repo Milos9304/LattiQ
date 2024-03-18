@@ -28,11 +28,12 @@ std::string nlopt_res_to_str(int result){
   }
 }
 
-AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
+AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database){
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
 	this->mapOptions = mapOptions;
+	this->database = database;
 
 	if(this->qaoaOptions->p != 2)
 		throw_runtime_error("Angleres is only for p=2!");
@@ -91,6 +92,9 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 
 		//std::cerr<<nbQubits<<" "<<instance.solutions.size()<<" "<<instance.random_guess<<std::endl;
 
+		instance.volume	= l.getVolume();
+		instance.sv1Squared	= l.getSquaredLengthOfFirstBasisVector();
+		instance.q = q;
 		instance.m = m;
 		instance.n = n;
 
@@ -128,7 +132,7 @@ void AngleResultsExperiment::run(){
 			}
 			std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m);
 
-			Cost cost = this->_cost_fn(&dataset, &this->angles[0]);
+			Cost cost = this->_cost_fn(&dataset, &this->angles[0], true);
 
 			double mean = cost.mean;
 			double stdev = cost.stdev;
@@ -258,31 +262,42 @@ double median(vector<double> v, int n)
     // of the two middle elements
     return (double)(v[(n - 1) / 2] + v[n / 2]) / 2.0;
 }
-AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* dataset, const double *angles){
+AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* dataset, const double *angles, bool use_database){
 
-	FastVQA::Qaoa qaoa_instance;
-	std::vector<double> gs_overlaps;
 	std::vector<int> num_sols;
 
 	int i = 0;
 
-	if((*dataset)[0].h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
-		this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
-		this->qaoaOptions->accelerator->finalize();
-	}
-	//this->qaoaOptions->accelerator->finalize();
+	double mean;
+	double stdev;
+	FastVQA::Qaoa qaoa_instance;
+
+	std::vector<double> gs_overlaps;
 
 	for(auto &instance: (*dataset)){
 
+		if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
+			this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+			this->qaoaOptions->accelerator->finalize();
+		}
+
 		FastVQA::ExperimentBuffer buffer;
 		buffer.storeQuregPtr = true;
-		qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
 
 		double ground_state_overlap = 0;
-		for(auto &sol: instance.solutions){
-			long long int index = sol.index;
-			//std::cerr<<instance.min_energy<<" "<<sol.value<<" "<<index<<std::endl;
-			ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+		if(use_database){
+			Database::DatasetRow output_row;
+			this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 4, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
+			for(auto &sol: instance.solutions){
+				long long int index = sol.index;
+				ground_state_overlap+=output_row.finalStateVectorMap[index].second;
+			}
+		}else{
+			qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
+			for(auto &sol: instance.solutions){
+				long long int index = sol.index;
+				ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+			}
 		}
 
 		num_sols.push_back(instance.h.custom_solutions.size());
@@ -300,10 +315,10 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	}
 
 	double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
-	double mean = sum / gs_overlaps.size();
+	mean = sum / gs_overlaps.size();
 
 	double sq_sum = std::inner_product(gs_overlaps.begin(), gs_overlaps.end(), gs_overlaps.begin(), 0.0);
-	double stdev = std::sqrt(sq_sum / gs_overlaps.size() - mean * mean);
+	stdev = std::sqrt(sq_sum / gs_overlaps.size() - mean * mean);
 
 	std::ofstream f("a"+std::to_string((*dataset)[0].n)+"_"+std::to_string((*dataset)[0].m));
 	for(auto &a: gs_overlaps)
@@ -311,13 +326,12 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	f.close();
 	//mean = median(gs_overlaps, gs_overlaps.size());
 
+	this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+	this->qaoaOptions->accelerator->finalize();
 
 
 	double sum_mean_num_of_sols = std::accumulate(num_sols.begin(), num_sols.end(), 0.0);
 	double mean_num_of_sols = sum_mean_num_of_sols / num_sols.size();
-
-	this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
-	this->qaoaOptions->accelerator->finalize();
 
 	return Cost(mean, stdev, mean_num_of_sols);
 
