@@ -249,10 +249,10 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 
 }
 // Function for calculating median
-double median(vector<double> v, int n)
+/*double median(std::vector<double> v, int n)
 {
     // Sort the vector
-    sort(v.begin(), v.end());
+    std::sort(v.begin(), v.end());
 
     // Check if the number of elements is odd
     if (n % 2 != 0)
@@ -261,7 +261,7 @@ double median(vector<double> v, int n)
     // If the number of elements is even, return the average
     // of the two middle elements
     return (double)(v[(n - 1) / 2] + v[n / 2]) / 2.0;
-}
+}*/
 AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* dataset, const double *angles, bool use_database){
 
 	std::vector<int> num_sols;
