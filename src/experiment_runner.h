@@ -72,11 +72,14 @@ public:
 	int q = 97;
 
 	int m_start = 4;
-	int m_end = 6;
+	int m_end = 10;
 
-	int max_num_instances = 1000;
+	int max_num_instances = 100;
 
-	const std::vector<double> angles{0.4,0.48,5.56,0.28};
+	//const std::vector<double> angles{0.4,0.48,5.56,0.28};
+	const std::vector<double> angles{0.4,0.48,5.56,0.28,
+									2.3,0.48,5.56,0.6,
+									1.4,0.8};
 
 	int loglevel = 1;
 	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*);
@@ -122,6 +125,7 @@ private:
 	void run_p1();
 	void run_p2();
 	void run_p2_full_bruteforce();
+	void run_p3_full_bruteforce();
 	void run_p2_test();
 	void run_cobyla_p2();
 

@@ -35,8 +35,8 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOption
 	this->mapOptions = mapOptions;
 	this->database = database;
 
-	if(this->qaoaOptions->p != 2)
-		throw_runtime_error("Angleres is only for p=2!");
+	if(this->qaoaOptions->p != 5)
+		throw_runtime_error("Angleres is only for p=5!");
 
 }
 
@@ -132,7 +132,7 @@ void AngleResultsExperiment::run(){
 			}
 			std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m);
 
-			Cost cost = this->_cost_fn(&dataset, &this->angles[0], true);
+			Cost cost = this->_cost_fn(&dataset, &this->angles[0], /*true*/false);
 
 			double mean = cost.mean;
 			double stdev = cost.stdev;
@@ -349,8 +349,110 @@ void AngleSearchExperiment::run(){
 	else if(this->qaoaOptions->p == 2)
 		run_p2_test();//run_p2_full_bruteforce();
 		//run_p2();
+	else if(this->qaoaOptions->p == 3)
+		run_p3_full_bruteforce();
 	else
 		throw_runtime_error("Not implemented");
+
+}
+
+void AngleSearchExperiment::run_p3_full_bruteforce(){
+
+	if(this->num_params != 6)
+		throw_runtime_error("Unimplemented for other depth than 3");
+
+	double *angles = (double*) malloc(this->num_params * sizeof(double));
+		for(int j = 0; j < this->num_params; ++j){
+			angles[j]=0;//dis(gen));
+		}
+
+	std::vector<std::tuple<double, double>> first_round_angles;
+
+	double mean_threshold = 10;
+	double stdev_threshold = 20;//0.019;
+
+	double beta_min = 0;//pi/16;
+	double beta_max = pi/4;//pi;//;pi/8;
+
+	double gamma_min = 0;//0;
+	double gamma_max = /*2**/pi/2;//2*pi;
+
+	double range_beta = beta_max - beta_min;
+	double range_gamma = gamma_max - gamma_min;
+	double incr_beta = 0.3;///0.12;
+	double incr_gamma = 0.05;//0.04;///0.01;
+
+	int axis_range_beta = ceil(range_beta / incr_beta);
+	int axis_range_gamma = ceil(range_gamma / incr_gamma);
+	int num_iters = axis_range_beta *  axis_range_beta * axis_range_beta * axis_range_gamma * axis_range_gamma * axis_range_gamma;
+
+	int x = 0;
+	int y = 0;
+
+	std::vector<std::vector<double>> final_plot_means(axis_range_gamma);
+	std::vector<std::vector<double>> final_plot_stdevs(axis_range_gamma);
+
+	ProgressBar bar{
+		option::BarWidth{50},
+		option::MaxProgress{num_iters},
+		option::Start{"["},
+		option::Fill{"="},
+		option::Lead{">"},
+		option::Remainder{" "},
+		option::End{"]"},
+		option::PostfixText{"Running Angle Search Experiment FULL BRUTEFORCE p=3"},
+		option::ShowElapsedTime{true},
+		option::ShowRemainingTime{true},
+		option::ForegroundColor{Color::yellow},
+		option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+	};
+
+	double debug_highest_mean=6.8;
+	double lgamma1, lbeta1, lgamma2, lbeta2, lgamma3, lbeta3;
+
+	double i = 0;
+	AngleSearchExperiment::Cost cost;
+	for(double gamma1 = gamma_min; gamma1 < gamma_max; gamma1+=incr_gamma){
+		for(double beta1 = beta_min; beta1 < beta_max; beta1+=incr_beta){
+			for(double gamma2 = gamma_min; gamma2 < gamma_max; gamma2+=incr_gamma){
+				for(double beta2 = beta_min; beta2 < beta_max; beta2+=incr_beta){
+					for(double gamma3 = gamma_min; gamma3 < gamma_max; gamma3+=incr_gamma){
+						for(double beta3 = beta_min; beta3 < beta_max; beta3+=incr_beta){
+							bar.tick();
+							angles[0] = gamma1;
+							angles[1] = beta1;
+							angles[2] = gamma2;
+							angles[3] = beta2;
+							angles[4] = gamma3;
+							angles[5] = beta3;
+							cost = this->_cost_fn(&this->train_set, angles);
+							//final_plot_means[x].push_back(cost.mean);
+							//final_plot_stdevs[x].push_back(cost.stdev);
+
+							if(cost.mean > debug_highest_mean){
+								debug_highest_mean = cost.mean;
+								lgamma1=gamma1;
+								lbeta1=beta1;
+								lgamma2=gamma2;
+								lbeta2=beta2;
+								lgamma3=gamma3;
+								lbeta3=beta3;
+
+								std::cerr<<"("<<gamma1<<", "<<beta1<<", "<<gamma2<<", "<<beta2<<", "<<gamma3<<", "<<beta3<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
+
+							}
+
+						}
+					}
+				}
+			}
+		}
+		//x++;
+	}
+
+	std::cerr<<debug_highest_mean <<" "<<lgamma1<<" "<<lbeta1<<" "<<lgamma2<<" "<<lbeta2<<" "<<lgamma3<<" "<<lbeta3<<std::endl;
+
+	//logi("First round size: " + std::to_string(first_round_angles.size()), loglevel);
 
 }
 
