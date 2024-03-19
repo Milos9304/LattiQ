@@ -371,16 +371,18 @@ void AngleSearchExperiment::run_p3_full_bruteforce(){
 	double mean_threshold = 10;
 	double stdev_threshold = 20;//0.019;
 
-	double beta_min = 0;//pi/16;
+	double incr_beta = 0.3;///0.12;
+	double incr_gamma = 0.05;//0.04;///0.01;
+
+	double beta_min = incr_beta;//pi/16;
 	double beta_max = pi/4;//pi;//;pi/8;
 
-	double gamma_min = 0;//0;
+	double gamma_min = incr_gamma;//0;
 	double gamma_max = /*2**/pi/2;//2*pi;
 
 	double range_beta = beta_max - beta_min;
 	double range_gamma = gamma_max - gamma_min;
-	double incr_beta = 0.3;///0.12;
-	double incr_gamma = 0.05;//0.04;///0.01;
+
 
 	int axis_range_beta = ceil(range_beta / incr_beta);
 	int axis_range_gamma = ceil(range_gamma / incr_gamma);
