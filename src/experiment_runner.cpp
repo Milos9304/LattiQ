@@ -35,7 +35,7 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOption
 	this->mapOptions = mapOptions;
 	this->database = database;
 
-	if(this->qaoaOptions->p != 5)
+	if(this->qaoaOptions->p != 3)
 		throw_runtime_error("Angleres is only for p=5!");
 
 }
@@ -93,7 +93,7 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 		//std::cerr<<nbQubits<<" "<<instance.solutions.size()<<" "<<instance.random_guess<<std::endl;
 
 		instance.volume	= l.getVolume();
-		instance.sv1Squared	= l.getSquaredLengthOfFirstBasisVector();
+		instance.sv1Squared= l.getSquaredLengthOfFirstBasisVector();
 		instance.q = q;
 		instance.m = m;
 		instance.n = n;
@@ -115,7 +115,7 @@ void AngleResultsExperiment::run(){
 
 	std::map<std::pair<int, int>, double> stdev_map;
 
-	const int colWidth = 12;
+	const int colWidth = 20;
 	std::cout<<" q="<<this->q<<std::endl;
 	std::cout<<"   Averages:"<<std::endl;
 	std::cout << " n \\ m";
@@ -132,13 +132,13 @@ void AngleResultsExperiment::run(){
 			}
 			std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m);
 
-			Cost cost = this->_cost_fn(&dataset, &this->angles[0], /*true*/false);
+			Cost cost = this->_cost_fn(&dataset, &this->angles[0], true);
 
 			double mean = cost.mean;
 			double stdev = cost.stdev;
 
 			stdev_map.emplace(std::pair<int, int>(n,m), stdev);
-			std::cout << std::setw(colWidth) << std::internal << mean << std::flush;
+			std::cout << std::setw(colWidth) << std::internal << mean << "/" << stdev << std::flush;
 		}
 		std::cout<<std::endl;
 	}
@@ -287,7 +287,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		double ground_state_overlap = 0;
 		if(use_database){
 			Database::DatasetRow output_row;
-			this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 4, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
+			this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 6, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
 			for(auto &sol: instance.solutions){
 				long long int index = sol.index;
 				ground_state_overlap+=output_row.finalStateVectorMap[index].second;
