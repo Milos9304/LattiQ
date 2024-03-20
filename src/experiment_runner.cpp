@@ -320,10 +320,6 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	double sq_sum = std::inner_product(gs_overlaps.begin(), gs_overlaps.end(), gs_overlaps.begin(), 0.0);
 	stdev = std::sqrt(sq_sum / gs_overlaps.size() - mean * mean);
 
-	std::ofstream f("a"+std::to_string((*dataset)[0].n)+"_"+std::to_string((*dataset)[0].m));
-	for(auto &a: gs_overlaps)
-		f<<a<<" ";
-	f.close();
 	//mean = median(gs_overlaps, gs_overlaps.size());
 
 	this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
