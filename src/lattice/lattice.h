@@ -24,6 +24,7 @@ class MapOptions{
 	public:
 
 		bool verbose;
+		int loglevel;
 
 		/*
 		 * x_symmetric: x_i \ in [-2^(B-1) + 1 , 2^(B-1)]

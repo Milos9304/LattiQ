@@ -85,6 +85,7 @@ int main(int ac, char** av){
 	//mapOptions.pen_mode = MapOptions::penalty_all;
 	mapOptions.bin_map = penalty->value() > 0 ? MapOptions::zeta_omega_exact : MapOptions::naive_overapprox;
 	mapOptions.penalty = penalty->value();
+	mapOptions.loglevel = log_level->value();
 
 	//GeneratorParam param(n);
 	//std::vector<DiagonalHamiltonian> gramiams = generateDiagonalExtensive(param);

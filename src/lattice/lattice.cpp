@@ -256,7 +256,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 			if(gramian){
 				logi("Penalty="+std::to_string(options->penalty), print ? 0 : 3);
 				if(options->penalty < this->getSquaredLengthOfFirstBasisVector())
-					loge("Check if the penalty " + std::to_string(options->penalty) + " is not set too low! (|b1|^2="+std::to_string(this->getSquaredLengthOfFirstBasisVector())+")");
+					logw("Check if the penalty " + std::to_string(options->penalty) + " is not set too low! (|b1|^2="+std::to_string(this->getSquaredLengthOfFirstBasisVector())+")", options->loglevel);
 			}else{
 				int first_vect_len = 0;
 
