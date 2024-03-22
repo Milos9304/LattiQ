@@ -128,7 +128,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 					int nbQubits = param.m * qs - odd;
 
 					Database::DatasetRow row;
-					bool found = database->getOrCalculate_qary(param.q, param.n, param.m, qaoaOptions->p,
+					bool found = database->getOrCalculate_qary(param.q, param.n, param.m, /*qaoaOptions->p*/p,
 												counter, nbQubits, penalty > 0 ? true : false,
 														&l, &h, &row, qaoaOptions, &mapOptions);
 
