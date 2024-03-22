@@ -44,18 +44,22 @@ inline std::stringstream query_unbind(std::string col_name, SQLite::Statement* q
 
 bool Database::getOrCalculate_qary_with_fixed_angles(FastVQA::ExperimentBuffer* buffer,const double *angles, int angle_size, FastVQA::PauliHamiltonian* h, DatasetRow* output_row, FastVQA::QAOAOptions* qaoaOptions, FastVQA::Qaoa* qaoa_instance){
 
-	if(angle_size != 4 || qaoaOptions->p != 2)
-		throw_runtime_error("Unimplemented case in getOrCalculate_qary_with_fixed_angles.");
+	if(qaoaOptions->p*2 != angle_size)
+		throw_runtime_error("Invalid size of angle array");
 
 	bool found = false;
 	std::string gramian = h->getPauliHamiltonianString(2);
-	std::string gamma1 = to_string_with_precision(angles[0], 4);
-	std::string beta1 = to_string_with_precision(angles[1], 4);
-	std::string gamma2 = to_string_with_precision(angles[2], 4);
-	std::string beta2 = to_string_with_precision(angles[3], 4);
+	std::string angle_string = "";
+	for(int i = 0; i < angle_size; i++){
+		angle_string+=to_string_with_precision(angles[i], 4);
+		if(i < angle_size - 1)
+			angle_string+='~';
+	}
+	
 	try{
-		SQLite::Statement query(*db, "SELECT * FROM qary_angleres WHERE (gramian=\""+gramian+"\" AND comment=\""+gamma1+'~'+beta1+'~'+gamma2+'~'+beta2+"\")");
+		SQLite::Statement query(*db, "SELECT * FROM qary_angleres WHERE (gramian=\""+gramian+"\" AND comment=\""+angle_string+"\")");
 		//std::cerr<<"SELECT * FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)";
+		
 		while (query.executeStep()){
 			output_row->p 						= query.getColumn("p").getInt();
 			output_row->num_qs 					= query.getColumn("num_qs").getInt();
@@ -108,7 +112,7 @@ bool Database::getOrCalculate_qary_with_fixed_angles(FastVQA::ExperimentBuffer* 
 
 	output_row->finalStateVectorMap 	= finalStateVectorMap;
 	output_row->opt_res					= buffer->opt_message;
-	output_row->comment					= gamma1+'~'+beta1+'~'+gamma2+'~'+beta2;
+	output_row->comment					= angle_string;
 	this->write(output_row, DATABASE_ANGLERES);
 
 	return false;
@@ -261,7 +265,7 @@ inline void query_bind(int i, SQLite::Statement* query, std::vector<POD> const& 
 }
 
 void Database::write(DatasetRow* row, DATABASE_TYPE database_type){
-
+	
 	bool penaltyBool = row->penalty == 0 ? false : true;
 
 	try{

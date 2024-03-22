@@ -123,7 +123,7 @@ int main(int ac, char** av){
 		return 0;
 	}else if(angle_results->is_set()){
 
-		const std::string database_file = "../experiments/database_angleres.db";
+		const std::string database_file = "../experiments/database_angleres_p3.db";
 		if(database_info->is_set()){
 			Database::print_sqlite_info(database_file);
 			return 0;

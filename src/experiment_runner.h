@@ -74,12 +74,10 @@ public:
 	int m_start = 4;
 	int m_end = 10;
 
-	int max_num_instances = 100;
+	int max_num_instances = 3000;
 
 	//const std::vector<double> angles{0.4,0.48,5.56,0.28};
-	const std::vector<double> angles{0.4,0.48,5.56,0.28,
-									2.3,0.48,5.56,0.6,
-									1.4,0.8};
+	const std::vector<double> angles{0.4,0.5,0.36,0.2,0.04,0.5};
 
 	int loglevel = 1;
 	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*);
