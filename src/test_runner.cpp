@@ -115,7 +115,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 					pPerformanceData[p-1].data[nbQubits].push_back(row.probSv1);*/
 
-					double prob = database->getSv1Probability(param.q, param.n, param.m, qaoaOptions->p,
+					double prob = database->getSv1Probability(param.q, param.n, param.m, p,
 							param.m*qs-odd, counter);
 					//std::cerr<<prob<<std::endl;
 
@@ -186,7 +186,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 	std::cout<< "ps: " << p_min << " - " << p_max  << std::endl;
 	//std::cout<< "qs: " << 1     << " - " << qs_max << std::endl;
 	for(int p = p_min; p <= p_max; ++p){
-		std::cout << "p="<<p<<" ";
+		std::cout << "p="<<p<<" \n";
 		for(int q = 1; q <= 30; ++q){
 			if(pPerformanceData[p-1].hasQ(q)){
 				std::pair<double, double> meanStdev = pPerformanceData[p-1].getMeanAndStdev(q);
