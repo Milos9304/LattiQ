@@ -247,7 +247,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 		}
 
 		if(!solutions_calculated){
-			calculate_solutions(print);
+			calculate_solutions(options->penalty == 0 ? true : false, print);
 			solutions_calculated = true;
 		}
 
@@ -441,30 +441,35 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 }
 
 // Function to generate all binary strings
-void Lattice::_bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i)
-{
+void Lattice::_bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i, bool allow_for_zero_ground_state){
 	if (i == n) {
 		mpq_class result = expression_bin->evaluate_bin_expr(varBoolMap);
-		if(result == 0)
-			return;
+
+		if(result < 0)
+			throw_runtime_error("Invalid result value");
 
 		if(solutions_length_squared == -1 || result < this->solutions_length_squared){
 			solutions.clear();
 			this->solutions_length_squared = result;
 		}
 
-		if(result == this->solutions_length_squared){
+		if(result == 0){
+			if(allow_for_zero_ground_state)
+				solutions.push_back(*varBoolMap);
+			return;
+		}else if(result == this->solutions_length_squared){
 			solutions.push_back(*varBoolMap);
 		}
 		return;
 	}
 	std::next(varBoolMap->begin(), i)->second=0;
-	_bruteForceSolutions(n, varBoolMap, i + 1);
+	_bruteForceSolutions(n, varBoolMap, i + 1, allow_for_zero_ground_state);
 
 	std::next(varBoolMap->begin(), i)->second=1;
-	_bruteForceSolutions(n, varBoolMap, i + 1);
+	_bruteForceSolutions(n, varBoolMap, i + 1, allow_for_zero_ground_state);
 }
-void Lattice::calculate_solutions(bool print){
+
+void Lattice::calculate_solutions(bool allow_for_zero_ground_state, bool print){
 
 	std::vector<FastVQA::Var*> variables = expression_bin->getVariables();
 	if(variables[0]->id != -1){
@@ -477,7 +482,7 @@ void Lattice::calculate_solutions(bool print){
 		varBoolMap.emplace(variables[i], 0);
 
 	this->solutions_length_squared=-1;
-	this->_bruteForceSolutions(variables.size()-1, &varBoolMap, 0);
+	this->_bruteForceSolutions(variables.size()-1, &varBoolMap, 0, allow_for_zero_ground_state);
 
 	if(print){
 		logd("Solution length squared: "+std::to_string(this->solutions_length_squared.get_d()), 0);

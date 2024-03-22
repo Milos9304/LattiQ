@@ -63,7 +63,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 	PPerformanceData pPerformanceData[p_max]; //index by p=qaoaDepth
 
-	ProgressBar bar{
+	/*ProgressBar bar{
 			option::BarWidth{50},
 			option::MaxProgress{qs_max/2*gramian_wrappers.size()*(p_max-p_min+1)*2-qs_max/2},
 			option::Start{"["},
@@ -76,7 +76,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 			option::ShowRemainingTime{true},
 			option::ForegroundColor{Color::yellow},
 			option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
-		};
+		};*/
 
 	for(int qs=1; qs<=qs_max/2; ++qs){
 
@@ -89,9 +89,9 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 					if(qs == 1 && odd)
 						continue;
-					bar.tick();
+					//bar.tick();
 
-					/*mapOptions.__minus_one_qubit_firstvar=odd;
+					mapOptions.__minus_one_qubit_firstvar=odd;
 					qaoaOptions->p = p;
 
 					Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
@@ -113,13 +113,23 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 							counter, nbQubits, penalty > 0 ? true : false,
 									&l, &h, &row, qaoaOptions, &mapOptions);
 
-					pPerformanceData[p-1].data[nbQubits].push_back(row.probSv1);*/
+					/*if(param.q == 7 && param.n == 1 && param.m == 2 && p == 1 && counter == 0 && nbQubits == 3){
+						std::cerr<<row.probSv1<<std::endl;
+						for(auto&a: row.finalStateVectorMap)
+							std::cerr<<a.first<<" "<<a.second<<"\n";
+						throw;
+					}*/
 
-					double prob = database->getSv1Probability(param.q, param.n, param.m, p,
+					//pPerformanceData[p-1].data[nbQubits].push_back(row.probSv1);
+
+					/*double prob = database->getSv1Probability(param.q, param.n, param.m, p,
 							param.m*qs-odd, counter);
 					//std::cerr<<prob<<std::endl;
 
+
 					pPerformanceData[p-1].data[param.m*qs-odd].push_back(prob);
+					 */
+
 
 					/*if(found){
 						std::cerr<<row.q<<"\n";
@@ -185,7 +195,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 	//std::cout<< "ps: " << p_min << " - " << p_max  << std::endl;
 	//std::cout<< "qs: " << 1     << " - " << qs_max << std::endl;
-	std::cout<<"{";bool c = true;
+	/*std::cout<<"{";bool c = true;
 	for(int p = p_min; p <= p_max; ++p){
 		std::cout <<(c?"":",")<<p<<": {";c=false;
 		bool e = true;
@@ -196,6 +206,6 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 			}
 		}std::cerr<<"}";
 	}
-	std::cout<<"}";
+	std::cout<<"}";*/
 
 }

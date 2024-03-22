@@ -223,8 +223,8 @@ class Lattice {
 		std::vector<std::map<FastVQA::Var*, int>> solutions;
 		bool solutions_calculated = false;
 		mpq_class solutions_length_squared=-1;
-		void calculate_solutions(bool print=false);
-		void _bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i);
+		void calculate_solutions(bool allow_for_zero_ground_state, bool print=false);
+		void _bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i, bool allow_for_zero_ground_state);
 
 		//std::map<std::string, Var*> qubo_to_bin_map;
 		std::map<int, int> qbit_to_varId_map;
