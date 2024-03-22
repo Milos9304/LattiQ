@@ -183,16 +183,18 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 		}
 	}
 
-	std::cout<< "ps: " << p_min << " - " << p_max  << std::endl;
+	//std::cout<< "ps: " << p_min << " - " << p_max  << std::endl;
 	//std::cout<< "qs: " << 1     << " - " << qs_max << std::endl;
+	std::cout<<"{";
 	for(int p = p_min; p <= p_max; ++p){
-		std::cout << "p="<<p<<" \n";
+		std::cout <<","<<p<<": {";
 		for(int q = 1; q <= 30; ++q){
 			if(pPerformanceData[p-1].hasQ(q)){
 				std::pair<double, double> meanStdev = pPerformanceData[p-1].getMeanAndStdev(q);
-				std::cout<<q<<": "<<meanStdev.first<<","<<meanStdev.second<<std::endl;}
-
-		}
+				std::cout<<","<<q<<": ["<<meanStdev.first<<","<<meanStdev.second<<"]";
+			}
+		}std::cerr<<"}";
 	}
+	std::cout<<"}";
 
 }
