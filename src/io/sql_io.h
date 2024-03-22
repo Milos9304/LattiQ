@@ -49,6 +49,7 @@ public:
 
 	Database(std::string filename, DATABASE_TYPE, int loglevel=0);
 	bool contains_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed);
+	double getSv1Probability(int q, int n, int m, int p, int num_qs, int index);
 	bool getOrCalculate_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed, Lattice *l, FastVQA::PauliHamiltonian* h, DatasetRow* output_row, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions);
 	bool getOrCalculate_qary_with_fixed_angles(	FastVQA::ExperimentBuffer* buffer,const double *angles, int angle_size, FastVQA::PauliHamiltonian* h, DatasetRow* row, FastVQA::QAOAOptions* qaoaOptions, FastVQA::Qaoa* qaoa_instance);
 

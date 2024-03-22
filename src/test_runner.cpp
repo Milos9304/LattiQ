@@ -93,12 +93,18 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 					//int duration_s = difftime(end_time,start_time);
 
-					Database::DatasetRow row;
+					/*Database::DatasetRow row;
 					bool found = database->getOrCalculate_qary(param.q, param.n, param.m, qaoaOptions->p,
 							counter, nbQubits, penalty > 0 ? true : false,
 									&l, &h, &row, qaoaOptions, &mapOptions);
 
-					pPerformanceData[p-1].data[nbQubits].push_back(row.probSv1);
+					pPerformanceData[p-1].data[nbQubits].push_back(row.probSv1);*/
+
+					double prob = database->getSv1Probability(param.q, param.n, param.m, qaoaOptions->p,
+							nbQubits, counter);
+					//std::cerr<<prob<<std::endl;
+
+					pPerformanceData[p-1].data[nbQubits].push_back(prob);
 
 					/*if(found){
 						std::cerr<<row.q<<"\n";

@@ -42,6 +42,28 @@ inline std::stringstream query_unbind(std::string col_name, SQLite::Statement* q
 
 }
 
+double Database::getSv1Probability(int q, int n, int m, int p, int num_qs, int index){
+	double result;
+	bool found = false;
+	try{
+		SQLite::Statement query(*db, "SELECT probSv1 FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND NOT penaltyBool)");
+		//std::cerr<<"SELECT * FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)";
+
+		while (query.executeStep()){
+			result = query.getColumn("probSv1").getDouble();
+			found = true;
+			break;
+		}
+	}catch (std::exception& e){
+		throw_runtime_error(e.what());
+	}
+
+	if(!found)
+		throw_runtime_error("Not found");
+	return result;
+}
+
+
 bool Database::getOrCalculate_qary_with_fixed_angles(FastVQA::ExperimentBuffer* buffer,const double *angles, int angle_size, FastVQA::PauliHamiltonian* h, DatasetRow* output_row, FastVQA::QAOAOptions* qaoaOptions, FastVQA::Qaoa* qaoa_instance){
 
 	if(qaoaOptions->p*2 != angle_size)
@@ -132,6 +154,7 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 			output_row->m 						= query.getColumn("m").getInt();
 			output_row->p 						= query.getColumn("p").getInt();
 			output_row->num_qs 					= query.getColumn("num_qs").getInt();
+			output_row->index					= query.getColumn("indexx").getInt();
 			output_row->penalty					= query.getColumn("penalty").getInt();
 			output_row->volume					= query.getColumn("volume").getDouble();
 			output_row->sv1Squared				= query.getColumn("sv1Squared").getInt();
@@ -186,6 +209,7 @@ bool Database::getOrCalculate_qary(int q, int n, int m, int p, int index, int nu
 	output_row->n 						= n;
 	output_row->m 						= m;
 	output_row->p 						= p;
+	output_row->index					= index;
 	output_row->num_qs 					= num_qs;
 	output_row->penalty					= mapOptions -> penalty;
 	output_row->volume					= l->getVolume();
