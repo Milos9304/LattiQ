@@ -87,7 +87,8 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 					if(qs == 1 && odd)
 						continue;
 					bar.tick();
-					mapOptions.__minus_one_qubit_firstvar=odd;
+
+					/*mapOptions.__minus_one_qubit_firstvar=odd;
 					qaoaOptions->p = p;
 
 					Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
@@ -104,13 +105,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 					FastVQA::ExperimentBuffer buffer;
 					buffer.storeQuregPtr = false;
 
-					//time_t start_time = time(0);
-					//qaoa_instance.run_qaoa(&buffer, &h, qaoaOptions);
-					//time_t end_time = time(0);
-
-					//int duration_s = difftime(end_time,start_time);
-
-					/*Database::DatasetRow row;
+					Database::DatasetRow row;
 					bool found = database->getOrCalculate_qary(param.q, param.n, param.m, qaoaOptions->p,
 							counter, nbQubits, penalty > 0 ? true : false,
 									&l, &h, &row, qaoaOptions, &mapOptions);
@@ -118,10 +113,10 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 					pPerformanceData[p-1].data[nbQubits].push_back(row.probSv1);*/
 
 					double prob = database->getSv1Probability(param.q, param.n, param.m, qaoaOptions->p,
-							nbQubits, counter);
+							param.m*qs-odd, counter);
 					//std::cerr<<prob<<std::endl;
 
-					pPerformanceData[p-1].data[nbQubits].push_back(prob);
+					pPerformanceData[p-1].data[param.m*qs-odd].push_back(prob);
 
 					/*if(found){
 						std::cerr<<row.q<<"\n";
