@@ -43,6 +43,7 @@ inline std::stringstream query_unbind(std::string col_name, SQLite::Statement* q
 }
 
 double Database::getSv1Probability(int q, int n, int m, int p, int num_qs, int index){
+
 	double result;
 	bool found = false;
 	try{

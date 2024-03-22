@@ -29,6 +29,8 @@ struct PPerformanceData{
 
 void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
+
+
 	int penalty = 0;
 	const int p_min = 1;
 	const int p_max = 6;
@@ -58,6 +60,21 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 	PPerformanceData pPerformanceData[p_max]; //index by p=qaoaDepth
 
+	ProgressBar bar{
+			option::BarWidth{50},
+			option::MaxProgress{qs_max/2*gramian_wrappers.size()*(p_max-p_min+1)*2-qs_max/2},
+			option::Start{"["},
+			option::Fill{"="},
+			option::Lead{">"},
+			option::Remainder{" "},
+			option::End{"]"},
+			option::PostfixText{"Getting Sv1Mean probability"},
+			option::ShowElapsedTime{true},
+			option::ShowRemainingTime{true},
+			option::ForegroundColor{Color::yellow},
+			option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+		};
+
 	for(int qs=1; qs<=qs_max/2; ++qs){
 
 		mapOptions.num_qbits_per_x = qs;
@@ -69,7 +86,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 
 					if(qs == 1 && odd)
 						continue;
-
+					bar.tick();
 					mapOptions.__minus_one_qubit_firstvar=odd;
 					qaoaOptions->p = p;
 
