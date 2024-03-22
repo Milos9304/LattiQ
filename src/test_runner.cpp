@@ -16,6 +16,11 @@ struct PPerformanceData{
 	int dim_max;
 
 	std::map<int, std::vector<double>> data;
+	bool hasQ(int q){
+		if(data.count(q) == 1)
+			return true;
+		return false;
+	}
 	std::pair<double, double> getMeanAndStdev(int dim){
 		double sum = std::accumulate(data[dim].begin(), data[dim].end(), 0.0);
 		double mean = sum / data[dim].size();
@@ -28,8 +33,6 @@ struct PPerformanceData{
 };
 
 void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
-
-
 
 	int penalty = 0;
 	const int p_min = 1;
@@ -181,12 +184,14 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 	}
 
 	std::cout<< "ps: " << p_min << " - " << p_max  << std::endl;
-	std::cout<< "qs: " << 1     << " - " << qs_max << std::endl;
+	//std::cout<< "qs: " << 1     << " - " << qs_max << std::endl;
 	for(int p = p_min; p <= p_max; ++p){
 		std::cout << "p="<<p<<" ";
-		for(int q = 1; q <= qs_max; ++q){
-			std::pair<double, double> meanStdev = pPerformanceData[p-1].getMeanAndStdev(q);
-			std::cout<<meanStdev.first<<","<<meanStdev.second<<std::endl;
+		for(int q = 1; q <= 30; ++q){
+			if(pPerformanceData[p-1].hasQ(q)){
+				std::pair<double, double> meanStdev = pPerformanceData[p-1].getMeanAndStdev(q);
+				std::cout<<q<<": "<<meanStdev.first<<","<<meanStdev.second<<std::endl;}
+
 		}
 	}
 
