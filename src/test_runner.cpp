@@ -91,9 +91,9 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 						continue;
 					//bar.tick();
 
-					/*mapOptions.__minus_one_qubit_firstvar=odd;
+					mapOptions.__minus_one_qubit_firstvar=odd;
 					qaoaOptions->p = p;
-
+					/*
 					Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> G = w.hamiltonian;
 					std::string name = w.name;
 
@@ -128,7 +128,7 @@ void test_execution_time(FastVQA::QAOAOptions* qaoaOptions, Database* database){
 					int nbQubits = param.m * qs - odd;
 
 					Database::DatasetRow row;
-					bool found = database->getOrCalculate_qary(param.q, param.n, param.m, /*qaoaOptions->p*/p,
+					bool found = database->getOrCalculate_qary(param.q, param.n, param.m, qaoaOptions->p,
 												counter, nbQubits, penalty > 0 ? true : false,
 														&l, &h, &row, qaoaOptions, &mapOptions);
 
