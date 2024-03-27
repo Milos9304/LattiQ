@@ -170,6 +170,8 @@ class Lattice {
 		int getNumQubits(){return expression_qubo->getIdMapSize()-1;}
 		double getVolume();
 
+		long long int calculateSVLength();
+
 		mpq_class get_orig_gh(){return orig_gh_sq;}
 
 		MatrixInt* get_orig_lattice(){ return &orig_lattice; }

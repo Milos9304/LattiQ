@@ -344,7 +344,12 @@ Database::Database(std::string filename, DATABASE_TYPE database_type, int loglev
 				db->exec("CREATE TABLE IF NOT EXISTS qary_angleres (gramian TEXT, p INTEGER, num_qs INTEGER,  "
 					"finalStateVectorMap BLOB, comment TEXT, "
 					"PRIMARY KEY (gramian, comment))");
-				break;
+			break;
+		case Database::DATABASE_CM_QAOA:
+			db->exec("CREATE TABLE IF NOT EXISTS qary_cm_qaoa (cm BOOL, m INTEGER, p INTEGER, indexx INTEGER, qs_per_x INTEGER,  "
+					"finalStateVectorMap BLOB, comment TEXT, "
+					"PRIMARY KEY (cm, m, p, indexx, qs_per_x))");
+			break;
 		default:
 			throw_runtime_error("Unimplemented switch case.");
 		}

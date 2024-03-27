@@ -25,6 +25,61 @@ public:
 	int num_rand_params;
 };
 
+class CmQaoaExperiment{
+public:
+
+	const int q = 97; const int n = 1;
+
+	const int m_start = 2;
+	const int m_end   = 4;//8;
+
+	const int p_start = 1;
+	const int p_end   = 6;
+
+	const int num_instances = 3;
+
+	FastVQA::QAOAOptions* qaoaOptions;
+	MapOptions* mapOptions;
+
+	CmQaoaExperiment(FastVQA::QAOAOptions*, MapOptions*, Database*, int loglevel=1);
+
+	void run();
+
+
+private:
+
+	int loglevel=1;
+	Database* database;
+
+	struct Instance{
+		FastVQA::PauliHamiltonian h;
+		FastVQA::RefEnergies solutions;
+		//FastVQA::RefEnergies eigenspace; //for debug
+		//qreal min_energy;
+		//qreal random_guess;
+
+		//double volume;
+		//int sv1Squared;
+
+		int num_qubits_per_dim;
+		int q,m,n;
+	};
+
+	struct Cost{
+		double prob_zero;
+		double prob_first_excited_state;
+
+		long long int first_excited_state;
+		int degeneracy;
+
+		//Cost(){}
+	};
+
+	Cost _cost_fn(Instance*, bool use_database=false);
+
+
+};
+
 class AngleExperimentBase{
 public:
 

@@ -29,6 +29,7 @@ int main(int ac, char** av){
 	auto angle_results	  		= op.add<Switch>("", "angleres", "results of constant angles experiment");
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
 	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
+	auto cmqaoa					= op.add<Switch>("", "cm", "run cmqaoa experiment");
 	auto database_info		   	= op.add<Switch>("", "dinfo", "get database info");
 
 	op.parse(ac, av);
@@ -54,7 +55,7 @@ int main(int ac, char** av){
 	int n = n_opt->value();
 	int m = m_opt->value();
 
-	if( (!performance_calc->is_set()) && ((qubits_per_x->value() == -1 && absolute_bound->value()==-1) || (qubits_per_x->value() != -1 && absolute_bound->value() !=-1)) ){
+	if( cmqaoa->is_set() == false && (!performance_calc->is_set()) && ((qubits_per_x->value() == -1 && absolute_bound->value()==-1) || (qubits_per_x->value() != -1 && absolute_bound->value() !=-1)) ){
 		throw_runtime_error("Exactly one of 'qubits_per_x' or 'absolute_bound' must be set.");
 	}
 
@@ -134,6 +135,17 @@ int main(int ac, char** av){
 		angleResultsExp.run();
 
 		return 0;
+	}else if(cmqaoa->is_set()){
+		const std::string database_file = "../experiments/database_cmqaoa.db";
+		if(database_info->is_set()){
+			Database::print_sqlite_info(database_file);
+			return 0;
+		}
+		Database database(database_file, Database::DATABASE_CM_QAOA);
+		CmQaoaExperiment cmQaoaExperiment(&qaoaOptions, &mapOptions, &database, loglevel);
+		cmQaoaExperiment.run();
+		return 0;
+
 	}else if(param_experiment->value() > 0){
 		logi("Running manyParams experiment", loglevel);
 		experimentSetup.experiment_type = "manyParams";

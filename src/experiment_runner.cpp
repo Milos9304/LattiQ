@@ -7,6 +7,9 @@
 #define GNUPLOT_ENABLE_PTY
 #include "gnuplot-iostream.h"
 #include <iomanip>
+#include <cmath>
+
+#define s(X) std::to_string(X)
 
 const double pi = 3.141592654;
 
@@ -27,6 +30,81 @@ std::string nlopt_res_to_str(int result){
     default: return NULL;
   }
 }
+
+CmQaoaExperiment::CmQaoaExperiment(FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int loglevel){
+
+	this->loglevel = loglevel;
+	this->qaoaOptions = qaoaOptions;
+	this->mapOptions = mapOptions;
+	this->database = database;
+}
+
+void CmQaoaExperiment::run(){
+
+	int nbQubits_acc = -1;
+	this->mapOptions->penalty = 0;
+
+	for(int m = this->m_start; m <= this->m_end; ++m){
+
+		int qs = ceil(log2(m));
+		mapOptions->num_qbits_per_x = qs;
+
+		GeneratorParam param(this->q, this->n, m, true, 97, this->num_instances); //q, n, m, shuffle, seed, cutoff
+		std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);
+
+		for(int i = 0; i < this->num_instances; ++i){
+			CmQaoaExperiment::Instance instance;
+			Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
+			instance.q = this->q;
+			instance.m = m;
+			instance.n = this-> n;
+			instance.h = l.getHamiltonian(mapOptions);
+
+			if(nbQubits_acc < 0)
+				nbQubits_acc = instance.h.nbQubits;
+			else if(nbQubits_acc != instance.h.nbQubits){
+				logw("Instances with different number of qubits found");
+				//Need to destroy qureg, because next time experiments with different number of qubits will be run
+				qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+				qaoaOptions->accelerator->finalize();
+			}
+
+			qaoaOptions->accelerator->initialize(&instance.h);
+			qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
+
+			instance.solutions = qaoaOptions->accelerator->getSolutions();
+			if(instance.solutions.size() != 1)
+				throw_runtime_error("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+
+			for(auto &sol: instance.solutions){
+				if(sol.value != 0)
+					throw_runtime_error("CmQaoaExperiment: Something else than 0 state marked as a solution");
+			}
+			long long int zero_index = instance.solutions[0].index;
+
+			//instance.solutions = qaoaOptions->accelerator->getSolutions();
+
+			for(int p = this->p_start; p <= this->p_end; ++p){
+				this->qaoaOptions->p = p;
+
+				logi("Running m="+s(m)+" p="+s(p)+" qs="+s(qs)+" index="+s(i)+"     Total Qubits: "+s(m*qs), this->loglevel);
+
+			}
+
+		}
+
+	}
+
+}
+
+CmQaoaExperiment::Cost CmQaoaExperiment::_cost_fn(CmQaoaExperiment::Instance*, bool use_database){
+	CmQaoaExperiment::Cost cost;
+
+
+
+	return cost;
+}
+
 
 AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database){
 

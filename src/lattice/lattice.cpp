@@ -13,6 +13,21 @@
 
 #define log_pi 1.1447298858494
 
+long long int Lattice::calculateSVLength(){
+
+	const vector<int> max_indices;
+	//fplll::ZZ_mat<mpz_t> blank;
+
+	//fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>> gso(current_lattice, blank, blank, fplll::GSO_INT_GRAM, true);
+	//gso.update_gso();
+
+	//fplll::FastEvaluator<fplll::FP_NR<double>> evaluator;
+	//fplll::Enumeration<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>> enumeration(gso, evaluator, max_indices);
+	throw_runtime_error("Unimplemented");
+	return 0;
+
+}
+
 FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 
 	FastVQA::PauliHamiltonian result;
@@ -255,7 +270,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 			if(gramian){
 				logi("Penalty="+std::to_string(options->penalty), print ? 0 : 3);
-				if(options->penalty < this->getSquaredLengthOfFirstBasisVector())
+				if(options->penalty < this->getSquaredLengthOfFirstBasisVector() && options->penalty > 0)
 					logw("Check if the penalty " + std::to_string(options->penalty) + " is not set too low! (|b1|^2="+std::to_string(this->getSquaredLengthOfFirstBasisVector())+")", options->loglevel);
 			}else{
 				int first_vect_len = 0;
@@ -313,7 +328,7 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int abso
 				int id = expression_int->addIntegerVar("x"+std::to_string(k), lb, ub);
 				x_ids.push_back(id);
 			}else{
-				throw_runtime_error("bounds undefined");
+				throw_runtime_error("Lattice: Number of qubits per dimension not specified.");
 			}
 		}
 	};
@@ -492,8 +507,6 @@ void Lattice::calculate_solutions(bool allow_for_zero_ground_state, bool print){
 			}std::cout<<std::endl<<std::endl;
 		}
 	}
-
-
 
 }
 

@@ -19,7 +19,7 @@ typedef std::vector<std::pair<qreal, double>> FinalStateVectorMap;
 class Database{
 public:
 
-	enum DATABASE_TYPE{ DATABASE_QARY_PERFORMANCE, DATABASE_ANGLERES };
+	enum DATABASE_TYPE{ DATABASE_QARY_PERFORMANCE, DATABASE_ANGLERES, DATABASE_CM_QAOA };
 
 	struct DatasetRow{
 		std::string type;
