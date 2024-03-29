@@ -9,6 +9,14 @@
 #include <iomanip>
 #include <cmath>
 
+# if QuEST_PREC==1
+	#define QREAL_MAX FLOAT_MAX
+# elif QuEST_PREC==2
+    #define QREAL_MAX DOUBLE_MAX
+# elif QuEST_PREC==4
+   #define QREAL_MAX 1e300
+# endif
+
 #define s(X) std::to_string(X)
 
 const double pi = 3.141592654;
@@ -44,6 +52,8 @@ void CmQaoaExperiment::run(){
 	int nbQubits_acc = -1;
 	this->mapOptions->penalty = 0;
 
+	FastVQA::Qaoa qaoa_instance;
+
 	for(int m = this->m_start; m <= this->m_end; ++m){
 
 		int qs = ceil(log2(m));
@@ -72,22 +82,83 @@ void CmQaoaExperiment::run(){
 			qaoaOptions->accelerator->initialize(&instance.h);
 			qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
 
-			instance.solutions = qaoaOptions->accelerator->getSolutions();
-			if(instance.solutions.size() != 1)
+			instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
+			if(instance.zero_solutions.size() != 1)
 				throw_runtime_error("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
 
-			for(auto &sol: instance.solutions){
+			for(auto &sol: instance.zero_solutions){
 				if(sol.value != 0)
 					throw_runtime_error("CmQaoaExperiment: Something else than 0 state marked as a solution");
 			}
-			long long int zero_index = instance.solutions[0].index;
+			long long int zero_index = instance.zero_solutions[0].index;
 
-			//instance.solutions = qaoaOptions->accelerator->getSolutions();
+			long long int numAmpsTotal = qaoaOptions->accelerator->getQuregPtr()->numAmpsTotal;
+
+			FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();
+
+			qreal min = QREAL_MAX;//refEnergies[0].value;
+			for(long long int j = 0; j < numAmpsTotal; ++j){
+
+				if(refEnergies[j].value == min)
+					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, j, false));
+				else if(refEnergies[j].value > 0 && refEnergies[j].value < min){
+					instance.sv_solutions.clear();
+					min = refEnergies[j].value;
+					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, j, false));
+				}
+			}
+
+			logd("Sv="+s(min));
 
 			for(int p = this->p_start; p <= this->p_end; ++p){
 				this->qaoaOptions->p = p;
 
 				logi("Running m="+s(m)+" p="+s(p)+" qs="+s(qs)+" index="+s(i)+"     Total Qubits: "+s(m*qs), this->loglevel);
+
+
+				if(m*qs > 2)
+					throw;
+
+				FastVQA::ExperimentBuffer buffer, cm_buffer;
+				buffer.storeQuregPtr = true;
+				cm_buffer.storeQuregPtr = true;
+
+				double zero_overlap_qaoa = 0, zero_overlap_cm_qaoa = 0;
+				double sv_overlap_qaoa = 0, sv_overlap_cm_qaoa = 0;
+
+				qaoa_instance.run_qaoa(&buffer, &instance.h, this->qaoaOptions);
+
+				for(auto &sol: instance.zero_solutions){
+					long long int index = sol.index;
+					zero_overlap_qaoa    += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+					//zero_overlap_cm_qaoa += cm_buffer.stateVector->stateVec.real[index]*cm_buffer.stateVector->stateVec.real[index]+cm_buffer.stateVector->stateVec.imag[index]*cm_buffer.stateVector->stateVec.imag[index];
+				}
+
+				for(auto &sol: instance.sv_solutions){
+					long long int index = sol.index;
+					sv_overlap_qaoa    += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+					//sv_overlap_cm_qaoa += cm_buffer.stateVector->stateVec.real[index]*cm_buffer.stateVector->stateVec.real[index]+cm_buffer.stateVector->stateVec.imag[index]*cm_buffer.stateVector->stateVec.imag[index];
+				}
+				qaoa_instance.run_cm_qaoa(&cm_buffer, &instance.h, this->qaoaOptions, zero_index);
+
+				for(auto &sol: instance.zero_solutions){
+					long long int index = sol.index;
+					//zero_overlap_qaoa    += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+					zero_overlap_cm_qaoa += cm_buffer.stateVector->stateVec.real[index]*cm_buffer.stateVector->stateVec.real[index]+cm_buffer.stateVector->stateVec.imag[index]*cm_buffer.stateVector->stateVec.imag[index];
+				}
+
+				for(auto &sol: instance.sv_solutions){
+					long long int index = sol.index;
+					//sv_overlap_qaoa    += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+					sv_overlap_cm_qaoa += cm_buffer.stateVector->stateVec.real[index]*cm_buffer.stateVector->stateVec.real[index]+cm_buffer.stateVector->stateVec.imag[index]*cm_buffer.stateVector->stateVec.imag[index];
+				}
+
+				std::cerr<<"zero_overlap_qaoa: "    << zero_overlap_qaoa<<std::endl;
+				std::cerr<<"zero_overlap_cm_qaoa: " << zero_overlap_cm_qaoa<<" / rg="<<1/(pow(2,instance.h.nbQubits))<<std::endl;
+				std::cerr<<"sv_overlap_qaoa: "    << sv_overlap_qaoa<<std::endl;
+				std::cerr<<"sv_overlap_cm_qaoa: " << sv_overlap_cm_qaoa<<std::endl;
+
+
 
 			}
 

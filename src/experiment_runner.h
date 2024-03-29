@@ -53,7 +53,8 @@ private:
 
 	struct Instance{
 		FastVQA::PauliHamiltonian h;
-		FastVQA::RefEnergies solutions;
+		FastVQA::RefEnergies zero_solutions;
+		FastVQA::RefEnergies sv_solutions;
 		//FastVQA::RefEnergies eigenspace; //for debug
 		//qreal min_energy;
 		//qreal random_guess;
