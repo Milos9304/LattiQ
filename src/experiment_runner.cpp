@@ -54,6 +54,8 @@ void CmQaoaExperiment::run(){
 
 	FastVQA::Qaoa qaoa_instance;
 
+	std::vector<std::vector<std::tuple<int /*m*/, double, double, double, double>>> plot(this->p_end - this->p_start + 1);
+
 	for(int m = this->m_start; m <= this->m_end; ++m){
 
 		int qs = ceil(log2(m));
@@ -73,7 +75,6 @@ void CmQaoaExperiment::run(){
 			if(nbQubits_acc < 0)
 				nbQubits_acc = instance.h.nbQubits;
 			else if(nbQubits_acc != instance.h.nbQubits){
-				logw("Instances with different number of qubits found");
 				//Need to destroy qureg, because next time experiments with different number of qubits will be run
 				qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
 				qaoaOptions->accelerator->finalize();
@@ -100,24 +101,24 @@ void CmQaoaExperiment::run(){
 			for(long long int j = 0; j < numAmpsTotal; ++j){
 
 				if(refEnergies[j].value == min)
-					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, j, false));
+					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
 				else if(refEnergies[j].value > 0 && refEnergies[j].value < min){
 					instance.sv_solutions.clear();
 					min = refEnergies[j].value;
-					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, j, false));
+					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
 				}
 			}
-
-			logd("Sv="+s(min));
 
 			for(int p = this->p_start; p <= this->p_end; ++p){
 				this->qaoaOptions->p = p;
 
-				logi("Running m="+s(m)+" p="+s(p)+" qs="+s(qs)+" index="+s(i)+"     Total Qubits: "+s(m*qs), this->loglevel);
+				logw("Running m="+s(m)+" p="+s(p)+" qs="+s(qs)+" index="+s(i)+"     Total Qubits: "+s(m*qs), this->loglevel);
 
 
-				if(m*qs > 2)
-					throw;
+				//if(m != 3 || p!= 3 || qs !=2 || i != 0)
+				//	continue;
+				//this->qaoaOptions->p = 30;
+
 
 				FastVQA::ExperimentBuffer buffer, cm_buffer;
 				buffer.storeQuregPtr = true;
@@ -139,6 +140,7 @@ void CmQaoaExperiment::run(){
 					sv_overlap_qaoa    += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 					//sv_overlap_cm_qaoa += cm_buffer.stateVector->stateVec.real[index]*cm_buffer.stateVector->stateVec.real[index]+cm_buffer.stateVector->stateVec.imag[index]*cm_buffer.stateVector->stateVec.imag[index];
 				}
+
 				qaoa_instance.run_cm_qaoa(&cm_buffer, &instance.h, this->qaoaOptions, zero_index);
 
 				for(auto &sol: instance.zero_solutions){
@@ -158,12 +160,46 @@ void CmQaoaExperiment::run(){
 				std::cerr<<"sv_overlap_qaoa: "    << sv_overlap_qaoa<<std::endl;
 				std::cerr<<"sv_overlap_cm_qaoa: " << sv_overlap_cm_qaoa<<std::endl;
 
+				plot[p - this->p_start].push_back(std::tuple<int, double, double, double, double>(m, zero_overlap_qaoa, zero_overlap_cm_qaoa, sv_overlap_qaoa, sv_overlap_cm_qaoa));
+
+				//PRINT
+				/*int max_index=999999999; double max_val=-1;
+				std::cerr<<"min: "<<min<<std::endl;
+				for(int j = 0; j < buffer.stateVector->numAmpsTotal; ++j){
+					double val;
+					for(int k = 0; k < refEnergies.size(); ++k){
+						if(refEnergies[k].index == j){
+							val = refEnergies[k].value;
+							break;
+						}
+					}
+
+					double prob = buffer.stateVector->stateVec.real[j]*buffer.stateVector->stateVec.real[j]+buffer.stateVector->stateVec.imag[j]*buffer.stateVector->stateVec.imag[j];
+					if(prob > max_val){
+						max_index = j;
+						max_val = prob;
+					}
+
+					std::cerr<<j<<": "<<prob<<"    "<<val<<"\n";
+				}
+				std::cerr<<std::endl;
+				std::cerr<<max_val<<" "<<max_index<<std::endl;
+				//PRINT
+
+				throw;*/
 
 
 			}
 
 		}
 
+	}
+
+	for(int p = this->p_start; p <= this->p_end; ++p){
+		std::cerr<<p<<std::endl;
+		for(auto &t: plot[p - this->p_start]){
+			std::cerr<<std::get<0>(t)<<" "<<std::get<1>(t)<<" "<<std::get<2>(t)<<" "<<std::get<3>(t)<<" "<<std::get<4>(t)<<" "<<std::endl;
+		}
 	}
 
 }
@@ -996,30 +1032,7 @@ void AngleSearchExperiment::run_p2(){
 			x++;
 		}
 
-		Gnuplot gp;
-			gp << "set multiplot layout 1,2 rowsfirst\n";
-			gp << "unset key\n";
-			gp << "set pm3d\n";
-			gp << "set hidden3d\n";
-			gp << "set palette rgb 33,13,10\n";
-			gp << "set view map\n";
-			gp << "set xrange [ 0 : " << axis_range_beta-1 <<" ] \n";
-			gp << "set yrange [ 0 : " << axis_range_gamma-1 <<" ] \n";
-			gp << "set xlabel 'Beta [0,pi/4]' \n";
-			gp << "set ylabel 'Gamma [-pi,pi]' \n";
-			//gp << "set title 'range="<< axis_range <<" nbQs="<< this->nbQubits <<" rg="<< 1./(pow(2,this->nbQubits)) <<" mean_nbSols="<<cost.mean_num_of_sols<<" rdmOverlap="<<1./(pow(2,this->nbQubits))*cost.mean_num_of_sols<<"'\n";
-			gp << "set title 'LHS: means RHS: stdev'\n";
 
-			gp << "splot '-'\n";
-			gp.send2d(final_plot_means);
-
-			//gp << "set palette model HSV\n";
-			gp << "set palette rgb 13,10,33\n";
-
-			gp << "splot '-'\n";
-			gp.send2d(final_plot_stdevs);
-
-			gp.flush();
 
 			/*double mx, my;int  mb;
 			 * while(true){

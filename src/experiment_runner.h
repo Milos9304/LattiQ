@@ -31,12 +31,12 @@ public:
 	const int q = 97; const int n = 1;
 
 	const int m_start = 2;
-	const int m_end   = 4;//8;
+	const int m_end   = 5;//8;
 
 	const int p_start = 1;
 	const int p_end   = 6;
 
-	const int num_instances = 3;
+	const int num_instances = /*9*/6;
 
 	FastVQA::QAOAOptions* qaoaOptions;
 	MapOptions* mapOptions;
