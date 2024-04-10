@@ -28,7 +28,8 @@ public:
 class CmQaoaExperiment{
 public:
 
-	const int q = 97; const int n = 1;
+	const int q = 97;
+	const int n = 1;
 
 	const int m_start = 2;
 	const int m_end   = 5;//8;
@@ -59,7 +60,7 @@ private:
 		//qreal min_energy;
 		//qreal random_guess;
 
-		//double volume;
+		double volume;
 		//int sv1Squared;
 
 		int num_qubits_per_dim;

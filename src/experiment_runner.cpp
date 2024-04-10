@@ -1,6 +1,8 @@
 #include "averaged_svp.h"
 #include "experiment_runner.h"
 #include "io/logger.h"
+#include "hermite_factor.h"
+
 #include <fstream>
 #include <numeric>
 #include <boost/tuple/tuple.hpp>
@@ -71,6 +73,7 @@ void CmQaoaExperiment::run(){
 			instance.m = m;
 			instance.n = this-> n;
 			instance.h = l.getHamiltonian(mapOptions);
+			instance.volume = l.getVolume();
 
 			if(nbQubits_acc < 0)
 				nbQubits_acc = instance.h.nbQubits;
@@ -115,8 +118,8 @@ void CmQaoaExperiment::run(){
 				logw("Running m="+s(m)+" p="+s(p)+" qs="+s(qs)+" index="+s(i)+"     Total Qubits: "+s(m*qs), this->loglevel);
 
 
-				//if(m != 3 || p!= 3 || qs !=2 || i != 0)
-				//	continue;
+				if(m != 3 || p!= 3 || qs !=2 || i != 1)
+					continue;
 				//this->qaoaOptions->p = 30;
 
 
@@ -140,6 +143,8 @@ void CmQaoaExperiment::run(){
 					sv_overlap_qaoa    += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 					//sv_overlap_cm_qaoa += cm_buffer.stateVector->stateVec.real[index]*cm_buffer.stateVector->stateVec.real[index]+cm_buffer.stateVector->stateVec.imag[index]*cm_buffer.stateVector->stateVec.imag[index];
 				}
+
+				calculate_hermite_factor(m, pow(instance.volume, 1./(double)instance.m), buffer.stateVector, &refEnergies);
 
 				qaoa_instance.run_cm_qaoa(&cm_buffer, &instance.h, this->qaoaOptions, zero_index);
 
