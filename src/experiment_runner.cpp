@@ -251,7 +251,7 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 		AngleResultsExperiment:Instance instance;
 
 		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
-		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
+		//mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
 
 		instance.h = l.getHamiltonian(mapOptions);
 		if(nbQubits < 0)
@@ -261,11 +261,31 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 
 		qaoaOptions->accelerator->initialize(&instance.h);
 		qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
-		instance.solutions = qaoaOptions->accelerator->getSolutions();
+		long long int numAmpsTotal = qaoaOptions->accelerator->getQuregPtr()->numAmpsTotal;
+		FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
+		qreal min = QREAL_MAX;//refEnergies[0].value;
+		for(long long int j = 0; j < numAmpsTotal; ++j){
 
-		//instance.eigenspace = qaoaOptions->accelerator->getEigenspace();//delete
+			if(refEnergies[j].value == min)
+				instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
+			else if(refEnergies[j].value > 0 && refEnergies[j].value < min){
+				instance.sv_solutions.clear();
+				min = refEnergies[j].value;
+				instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
+			}
+		}
 
-		qreal min_energy = instance.solutions[0].value;
+		instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
+		if(instance.zero_solutions.size() != 1)
+			throw_runtime_error("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+
+		for(auto &sol: instance.zero_solutions){
+			if(sol.value != 0)
+				throw_runtime_error("CmQaoaExperiment: Something else than 0 state marked as a solution");
+		}
+		long long int zero_index = instance.zero_solutions[0].index;
+
+		/*qreal min_energy = instance.solutions[0].value;
 		int num_sols_with_min_energy = 0;
 		for(const auto &sol: instance.solutions){
 			if(sol.value < min_energy){
@@ -274,10 +294,10 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 			}else if(sol.value == min_energy)
 				num_sols_with_min_energy++;
 		}
-		instance.min_energy = min_energy;
+		instance.min_energy = min_energy;*/
 
 		//THIS CHOOSES WHICH RANDOM GUESS IS BEING USED
-		instance.random_guess = (qreal)(1./pow(2, nbQubits)) * num_sols_with_min_energy;
+		instance.random_guess = (qreal)(1./pow(2, nbQubits)) * instance.sv_solutions.size();
 		//instance.random_guess = l.get_random_guess_one_vect() * instance.h.custom_solutions.size();
 
 		//std::cerr<<nbQubits<<" "<<instance.solutions.size()<<" "<<instance.random_guess<<std::endl;
@@ -358,6 +378,7 @@ AngleSearchExperiment::AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions*
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
+	mapOptions->penalty = 0;
 
 	this->num_instances = pow(q,(m-n));
 	if(max_num_instances < this->num_instances)
@@ -399,7 +420,7 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 		Instance instance;
 
 		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
-		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
+		//mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
 		instance.h = l.getHamiltonian(mapOptions);
 		if(nbQubits < 0)
 			nbQubits = instance.h.nbQubits;
@@ -407,11 +428,31 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 			loge("Instances with different number of qubits found");
 		qaoaOptions->accelerator->initialize(&instance.h);
 		qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
-		instance.solutions = qaoaOptions->accelerator->getSolutions();
+		long long int numAmpsTotal = qaoaOptions->accelerator->getQuregPtr()->numAmpsTotal;
+		FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
+		qreal min = QREAL_MAX;//refEnergies[0].value;
+		for(long long int j = 0; j < numAmpsTotal; ++j){
 
-		instance.eigenspace = qaoaOptions->accelerator->getEigenspace();//delete
+			if(refEnergies[j].value == min)
+				instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
+			else if(refEnergies[j].value > 0 && refEnergies[j].value < min){
+				instance.sv_solutions.clear();
+				min = refEnergies[j].value;
+				instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
+			}
+		}
 
-		qreal min_energy = instance.solutions[0].value;
+		instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
+		if(instance.zero_solutions.size() != 1)
+			throw_runtime_error("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+
+		for(auto &sol: instance.zero_solutions){
+			if(sol.value != 0)
+				throw_runtime_error("CmQaoaExperiment: Something else than 0 state marked as a solution");
+		}
+		long long int zero_index = instance.zero_solutions[0].index;
+
+		/*qreal min_energy = instance.solutions[0].value;
 		int num_sols_with_min_energy = 0;
 		for(const auto &sol: instance.solutions){
 			if(sol.value < min_energy){
@@ -420,11 +461,11 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 			}else if(sol.value == min_energy)
 				num_sols_with_min_energy++;
 		}
-		instance.min_energy = min_energy;
+		instance.min_energy = min_energy;*/
 
 
 		//THIS CHOOSES WHICH RANDOM GUESS IS BEING USED
-		instance.random_guess = (qreal)(1./pow(2, nbQubits)) * num_sols_with_min_energy;
+		instance.random_guess = (qreal)(1./pow(2, nbQubits)) * instance.sv_solutions.size();
 		//instance.random_guess = l.get_random_guess_one_vect() * instance.h.custom_solutions.size();
 
 		//std::cerr<<nbQubits<<" "<<instance.solutions.size()<<" "<<instance.random_guess<<std::endl;
@@ -478,15 +519,15 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		if(use_database){
 			Database::DatasetRow output_row;
 			this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 6, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
-			for(auto &sol: instance.solutions){
+			for(auto &sol: instance.sv_solutions){
 				long long int index = sol.index;
 				ground_state_overlap+=output_row.finalStateVectorMap[index].second;
 			}
 		}else{
-			qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
-			for(auto &sol: instance.solutions){
-				long long int index = sol.index;
-				ground_state_overlap+=buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+			qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
+			for(auto &sol: instance.sv_solutions){
+				long long int index   = sol.index;
+				ground_state_overlap += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 			}
 		}
 
@@ -533,8 +574,8 @@ void AngleSearchExperiment::run(){
 	if(this->qaoaOptions->p == 1)
 		run_p1();
 	else if(this->qaoaOptions->p == 2)
-		run_p2_test();//run_p2_full_bruteforce();
-		//run_p2();
+		//run_p2_test();//run_p2_full_bruteforce();
+		run_p2();
 	else if(this->qaoaOptions->p == 3)
 		run_p3_full_bruteforce();
 	else
@@ -865,7 +906,8 @@ void AngleSearchExperiment::run_p1(){
 			bar.tick();
 			angles[0] = gamma;
 			angles[1] = beta;
-			cost = this->_cost_fn(&this->train_set, angles);
+			cost = this->_cost_fn(&this->train_set, angles, false);
+			std::cerr<<"NOT USING DATABASE";
 			final_plot_means[x].push_back(cost.mean);
 			final_plot_stdevs[x].push_back(cost.stdev);
 
