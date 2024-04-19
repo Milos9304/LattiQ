@@ -225,8 +225,8 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOption
 	this->mapOptions = mapOptions;
 	this->database = database;
 
-	if(this->qaoaOptions->p != 3)
-		throw_runtime_error("Angleres is only for p=5!");
+	//if(this->qaoaOptions->p != 2)
+	//	throw_runtime_error("Angleres is only for p=2!");
 
 }
 
@@ -242,7 +242,15 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 	//logw("Saving eigensace which is not needed and very costly");
 	//logw("!!!Random guess is now after the penalization!!!");
 
-	long long int num_instances = pow(q,(m-n));
+	long long int num_instances = q;
+	for(int i = 0; i < (m-n); ++i){ //pow
+		num_instances *= q;
+		if(max_num_instances < num_instances){
+			num_instances = max_num_instances;
+			break;
+		}
+	}
+
 	if(max_num_instances < num_instances)
 		num_instances = max_num_instances;
 
@@ -323,9 +331,46 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 
 void AngleResultsExperiment::run(){
 
+	std::cerr<<"Will take around "<<30*max_num_instances<<" seconds"<<std::endl;
+
+	this->mapOptions->penalty = 0;
+	std::map<std::pair<int, int>, double> mean_map;
 	std::map<std::pair<int, int>, double> stdev_map;
 
 	const int colWidth = 20;
+
+	std::vector<int> n_list;
+
+	n_list.push_back(4);
+	//for(int i = 1; i < m_end; ++i)
+	//	n_list.push_back(i);
+
+
+	for(int m = this->m_start; m <= this->m_end; ++m)
+		std::cout << std::setw(colWidth) << std::internal << m;
+	std::cout<<std::endl;
+
+	for(int n : n_list){
+		//std::cout << std::setw(3) << std::internal << n << "   ";
+		for(int m = this->m_start; m <= m_end; ++m){
+			if(n >= m){
+				//std::cout << std::setw(colWidth) << std::internal << "x";
+				continue;
+			}
+			std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m);
+
+			Cost cost = this->_cost_fn(&dataset, &this->angles[0], /*true*/false);
+
+			double mean = cost.mean;
+			double stdev = cost.stdev;
+
+			mean_map.emplace(std::pair<int, int>(n,m), mean);
+			stdev_map.emplace(std::pair<int, int>(n,m), stdev);
+			//std::cout << std::setw(colWidth) << std::internal << mean/* << "/" << stdev */<< std::flush;
+		}
+		//std::cout<<std::endl;
+	}
+
 	std::cout<<" q="<<this->q<<std::endl;
 	std::cout<<"   Averages:"<<std::endl;
 	std::cout << " n \\ m";
@@ -333,22 +378,14 @@ void AngleResultsExperiment::run(){
 		std::cout << std::setw(colWidth) << std::internal << m;
 	std::cout<<std::endl;
 
-	for(int n = 1; n < m_end; ++n){
+	for(int n : n_list){
 		std::cout << std::setw(3) << std::internal << n << "   ";
 		for(int m = this->m_start; m <= m_end; ++m){
 			if(n >= m){
 				std::cout << std::setw(colWidth) << std::internal << "x";
 				continue;
 			}
-			std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m);
-
-			Cost cost = this->_cost_fn(&dataset, &this->angles[0], true);
-
-			double mean = cost.mean;
-			double stdev = cost.stdev;
-
-			stdev_map.emplace(std::pair<int, int>(n,m), stdev);
-			std::cout << std::setw(colWidth) << std::internal << mean << "/" << stdev << std::flush;
+			std::cout << std::setw(colWidth) << std::internal << mean_map[std::pair<int, int>(n,m)];
 		}
 		std::cout<<std::endl;
 	}
@@ -356,21 +393,21 @@ void AngleResultsExperiment::run(){
 	std::cout<<std::endl<<std::endl;
 	std::cout<<"   Standard deviations:"<<std::endl;
 	std::cout << " n \\ m";
-		for(int m = this->m_start; m <= this->m_end; ++m)
-			std::cout << std::setw(colWidth) << std::internal << m;
-		std::cout<<std::endl;
+	for(int m = this->m_start; m <= this->m_end; ++m)
+		std::cout << std::setw(colWidth) << std::internal << m;
+	std::cout<<std::endl;
 
-		for(int n = 1; n < m_end; ++n){
-			std::cout << std::setw(3) << std::internal << n << "   ";
-			for(int m = this->m_start; m <= m_end; ++m){
-				if(n >= m){
-					std::cout << std::setw(colWidth) << std::internal << "x";
-					continue;
-				}
-				std::cout << std::setw(colWidth) << std::internal << stdev_map[std::pair<int, int>(n,m)];
+	for(int n : n_list){
+		std::cout << std::setw(3) << std::internal << n << "   ";
+		for(int m = this->m_start; m <= m_end; ++m){
+			if(n >= m){
+				std::cout << std::setw(colWidth) << std::internal << "x";
+				continue;
 			}
-			std::cout<<std::endl;
+			std::cout << std::setw(colWidth) << std::internal << stdev_map[std::pair<int, int>(n,m)];
 		}
+		std::cout<<std::endl;
+	}
 
 }
 
@@ -505,6 +542,13 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 	std::vector<double> gs_overlaps;
 
+	/*loge("Overriding angles");
+	bool print=false;//std::cerr<<angles[0] <<" " <<angles[1]<<"\n";
+	if(angles[0] == 0.01 && angles[1]>0.3899 && angles[1]<0.3901){
+		angles[0] = 2;angles[1] = 0;
+		print=true;
+	}*/
+
 	for(auto &instance: (*dataset)){
 
 		if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
@@ -516,7 +560,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		buffer.storeQuregPtr = true;
 
 		double ground_state_overlap = 0;
-		if(use_database){
+		if(use_database){throw;
 			Database::DatasetRow output_row;
 			this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 6, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
 			for(auto &sol: instance.sv_solutions){
@@ -524,7 +568,14 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 				ground_state_overlap+=output_row.finalStateVectorMap[index].second;
 			}
 		}else{
+			//qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
 			qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
+			//qaoa_instance.run_cm_qaoa(&buffer, &instance.h, this->qaoaOptions, instance.zero_solutions[0].index);
+
+			/*for(auto &f: buffer.finalParams){
+				std::cerr<<f<<" ";
+			}std::cerr<<std::endl;*/
+
 			for(auto &sol: instance.sv_solutions){
 				long long int index   = sol.index;
 				ground_state_overlap += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
@@ -532,11 +583,45 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		}
 
 		num_sols.push_back(instance.h.custom_solutions.size());
-		qreal improvement_ratio = ground_state_overlap / instance.random_guess;
-		/*if(improvement_ratio < 1){
-			std::cerr<<ground_state_overlap <<" "<< instance.random_guess << std::endl;
-			logw("Improvement ratio < 1", loglevel);
+		qreal improvement_ratio = ground_state_overlap;// / instance.random_guess;
+		//std::cerr<<improvement_ratio<<std::endl;
+		/*if(print){
+
+			std::cerr<<angles[0]<<"   "<<angles[1]<<std::endl;
+
+			std::cerr<<improvement_ratio<<" "<<ground_state_overlap <<" "<< instance.random_guess << std::endl;
+			std::cerr<<"Zero_index: "<< instance.zero_solutions[0].index<<std::endl;
+			double zero_prob=0;
+			for(auto &z: instance.zero_solutions){
+				long long int index   = z.index;
+				zero_prob += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+			}
+			std::cerr<<"Zero_probability: "<< zero_prob<<std::endl;
+
+			ground_state_overlap = 0;
+			for(auto &sol: instance.sv_solutions){
+				double tmp;
+				long long int index   = sol.index;
+				tmp = buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+				std::cerr<<"Sol index: "<<index<<" with prob "<<tmp<<std::endl;
+				ground_state_overlap += tmp;
+			}
+
+			std::cerr<<std::endl<<std::endl;
+
+			FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
+			for(long long int j = 0; j < buffer.stateVector->numAmpsTotal; ++j){
+
+				long long int index = refEnergies[j].index;
+				double tmp = buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+
+				std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<" "<<tmp<<std::endl;
+
+			}
+
+			throw;
 		}*/
+
 		gs_overlaps.push_back(improvement_ratio);
 		//std::cerr<<ground_state_overlap<<" "<<instance.random_guess<<"\n";
 		i++;
@@ -560,22 +645,26 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	double sum_mean_num_of_sols = std::accumulate(num_sols.begin(), num_sols.end(), 0.0);
 	double mean_num_of_sols = sum_mean_num_of_sols / num_sols.size();
 
+	//std::cerr<<mean<<"  "<<stdev<<std::endl;
+
+
 	return Cost(mean, stdev, mean_num_of_sols);
 
 }
 
 void AngleSearchExperiment::run(){
 
-	//run_cobyla_p2();
-	//run_p2_test();
+	//run_cobyla();
+	run_p6_test();
 	//run_p2();
-	//return;
+	return;
 
 	if(this->qaoaOptions->p == 1)
 		run_p1();
 	else if(this->qaoaOptions->p == 2)
-		//run_p2_test();//run_p2_full_bruteforce();
-		run_p2();
+		run_cobyla();
+		//run_p2_full_bruteforce();
+		//run_p2();
 	else if(this->qaoaOptions->p == 3)
 		run_p3_full_bruteforce();
 	else
@@ -697,7 +786,7 @@ void AngleSearchExperiment::run_p2_full_bruteforce(){
 
 	std::vector<std::tuple<double, double>> first_round_angles;
 
-	double mean_threshold = 1.34;
+	double mean_threshold = 1.2;
 	double stdev_threshold = 20;//0.019;
 
 	double beta_min = 0;//pi/16;
@@ -750,7 +839,7 @@ void AngleSearchExperiment::run_p2_full_bruteforce(){
 					angles[1] = beta1;
 					angles[2] = gamma2;
 					angles[3] = beta2;
-					cost = this->_cost_fn(&this->train_set, angles);
+					cost = this->_cost_fn(&this->train_set, angles, false);
 					//final_plot_means[x].push_back(cost.mean);
 					//final_plot_stdevs[x].push_back(cost.stdev);
 
@@ -762,7 +851,7 @@ void AngleSearchExperiment::run_p2_full_bruteforce(){
 						lbeta2=beta2;
 					}
 
-					if(cost.mean >= mean_threshold && cost.stdev <= stdev_threshold){
+					if(cost.mean / 1./(pow(2, m)) >= mean_threshold && cost.stdev <= stdev_threshold){
 						//first_round_angles.push_back(std::tuple<double, double>(gamma, beta));
 
 						std::cerr<<"("<<gamma1<<", "<<beta1<<", "<<gamma2<<", "<<beta2<<") m="<<cost.mean<<" std="<<cost.stdev<<"\n";
@@ -781,10 +870,10 @@ void AngleSearchExperiment::run_p2_full_bruteforce(){
 }
 
 
-void AngleSearchExperiment::run_cobyla_p2(){
+void AngleSearchExperiment::run_cobyla(){
 
-	if(this->num_params != 4)
-		throw_runtime_error("Unimplemented for other depth than 2");
+	//if(this->num_params != 4)
+	//	throw_runtime_error("Unimplemented for other depth than 2");
 
 	this->qaoaOptions->ftol = 1e-16;
 	this->qaoaOptions->max_iters = 10000;
@@ -857,19 +946,19 @@ void AngleSearchExperiment::run_p1(){
 
 	std::vector<std::tuple<double, double>> first_round_angles;
 
-	double mean_threshold = 9.3;//1.2;
+	double mean_threshold = 1.232;//1.2;
 	double stdev_threshold = 2000000;//0.019;
 
 	double beta_min = 0;//pi/16;
-	double beta_max = pi/2;//pi;//;pi/8;
+	double beta_max = pi;//pi;//;pi/8;
 
 	double gamma_min = 0;//0;
 	double gamma_max = pi;//2*pi;
 
 	double range_beta = beta_max - beta_min;
 	double range_gamma = gamma_max - gamma_min;
-	double incr_beta = 0.04;///0.12;
-	double incr_gamma = 0.04;//0.04;///0.01;
+	double incr_beta = 0.01;///0.12;
+	double incr_gamma = 0.01;//0.04;///0.01;
 
 	int axis_range_beta = ceil(range_beta / incr_beta);
 	int axis_range_gamma = ceil(range_gamma / incr_gamma);
@@ -896,7 +985,7 @@ void AngleSearchExperiment::run_p1(){
 		option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
 	};
 
-	double debug_lowest_mean=100000;
+	double debug_lowest_mean=-1;
 	double lgamma, lbeta;
 
 	double i = 0;
@@ -906,14 +995,15 @@ void AngleSearchExperiment::run_p1(){
 			bar.tick();
 			angles[0] = gamma;
 			angles[1] = beta;
+
 			cost = this->_cost_fn(&this->train_set, angles, false);
-			std::cerr<<"NOT USING DATABASE";
+			logd("NOT USING DATABASE", this->loglevel);
 			final_plot_means[x].push_back(cost.mean);
 			final_plot_stdevs[x].push_back(cost.stdev);
 
 			//loge("ahoj");
 
-			if(cost.mean < debug_lowest_mean){
+			if(cost.mean > debug_lowest_mean){
 				debug_lowest_mean = cost.mean;
 				lgamma=gamma;
 				lbeta=beta;
@@ -978,20 +1068,16 @@ void AngleSearchExperiment::run_p2(){
 		throw_runtime_error("Depth must be 2");
 
 /*
-(0.4 0.4) m=9.30907 std=8.70639                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
-(0.4 0.44) m=9.40437 std=8.96823                   ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
-(0.4 0.48) m=9.44947 std=9.1068                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
-(0.4 0.52) m=9.44697 std=9.14503                   ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
-(0.4 0.56) m=9.4025 std=9.11298                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
-(0.4 0.6) m=9.32416 std=9.04324                    ] [00m:07s<00m:50s] Running Angle Search Experiment p=1
-[==================================================] [01m:06s<00m:00s] Running Angle Search Experiment
+
+1.24181 2.78 0.79
+
  *
  */
 
 	std::vector<std::tuple<double, double>> first_round_angles;
-	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.4));
-	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.48));
-	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.6));
+	first_round_angles.push_back(std::tuple<double, double>(2.78, 0.79));
+	/*first_round_angles.push_back(std::tuple<double, double>(0.4, 0.48));
+	first_round_angles.push_back(std::tuple<double, double>(0.4, 0.6));*/
 
 
 	double *angles = (double*) malloc(4 * sizeof(double));
@@ -999,7 +1085,7 @@ void AngleSearchExperiment::run_p2(){
 		angles[j]=0;//dis(gen));
 	}
 
-		double mean_threshold = 9.5;
+		double mean_threshold = 1.26;
 		double stdev_threshold = 1000;
 		double beta_min = 0;
 		double beta_max = pi/2;
@@ -1009,8 +1095,8 @@ void AngleSearchExperiment::run_p2(){
 
 		double range_beta = beta_max - beta_min;
 		double range_gamma = gamma_max - gamma_min;
-		double incr_beta = 0.04;//0.12;
-		double incr_gamma = 0.04;//0.01;
+		double incr_beta = 0.01;//0.12;
+		double incr_gamma = 0.01;//0.01;
 
 		int axis_range_beta = ceil(range_beta / incr_beta);
 		int axis_range_gamma = ceil(range_gamma / incr_gamma);
@@ -1038,6 +1124,7 @@ void AngleSearchExperiment::run_p2(){
 		};
 
 		double i = 0;
+		double debug_lowest_mean = -1, lbeta1, lbeta2, lgamma1, lgamma2;
 		AngleSearchExperiment::Cost cost;
 		for(double gamma2 = gamma_min; gamma2 < gamma_max; gamma2+=incr_gamma){
 			for(double beta2 = beta_min; beta2 < beta_max; beta2+=incr_beta){
@@ -1075,10 +1162,19 @@ void AngleSearchExperiment::run_p2(){
 					std::cerr<<"("<<max_gamma1<<","<<max_beta1<<","<<gamma2<<","<<beta2<<") m="<<max_mean<<" std="<<final_plot_stdevs[x][final_plot_stdevs[x].size()-1]<<"\n";
 				}
 
+				if(cost.mean > debug_lowest_mean){
+					debug_lowest_mean = cost.mean;
+					lgamma1=angles[0];
+					lgamma2=angles[2];
+					lbeta1=angles[1];
+					lbeta2=angles[3];
+				}
+
 			}
 			x++;
 		}
 
+		std::cerr<<debug_lowest_mean <<" "<<lgamma1<<" "<<lbeta1<<" "<<lgamma2<<" "<<lbeta2<<std::endl;
 
 
 			/*double mx, my;int  mb;
@@ -1093,14 +1189,21 @@ void AngleSearchExperiment::run_p2(){
 
 }
 
-void AngleSearchExperiment::run_p2_test(){
+void AngleSearchExperiment::run_p6_test(){
 
 	struct Angl{
-		double g1,b1,g2,b2;
+		double g1,b1,g2,b2,g3,b3,g4,b4,g5,b5,g6,b6;
 		double train_mean;
 		double train_std;
-		Angl(double g1, double b1, double g2, double b2, double train_mean, double train_std){
-			this->g1=g1;this->b1=b1;this->g2=g2;this->b2=b2;this->train_mean=train_mean;this->train_std=train_std;
+		Angl(double g1, double b1, double g2, double b2, double g3,double b3, double g4, double b4, double g5, double b5, double g6,double b6, double train_mean, double train_std){
+			this->g1=g1;this->b1=b1;
+			this->g2=g2;this->b2=b2;
+			this->g3=g3;this->b3=b3;
+			this->g4=g4;this->b4=b4;
+			this->g5=g5;this->b5=b5;
+			this->g6=g6;this->b6=b6;
+
+			this->train_mean=train_mean;this->train_std=train_std;
 		}
 	};
 
@@ -1167,14 +1270,22 @@ void AngleSearchExperiment::run_p2_test(){
 (0.4,0.4,5.56,0.64) m=9.65913 std=10.3145====>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
 (0.4,0.4,5.56,0.68) m=9.50213 std=10.1239====>     ] [07m:10s<00m:57s] Running Angle Search Experiment p=2
 [==================================================] [08m:10s<00m:00s] Running Angle Search Experiment p=2  */
-	second_round_angles.push_back(Angl(0.4,0.48,5.56,0.28, 10.4903, 9.92731));
+	second_round_angles.push_back(Angl(2.2287, 2.13607 ,2.23057 ,2.17114, 0.736168, -0.775112, -1.17933, -2.84297, -1.32729 ,-0.37258 ,1.90813 ,-0.247229, 1.16567, 0));
 
 	for(auto &setting : second_round_angles){
-		double angles[4];
+		double angles[12];
 		angles[0] = setting.g1;
 		angles[1] = setting.b1;
 		angles[2] = setting.g2;
 		angles[3] = setting.b2;
+		angles[4] = setting.g3;
+		angles[5] = setting.b3;
+		angles[6] = setting.g4;
+		angles[7] = setting.b4;
+		angles[8] = setting.g5;
+		angles[9] = setting.b5;
+		angles[10] = setting.g6;
+		angles[11] = setting.b6;
 		AngleSearchExperiment::Cost cost = this->_cost_fn(&this->test_set, angles);
 
 		std::cerr<<"Train/Test mean="<<setting.train_mean<<"/"<<cost.mean<<"   std="<<setting.train_std<<"/"<<cost.stdev<<"\n";
