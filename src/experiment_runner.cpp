@@ -1297,6 +1297,298 @@ void AngleSearchExperiment::run_p6_test(){
 
 
 }
+
+AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
+	this->loglevel = loglevel;
+	this->qaoaOptions = qaoaOptions;
+	this->mapOptions = mapOptions;
+
+	this->mapOptions->penalty = 0;
+}
+
+
+void AlphaMinimizationExperiment::run(){
+
+	int p = 6;
+
+	int q = 97;
+	int n = 2;
+	int m_start = 3;
+	int m_end = 7;
+
+	int max_num_instances = 2;//1000;
+	double test_ratio = 0.2;
+
+	int num_params = p*2;
+
+	std::vector<std::vector<AlphaMinimizationExperimentInstance>> dataset;
+
+	for(int m = m_start; m <= m_end; ++m){
+
+		std::vector<AlphaMinimizationExperimentInstance> m_instances;
+
+		long long int num_instances = q;
+		for(int i = 0; i < (m-n); ++i){ //pow
+			num_instances *= q;
+			if(max_num_instances < num_instances){
+				num_instances = max_num_instances;
+				break;
+			}
+		}
+
+		if(max_num_instances < num_instances)
+			num_instances = max_num_instances;
+
+		int num_test_instances = num_instances * test_ratio;
+		int num_train_instances = num_instances - num_test_instances;
+		logi("Num_instances="+std::to_string(num_instances)+" Test ratio="+std::to_string(test_ratio)+" "+"train_size="+std::to_string(num_train_instances)+" "+"test_size="+std::to_string(num_test_instances), this->loglevel);
+
+		GeneratorParam param(q, n, m, true, 97, num_instances); //q, n, m, shuffle, seed, cutoff
+		std::vector<HamiltonianWrapper> gramian_wrappers = generateQaryUniform(param);
+		int nbQubits_acc = -1;
+		for(auto &gw : gramian_wrappers){
+			Lattice l(gw.hamiltonian, gw.name);
+			AlphaMinimizationExperimentInstance instance;
+			instance.h = l.getHamiltonian(mapOptions);
+			instance.q = q;
+			instance.n = n;
+			instance.m = m;
+			if(nbQubits_acc < 0)
+				nbQubits_acc = instance.h.nbQubits;
+			else if(nbQubits_acc != instance.h.nbQubits){
+				//Need to destroy qureg, because next time experiments with different number of qubits will be run
+				qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+				qaoaOptions->accelerator->finalize();
+			}
+
+			qaoaOptions->accelerator->initialize(&instance.h);
+			qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
+
+			instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
+			if(instance.zero_solutions.size() != 1)
+				throw_runtime_error("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+
+			for(auto &sol: instance.zero_solutions){
+				if(sol.value != 0)
+					throw_runtime_error("CmQaoaExperiment: Something else than 0 state marked as a solution");
+			}
+			long long int zero_index = instance.zero_solutions[0].index;
+
+			long long int numAmpsTotal = qaoaOptions->accelerator->getQuregPtr()->numAmpsTotal;
+
+			FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();
+
+			qreal min = QREAL_MAX;//refEnergies[0].value;
+			for(long long int j = 0; j < numAmpsTotal; ++j){
+
+				if(refEnergies[j].value == min)
+					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
+				else if(refEnergies[j].value > 0 && refEnergies[j].value < min){
+					instance.sv_solutions.clear();
+					min = refEnergies[j].value;
+					instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
+				}
+			}
+			m_instances.push_back(instance);
+		}
+		qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+		qaoaOptions->accelerator->finalize();
+
+		dataset.push_back(m_instances);
+	}
+
+	logi("Dataset generated");
+
+	this->qaoaOptions->ftol = 1e-16;
+	this->qaoaOptions->max_iters = 10000;
+
+	ProgressBar bar{
+		option::BarWidth{50},
+		option::MaxProgress{this->qaoaOptions->max_iters},
+		option::Start{"["},
+		option::Fill{"="},
+		option::Lead{">"},
+		option::Remainder{" "},
+		option::End{"]"},
+		option::PostfixText{"Running Angle Search Experiment p=2 with COBYLA"},
+		option::ShowElapsedTime{true},
+		option::ShowRemainingTime{true},
+		option::ForegroundColor{Color::yellow},
+		option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+	};
+
+	unsigned int iteration_i = 0;
+
+	FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
+		iteration_i++;
+		bar.tick();
+		std::vector<double> angles(x);
+		//std::cerr<<this->_cost_fn(&this->train_set, &angles[0]).mean<<std::endl;
+
+		//std::vector<double> overlaps;
+
+		double nom=0, den=0;
+
+		for(auto &dim: dataset){
+			double overlap = this->_cost_fn(dim, &angles[0]);
+			//std::cerr<<overlap<<std::endl;
+			nom += log(overlap) * dim[0].m;
+			den += dim[0].m * dim[0].m;
+			//overlaps.push_back(this->_cost_fn(dim, &angles[0]));
+		}
+
+		double alpha = -nom/den;
+		//std::cerr<<nom<<" "<<den<<" "<<alpha<<std::endl;
+		return alpha;//-this->_cost_fn(&this->train_set, &angles[0]).mean;
+	}, num_params);
+
+	std::vector<double> initial_params;
+	std::mt19937 gen(0); //rd() instead of 0 - seed
+	std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
+	for(int i = 0; i < num_params/2; ++i){
+		double param1 = dis(gen);
+		double param2 = dis(gen);
+		std::cerr<<param1<<" "<<param2<<std::endl;
+		initial_params.push_back(param1);
+		initial_params.push_back(param2);
+	}
+
+	std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
+	std::vector<double> upperBounds(initial_params.size(), 3.141592654);
+
+	logd("QAOA starting optimization", this->loglevel);
+	FastVQA::OptResult result = this->qaoaOptions->optimizer->optimize(f, initial_params, this->qaoaOptions->ftol, this->qaoaOptions->max_iters, lowerBounds, upperBounds);
+	logd("QAOA finishing optimization", this->loglevel);
+
+	std::cerr<<"alpha: "<< result.first.first <<"\n";
+	std::cerr<<"num_iters: "<<iteration_i<<std::endl;
+	for(auto &a: result.first.second){
+		std::cerr<<a<<" ";
+	}
+	std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
+
+
+}
+double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, bool use_database){
+	std::vector<int> num_sols;
+
+		int i = 0;
+
+		double mean;
+		double stdev;
+		FastVQA::Qaoa qaoa_instance;
+
+		std::vector<double> gs_overlaps;
+
+		/*loge("Overriding angles");
+		bool print=false;//std::cerr<<angles[0] <<" " <<angles[1]<<"\n";
+		if(angles[0] == 0.01 && angles[1]>0.3899 && angles[1]<0.3901){
+			angles[0] = 2;angles[1] = 0;
+			print=true;
+		}*/
+
+		for(auto &instance: dataset){
+
+			if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
+				this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+				this->qaoaOptions->accelerator->finalize();
+			}
+
+			FastVQA::ExperimentBuffer buffer;
+			buffer.storeQuregPtr = true;
+
+			double ground_state_overlap = 0;
+			if(use_database){throw;
+				/*Database::DatasetRow output_row;
+				this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 6, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
+				for(auto &sol: instance.sv_solutions){
+					long long int index = sol.index;
+					ground_state_overlap+=output_row.finalStateVectorMap[index].second;
+				}*/
+			}else{
+				//qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
+				qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
+				//qaoa_instance.run_cm_qaoa(&buffer, &instance.h, this->qaoaOptions, instance.zero_solutions[0].index);
+
+				/*for(auto &f: buffer.finalParams){
+					std::cerr<<f<<" ";
+				}std::cerr<<std::endl;*/
+
+				for(auto &sol: instance.sv_solutions){
+					long long int index   = sol.index;
+					ground_state_overlap += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+				}
+			}
+
+			num_sols.push_back(instance.h.custom_solutions.size());
+			qreal improvement_ratio = ground_state_overlap;// / instance.random_guess;
+			//std::cerr<<improvement_ratio<<std::endl;throw;
+			/*if(print){
+
+				std::cerr<<angles[0]<<"   "<<angles[1]<<std::endl;
+
+				std::cerr<<improvement_ratio<<" "<<ground_state_overlap <<" "<< instance.random_guess << std::endl;
+				std::cerr<<"Zero_index: "<< instance.zero_solutions[0].index<<std::endl;
+				double zero_prob=0;
+				for(auto &z: instance.zero_solutions){
+					long long int index   = z.index;
+					zero_prob += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+				}
+				std::cerr<<"Zero_probability: "<< zero_prob<<std::endl;
+
+				ground_state_overlap = 0;
+				for(auto &sol: instance.sv_solutions){
+					double tmp;
+					long long int index   = sol.index;
+					tmp = buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+					std::cerr<<"Sol index: "<<index<<" with prob "<<tmp<<std::endl;
+					ground_state_overlap += tmp;
+				}
+
+				std::cerr<<std::endl<<std::endl;
+
+				FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
+				for(long long int j = 0; j < buffer.stateVector->numAmpsTotal; ++j){
+
+					long long int index = refEnergies[j].index;
+					double tmp = buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+
+					std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<" "<<tmp<<std::endl;
+
+				}
+
+				throw;
+			}*/
+
+			gs_overlaps.push_back(improvement_ratio);
+			//std::cerr<<ground_state_overlap<<" "<<instance.random_guess<<"\n";
+			i++;
+
+			this->qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
+
+		}
+
+		double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
+		mean = sum / gs_overlaps.size();
+
+		double sq_sum = std::inner_product(gs_overlaps.begin(), gs_overlaps.end(), gs_overlaps.begin(), 0.0);
+		stdev = std::sqrt(sq_sum / gs_overlaps.size() - mean * mean);
+
+		//mean = median(gs_overlaps, gs_overlaps.size());
+
+		this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
+		this->qaoaOptions->accelerator->finalize();
+
+		double sum_mean_num_of_sols = std::accumulate(num_sols.begin(), num_sols.end(), 0.0);
+		double mean_num_of_sols = sum_mean_num_of_sols / num_sols.size();
+
+		//std::cerr<<mean<<"  "<<stdev<<std::endl;
+
+		return mean;
+
+}
+
+
 void experiment_runner(ExperimentSetup* setup, std::string experiment_name, int loglevel){
 
 	FastVQA::Qaoa qaoa_instance;

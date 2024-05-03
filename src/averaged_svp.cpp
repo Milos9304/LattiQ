@@ -30,6 +30,7 @@ int main(int ac, char** av){
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
 	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
 	auto cmqaoa					= op.add<Switch>("", "cm", "run cmqaoa experiment");
+	auto alphaminim				= op.add<Switch>("", "alpha", "run alpha minimization experiment");
 	auto database_info		   	= op.add<Switch>("", "dinfo", "get database info");
 
 	op.parse(ac, av);
@@ -120,6 +121,12 @@ int main(int ac, char** av){
 
 		AngleSearchExperiment angleSearchExp(loglevel, &qaoaOptions, &mapOptions);
 		angleSearchExp.run();
+
+		return 0;
+	}else if(alphaminim->is_set()){
+		logi("Running alpha minimization experiment", loglevel);
+		AlphaMinimizationExperiment alphaMinimExp(loglevel, &qaoaOptions, &mapOptions);
+		alphaMinimExp.run();
 
 		return 0;
 	}else if(angle_results->is_set()){

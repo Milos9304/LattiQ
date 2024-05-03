@@ -319,6 +319,34 @@ private:
 
 };
 
+class AlphaMinimizationExperiment{
+
+	public:
+		int loglevel = 1;
+
+	AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
+
+	void run();
+
+	private:
+
+	struct AlphaMinimizationExperimentInstance{
+		FastVQA::PauliHamiltonian h;
+		FastVQA::RefEnergies zero_solutions;
+		FastVQA::RefEnergies sv_solutions;
+
+		double volume;
+
+		int num_qubits_per_dim;
+		int q,m,n;
+	};
+
+	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, bool use_database=false);
+
+	FastVQA::QAOAOptions* qaoaOptions;
+	MapOptions* mapOptions;
+};
+
 void experiment_runner(ExperimentSetup*, std::string experiment_name, int loglevel);
 
 #endif /* SRC_EXPERIMENTRUNNER_H_ */

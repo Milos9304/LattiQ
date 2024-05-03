@@ -101,8 +101,8 @@ Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> randomVectors(int size, int l
 			}
 			if(!colision)
 				A.row(i) = rand_vect;
-			if(A(i,0)>100){
-				std::cerr<<rand_vect<<std::endl;throw;}
+			/*if(A(i,0)>100){
+				std::cerr<<rand_vect<<std::endl;throw;}*/
 
 		}
 		return A;
