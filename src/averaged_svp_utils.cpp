@@ -109,6 +109,114 @@ Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> randomVectors(int size, int l
 	}
 }
 
+template <typename Number> // 'Number' can be 'double' or 'std::complex<double>'
+Eigen::Matrix<Number, Eigen::Dynamic, Eigen::Dynamic> kernel_COD(
+    const Eigen::Matrix<Number, Eigen::Dynamic, Eigen::Dynamic>& M) {
+  Eigen::CompleteOrthogonalDecomposition<
+      Eigen::Matrix<Number, Eigen::Dynamic, Eigen::Dynamic>>
+      cod;
+  cod.compute(M);
+  unsigned rk = cod.rank();
+  Eigen::Matrix<Number, Eigen::Dynamic, Eigen::Dynamic> P =
+      cod.colsPermutation();
+  Eigen::Matrix<Number, Eigen::Dynamic, Eigen::Dynamic> V =
+      cod.matrixZ().transpose();
+  Eigen::Matrix<Number, Eigen::Dynamic, Eigen::Dynamic> Kernel =
+      P * V.block(0, rk, V.rows(), V.cols() - rk);
+  return Kernel;
+}
+
+InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
+
+	const int sv_len_max = 10;
+
+	std::vector<HamiltonianWrapper> res;
+	int m = param.m;
+
+	std::cerr<<"m: "<<m<<std::endl;
+
+	auto gen = std::mt19937(param.seed);
+	auto dist = std::uniform_int_distribution<int>(0, param.sol_elem_bound);
+	auto dist2 = std::uniform_int_distribution<int>(3, sv_len_max);
+
+	//Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> identity(m,m);
+	//identity.setIdentity();
+
+	//std::cerr<<identity<<std::endl;
+
+	//std::vector<int> non_zero_indices;
+	for(int i = 0; i < param.num_instances; ++i){
+
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> sol(1, m);
+		//Eigen::Vector<int, Eigen::Dynamic> solution(m);
+		bool all_zero=true;
+		for(int j = 0; j < m; ++j){
+			int rand = dist(gen);
+			//solution[j] = rand;
+			sol(0,j)=rand;
+			if(rand > 0){
+				all_zero=false;
+				//	non_zero_indices.push_back(j);
+			}
+		}
+
+		if(all_zero)
+			continue;
+
+		//if(non_zero_indices.size() == 0)
+		//	continue;
+
+		//auto dist2 = std::uniform_int_distribution<int>(0, non_zero_indices.size()-1);
+		//auto it = non_zero_indices.begin();
+		//std::advance(it, (int)dist2(gen));
+
+		//std::cerr<<"index: "<<*it<<std::endl;
+
+
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> orthonormal_basis(m,m);
+		std::cerr<< "sol: " << sol << std::endl;
+
+		//sol.normalize();
+
+		orthonormal_basis.col(0) = sol.transpose();
+		orthonormal_basis.block(0,1,m,m-1) = kernel_COD(sol);
+
+		int sv_len = dist2(gen);
+
+		std::cerr<< "svLen: " << sv_len << std::endl;
+
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> e_vals(m,m);
+		e_vals.setZero();
+		e_vals(0,0) = sv_len/sol.norm();
+		for(int k = 1; k < m; ++k)
+			e_vals(k,k) = sv_len * pow(10, k);
+
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> basis_inverse = orthonormal_basis.inverse();
+
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> B = orthonormal_basis * e_vals * basis_inverse;
+
+		std::cerr<< B << std::endl;
+
+		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> X=randomVectors(m, 0, 1).cast<double>();
+		for(int p=0; p < X.rows(); ++p){
+			Eigen::Vector<double, Eigen::Dynamic> x = X.row(p);
+			Eigen::Vector<double, Eigen::Dynamic> r = B*x;
+			std::cerr<<"."<<x.transpose()<<"      "<<sqrt(r.transpose()*r)<<std::endl;
+		}
+
+
+		std::cerr<<std::endl<<std::endl;
+
+		//std::cerr<<orthonormal_basis<<std::endl<<std::endl<<std::endl;;
+		//non_zero_indices.clear();
+	}
+
+	//Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> A = randomVectors(m, 0, param.sol_elem_bound,  param.num_instances, param.seed);
+	//std::cerr<<A<<std::endl;
+
+	return res;
+};
+
 InstanceGenerator generateQaryUniformFPLLLWay = [](GeneratorParam param){
 	if(param.__diagonal)
 			throw_runtime_error("Invalid Generator param instance");

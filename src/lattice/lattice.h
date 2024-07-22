@@ -119,8 +119,10 @@ class Lattice {
 			this -> current_lattice = MatrixInt(lattice);
 			this -> orig_gh_sq = calculate_gh_squared(&orig_lattice);
 
-			loge("firstVectorLengthSquared calculation not yet implemented");
 			this->firstVectorLengthSquared=0;
+			for(int x = 0; x < this->orig_lattice.get_cols(); ++x)
+				this->firstVectorLengthSquared+=this->orig_lattice(0, x).get_d()*this->orig_lattice(0, x).get_d();
+			//loge("firstVectorLengthSquared calculation not yet implemented");
 
 			//if(lattice.get_rows()/*.rows()*/ != lattice.get_cols()/*.cols()*/){
 			//	loge("Non-square lattice not supported");

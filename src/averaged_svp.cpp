@@ -32,6 +32,10 @@ int main(int ac, char** av){
 	auto cmqaoa					= op.add<Switch>("", "cm", "run cmqaoa experiment");
 	auto alphaminim				= op.add<Switch>("", "alpha", "run alpha minimization experiment");
 	auto database_info		   	= op.add<Switch>("", "dinfo", "get database info");
+	auto g1					   	= op.add<Switch>("", "g1", "generate graph 1");
+	auto g2					   	= op.add<Switch>("", "g2", "generate graph 2");
+	auto seed_opt	     		= op.add<Value<int>>("s", "seed", "Seed", 0);
+
 
 	op.parse(ac, av);
 	if (help_option->is_set()){
@@ -75,7 +79,7 @@ int main(int ac, char** av){
 	qaoaOptions.accelerator = &accelerator;
 	qaoaOptions.nbSamples_calcVarAssignment=1000;
 	qaoaOptions.p = qaoadepth->value();
-	qaoaOptions.ftol = 10e-6;
+	qaoaOptions.ftol = 10e-12;
 	long long int max_iters = 0;
 	//DiagonalHamiltonian h;
 	//calculateAverage(n, &h);
@@ -137,9 +141,35 @@ int main(int ac, char** av){
 			return 0;
 		}
 
+		//qaoaOptions.p = 6;
+
+
 		Database database(database_file, Database::DATABASE_ANGLERES);
-		AngleResultsExperiment angleResultsExp(loglevel, &qaoaOptions, &mapOptions, &database);
-		angleResultsExp.run();
+		AngleResultsExperiment angleResultsExp(loglevel, &qaoaOptions, &mapOptions, &database, seed_opt->value());
+
+		loge("Changed angleResultsExp.run() to angleResultsExp.run_qaoa_with_optimizer()");
+
+		angleResultsExp.run_qaoa_with_optimizer();
+		//angleResultsExp.run();
+
+		return 0;
+	}else if(g1->is_set()){
+
+		//const std::string database_file = "../experiments/database_g1.db";
+		//if(database_info->is_set()){
+		//	Database::print_sqlite_info(database_file);
+		//	return 0;
+		//}
+
+		//Database database(database_file, Database::DATABASE_ANGLERES);
+		G1 g1(loglevel, &qaoaOptions, &mapOptions/*, &database*/);
+		g1.run();
+
+		return 0;
+	}else if(g2->is_set()){
+
+		G2 g2(loglevel, &qaoaOptions, &mapOptions/*, &database*/);
+		g2.run();
 
 		return 0;
 	}else if(cmqaoa->is_set()){

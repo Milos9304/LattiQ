@@ -294,6 +294,9 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int absolute_bound, bool print, bool testing_single_var, bool __minus_one_qubit_firstVar){
 
+	const double scale = 1; //1
+	//loge("Scale diff to 1!");
+
 	fplll::Z_NR<mpz_t> coeff;
 	bool minus_one_qubit_firstVar=__minus_one_qubit_firstVar; // testing purposes only
 
@@ -376,7 +379,7 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int abso
 			mpz_class c(coeff.get_data());
 			if(c!=0){
 				addVar(i);
-				expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c/*.coeff(i, i)*/); // G_ii*x_i^2
+				expression_int->addNewTerm(expression_int->getId("x"+std::to_string(i)), expression_int->getId("x"+std::to_string(i)), c /*.coeff(i, i)*/); // G_ii*x_i^2
 			}
 			for(int j = 0; j < i; ++j){
 				mpz_class c(gso_current->get_int_gram(coeff, i, j).get_data());
@@ -457,6 +460,7 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 
 // Function to generate all binary strings
 void Lattice::_bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i, bool allow_for_zero_ground_state){
+
 	if (i == n) {
 		mpq_class result = expression_bin->evaluate_bin_expr(varBoolMap);
 

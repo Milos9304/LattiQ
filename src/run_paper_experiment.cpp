@@ -186,19 +186,20 @@ void initialize_paper_experiment(std::string experiment_name, std::vector<Lattic
 		throw_runtime_error("Invalid rank_reduce value.");
 	}
 
-	logi("Following instances have been loaded (i_rank) and experiments will run in this order:");
+	//logi("Following instances have been loaded (i_rank) and experiments will run in this order:");
 	for(auto &m: matrices){
+		//std::cerr<<m<<std::endl<<"end :)";
 		Lattice* new_lattice = new Lattice(m, std::to_string(solutions[i].lattice_id)+"_"+std::to_string(solutions[i].rank));
 		new_lattice->reduce_rank(solutions[i].rank);
 		new_lattice->firstVectorLengthSquared = solutions[i].svLength;
 		lattices.push_back(new_lattice);
-		std::cout << (std::to_string(solutions[i].lattice_id)+"_"+std::to_string(solutions[i].rank)) << " ";
+		//std::cout << (std::to_string(solutions[i].lattice_id)+"_"+std::to_string(solutions[i].rank)) << " ";
 
 		i+=solutionDataset->num_ranks;
 
 		//logw("Loading only one lattice");
 		//break;
 
-	}std::cout << "\n";
+	}//std::cout << "\n";
 
 }

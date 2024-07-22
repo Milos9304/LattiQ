@@ -40,7 +40,9 @@ struct GeneratorParam{
 	int q;
 
 	bool shuffle;
-	int seed;
+	int seed=0;
+
+	int sol_elem_bound = 1;
 
 	int cutoff = -1;
 
@@ -84,6 +86,7 @@ extern DiagonalInstanceGenerator generateDiagonalUniform;
 extern DiagonalInstanceGenerator generateDiagonalExtensive;
 extern InstanceGenerator generateQaryUniform;
 extern InstanceGenerator generateQaryUniformFPLLLWay;
+extern InstanceGenerator generateFromEvalDecomposition;
 
 void calculateAverage(int n, DiagonalHamiltonian*);
 

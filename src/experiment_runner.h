@@ -12,6 +12,9 @@
 #include "lattice/lattice.h"
 #include "io/sql_io.h"
 #include <string>
+#include "paper_experiments/g1.h"
+#include "paper_experiments/g2.h"
+
 
 class ExperimentSetup{
 public:
@@ -90,16 +93,24 @@ public:
 	struct Cost{
 			double mean;
 			double stdev;
+			double mean_zero;
 			double mean_num_of_sols;
 
 			Cost(){}
 
-			Cost(double mean, double stdev, double mean_num_of_sols){
+			Cost(double mean, double stdev, double mean_zero, double mean_num_of_sols){
 				this->mean = mean;
 				this->stdev = stdev;
+				this->mean_zero = mean_zero;
 				this->mean_num_of_sols=mean_num_of_sols;
 			}
 		};
+
+
+	~AngleExperimentBase(){
+		this->logfile.close();
+		this->angleAnalysisLog.close();
+	}
 protected:
 
 	Database* database;
@@ -118,7 +129,12 @@ protected:
 			int q,m,n;
 	};
 
-	Cost _cost_fn(std::vector<Instance>*, const double *angles, bool use_database=false);
+	std::ofstream logfile, angleAnalysisLog;
+	std::mt19937 gen19937;
+	bool seeded=false;
+
+	std::pair<double, double> try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed);
+	Cost _cost_fn(std::vector<Instance>*, const double *angles, std::string meta_data, bool use_database=false, int seed=0);
 };
 
 /*
@@ -241,16 +257,35 @@ public:
 
 	int q = 97;
 
-	int m_start = 4;
-	int m_end = 20; //10;
+	int m_start = 4/*9*/;
+	int m_end = 10;//10;///20; //10;
 
-	int max_num_instances = 10;//3000;
+	int max_num_instances = 100;//3000;
 
 	//const std::vector<double> angles{0.4,0.48,5.56,0.28}; //work interesting
 
 	//WORKS GREAT
-	const std::vector<double> angles{2.2287, 2.13607 ,2.23057 ,2.17114, 0.736168, -0.775112, -1.17933, -2.84297, -1.32729 ,-0.37258 ,1.90813 ,-0.247229};
-/*
+	//const std::vector<double> angles{2.2287, 2.13607 ,2.23057 ,2.17114, 0.736168, -0.775112, -1.17933, -2.84297, -1.32729 ,-0.37258 ,1.90813 ,-0.247229};
+	//const std::vector<double> angles{3.08091, 3.11479, 2.24896, 2.26394, 0.805914, -0.754133, -1.2905, -2.78654, -1.4643, -0.166783, 1.9449, -0.141213};
+
+	//Found by AlphaMinim
+	//new_way
+	//const std::vector<double> angles{1.84887, 2.15068, 2.24906, 2.18152, 0.776378, -0.71996, -1.26273, -2.78525, -1.42938 ,-0.140317, 1.96114, -0.126679};
+
+
+	//old way
+	//const std::vector<double> angles{2.15445, 2.16252, 2.24904 ,2.18185, 0.776374 ,-0.726451, -1.27213 ,-2.78525 ,-1.42844, -0.140334, 1.96141, -0.125807};
+
+	//Found by AlphaMinim qary_4_20 q=97
+	//const std::vector<double> angles{3.09402 ,2.61273, 2.27356, 2.1883 ,0.784678, -0.830595, -1.23473, -2.78089 ,-1.40327, -0.133618, 1.97257 ,-0.103609 };
+
+	//here I fixed p=6
+	//const std::vector<double> angles{0.620733, 2.18047, 2.25891 ,2.22203};//, 2.34926, -0.347949, -1.28916 ,-2.78512 ,-1.43107, -0.195526 ,1.96525 ,-0.0549031};
+	//const std::vector<double> angles{2.15416 ,2.16309, 2.24904, 2.90166 ,0.776374, -0.726451 ,-1.27213 ,-2.78525, -1.42844 ,-0.140334 ,1.96141 ,-0.125807 };
+	const std::vector<double> angles{2.13774 ,2.17964, 2.23325, 2.15159 ,0.792933, -0.642643 ,-1.2983 ,-2.79203, -1.45799, -0.0792081, 1.96191, -0.086081 };
+	//optimised by overlap on dim15
+	//const std::vector<double> angles{-0.918725, 3.06621, 2.24903, 2.18185, 0.776357, -0.726439, -1.27211 ,-2.78525, -1.42844, -0.140346 ,1.96142, -0.1258 };
+	/*
  *  q=97
    Averages:
  n \ m                   4                   5                   6                   7                   8                   9                  10
@@ -270,14 +305,18 @@ public:
 	//const std::vector<double> angles{0.583336, 2.16313 ,2.24903 ,2.18185};
 
 	int loglevel = 1;
-	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*);
+	AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed);
+
+	void run_qaoa_with_optimizer();
+
 
 	MapOptions* mapOptions;
 
 	void run();
 
 private:
-	std::vector<Instance> _generate_dataset(int n, int m);
+	std::vector<Instance> _generate_dataset(int n, int m, bool penalise=false);
+	int seed=0;
 
 };
 
@@ -291,7 +330,7 @@ public:
 	int n = 1;
 	int m = 5;//7;
 
-	int max_num_instances = 1000;
+	int max_num_instances = 100;
 
 	AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
 
