@@ -189,21 +189,33 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 		e_vals.setZero();
 		e_vals(0,0) = sv_len/sol.norm();
 		for(int k = 1; k < m; ++k)
-			e_vals(k,k) = sv_len * pow(10, k);
+			e_vals(k,k) = (sv_len * pow(10, k));
 
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> basis_inverse = orthonormal_basis.inverse();
 
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> B = orthonormal_basis * e_vals * basis_inverse;
 
+		Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> Bint(m,m);
+		for(int y = 0; y < B.rows(); ++y)
+			for(int x = 0; x < B.cols(); ++x)
+				Bint(y,x)=(int)B(y,x);
+		//B = B.cast<double>();
+
+
 		std::cerr<< B << std::endl;
 
-		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> X=randomVectors(m, 0, 1).cast<double>();
+		/*Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> X=randomVectors(m, 0, 1).cast<double>();
 		for(int p=0; p < X.rows(); ++p){
 			Eigen::Vector<double, Eigen::Dynamic> x = X.row(p);
 			Eigen::Vector<double, Eigen::Dynamic> r = B*x;
-			std::cerr<<"."<<x.transpose()<<"      "<<sqrt(r.transpose()*r)<<std::endl;
-		}
+			Eigen::Vector<double, Eigen::Dynamic> rint = Bint*x;
 
+			std::cerr<<"."<<x.transpose()<<"      "<<sqrt(r.transpose()*r)<<" "<<sqrt(rint.transpose()*rint)<<std::endl;
+		}*/
+
+		auto G=Bint.transpose()*Bint;
+		HamiltonianWrapper HW = HamiltonianWrapper(G,"");
+		res.push_back(HW);
 
 		std::cerr<<std::endl<<std::endl;
 

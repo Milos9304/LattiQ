@@ -10,6 +10,8 @@
 
 #include "FastVQA/fastVQA.h"
 #include <Eigen/Dense>
+
+//typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> HamiltonianD;
 typedef Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> Hamiltonian;
 typedef Eigen::Vector<int, Eigen::Dynamic> DiagonalHamiltonian;
 
@@ -18,11 +20,24 @@ public:
 	std::string name;
 	Hamiltonian hamiltonian;
 	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> K;
+
 	HamiltonianWrapper(Hamiltonian hamiltonian, std::string name){
 		this->hamiltonian=hamiltonian;
 		this->name=name;
 	}
 };
+
+/*class HamiltonianWrapperD{
+public:
+	std::string name;
+	HamiltonianD hamiltonian;
+	Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic> K;
+
+	HamiltonianWrapperD(HamiltonianD hamiltonianD, std::string name){
+		this->hamiltonian=hamiltonianD;
+		this->name=name;
+	}
+};*/
 
 #include "io/logger.h"
 

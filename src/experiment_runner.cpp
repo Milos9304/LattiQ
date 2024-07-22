@@ -251,6 +251,7 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 	logi("Dataset qary_4_20 succesfully loaded", 0);
 */
 	std::vector<HamiltonianWrapper> gramian_wrappers;
+
 	if(new_way){
 		GeneratorParam param(q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
 		gramian_wrappers = generateFromEvalDecomposition(param);//generateQaryUniform(param);
