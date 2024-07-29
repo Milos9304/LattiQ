@@ -256,7 +256,7 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 		GeneratorParam param(q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
 		gramian_wrappers = generateFromEvalDecomposition(param);//generateQaryUniform(param);
 
-		num_instances = q;
+		/*num_instances = q;
 		for(int i = 0; i < (m-n); ++i){ //pow
 			num_instances *= q;
 			if(max_num_instances < num_instances){
@@ -266,7 +266,9 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 		}
 
 		if(max_num_instances < num_instances)
-			num_instances = max_num_instances;
+			num_instances = max_num_instances;*/
+
+		num_instances = gramian_wrappers.size();
 
 	}else{
 		std::vector<Lattice*> lattices;
@@ -300,7 +302,7 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 	//logw("Saving eigensace which is not needed and very costly");
 	//logw("!!!Random guess is now after the penalization!!!");
 
-	for(int i = 1; i < num_instances; ++i){
+	for(int i = 0; i < num_instances; ++i){
 
 		AngleResultsExperiment:Instance instance;
 
@@ -308,7 +310,9 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 		if(penalise)
 			mapOptions->penalty = 5*l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
 
+//std::cerr<<gramian_wrappers[i].hamiltonian<<std::endl;
 		instance.h = l.getHamiltonian(mapOptions);
+
 		/*if(i < 10)
 			std::cerr<<instance.h.getMatrixRepresentation2(true)<<std::endl;
 		else
@@ -324,6 +328,7 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 		long long int numAmpsTotal = qaoaOptions->accelerator->getQuregPtr()->numAmpsTotal;
 		FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
 		qreal min = QREAL_MAX;//refEnergies[0].value;
+
 		for(long long int j = 0; j < numAmpsTotal; ++j){
 
 			/*if(i < 10)
@@ -399,6 +404,8 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 
 void AngleResultsExperiment::run_qaoa_with_optimizer(){
 
+	loge("m_start changed to 5");
+
 	bool penalise;
 
 	std::string meta_data;
@@ -419,7 +426,7 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 
 	this->mapOptions->penalty = 0;
 
-	for(int index = 0; index < 2; ++index){
+	for(int index = 0; index < 1; ++index){
 
 		if(index == 0){
 			std::cerr<<std::endl<<"optCM-QAOA"<<std::endl;
@@ -494,9 +501,6 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 					continue;
 				}
 
-				if(m > 10 && index == 2)
-					continue;
-
 				std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m, penalise);
 
 				Cost cost = this->_cost_fn(&dataset, &this->angles[0], meta_data, /*true*/false, this->seed);
@@ -534,7 +538,7 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 					python_output+="("+std::to_string(mean)+", "+std::to_string(stdev)+")";
 				else
 					python_output+="("+std::to_string(mean)+", "+std::to_string(mean_zero)+", "+std::to_string(stdev)+")";
-				std::cout << std::setw(colWidth) << std::internal << mean<<"/"<<zero_overlap/* << "/" << stdev */<< std::flush;
+				std::cout << std::setw(colWidth) << std::internal << mean<<"/"<<zero_overlap << "/"<<stdev/* << "/" << stdev */<< std::flush;
 			}
 
 			//double  alpha = -nom/den;
@@ -686,9 +690,6 @@ void AngleResultsExperiment::run(){
 					std::cout << std::setw(colWidth) << std::internal << "x";
 					continue;
 				}
-
-				if(m > 10 && index == 2)
-					continue;
 
 				std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m, penalise);
 
@@ -914,7 +915,7 @@ void AngleSearchExperiment::_generate_dataset(MapOptions* mapOptions){
 
 std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed){
 
-	const int num_starts = 5000;//(instance->h.nbQubits * (163) - (633));/*20*/;
+	const int num_starts = /*5000*/5000;//(instance->h.nbQubits * (163) - (633));/*20*/;
 
 
 	FastVQA::ExperimentBuffer buffer;
@@ -1023,13 +1024,12 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 	for(auto &instance: (*dataset)){
 
-		if(i >= 5){
+		/*if(i >= 5){
 			loge("Breaking after 5 instances");
 			break;
-		}
+		}*/
 
 		logfile << "i=" << i << std::endl << std::flush;
-
 
 		if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
 			this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
@@ -1110,6 +1110,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 					zero_overlap += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 				}
 			}
+
 		}
 
 		/*if(num_sols.size() == 0){
@@ -1155,6 +1156,14 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 			throw;
 		}*/
 
+		/*if(i == 0){
+			std::cerr<<instance.h.getMatrixRepresentation2(true)<<std::endl;
+			std::cerr<<"improvement ratio: "<< improvement_ratio<<std::endl<<std::endl;
+			for(int j = 0; j < 12; ++j)
+				std::cerr<<angles[j]<<" ";
+			std::cerr<<std::endl;
+		}loge("throw here");throw;*/
+
 		gs_overlaps.push_back(improvement_ratio);
 		zero_overlaps.push_back(zero_overlap/* / 	(qreal)(1./pow(2, instance.h.nbQubits)) * instance.zero_solutions.size()*/);
 
@@ -1164,6 +1173,10 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		this->qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
 
 	}
+	/*std::cerr<<std::endl;std::cerr<<std::endl;
+	for(auto &gg: gs_overlaps){
+		std::cerr<<gg<<" ";
+	}std::cerr<<std::endl;std::cerr<<std::endl;*/
 
 	double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
 	mean = sum / gs_overlaps.size();
@@ -1862,7 +1875,7 @@ void AlphaMinimizationExperiment::run(){
 	int m_start = 4;
 	int m_end = 10;
 
-	bool new_way=false;
+	bool new_way=/*false*/true;
 	loge("new_way="+std::to_string(new_way));
 
 	int max_num_instances = 100;//1000;
@@ -1885,7 +1898,7 @@ void AlphaMinimizationExperiment::run(){
 
 
 		std::vector<HamiltonianWrapper> gramian_wrappers;
-		if(new_way){
+		if(new_way){/*
 			GeneratorParam param(q, n, m, true, 97, num_instances); //q, n, m, shuffle, seed, cutoff
 			gramian_wrappers = generateQaryUniform(param);
 
@@ -1900,6 +1913,23 @@ void AlphaMinimizationExperiment::run(){
 
 			if(max_num_instances < num_instances)
 				num_instances = max_num_instances;
+				*/
+			GeneratorParam param(q, n, m, true, 97, 100); //q, n, m, shuffle, seed, cutoff
+			gramian_wrappers = generateFromEvalDecomposition(param);//generateQaryUniform(param);
+
+					/*num_instances = q;
+					for(int i = 0; i < (m-n); ++i){ //pow
+						num_instances *= q;
+						if(max_num_instances < num_instances){
+							num_instances = max_num_instances;
+							break;
+						}
+					}
+
+					if(max_num_instances < num_instances)
+						num_instances = max_num_instances;*/
+
+					num_instances = gramian_wrappers.size();
 
 		}
 		else{
@@ -1996,7 +2026,7 @@ void AlphaMinimizationExperiment::run(){
 	logi("Dataset generated");
 
 	this->qaoaOptions->ftol = 1e-10;
-	this->qaoaOptions->max_iters = 1500;
+	this->qaoaOptions->max_iters = 1000;
 
 	ProgressBar bar{
 		option::BarWidth{50},
@@ -2038,7 +2068,9 @@ loge("cost value is sum_yi not alpha!");
 
 
 		//std::vector<double> overlaps;
-		double sum_yi=0;
+
+
+		/*double sum_yi=0;
 		double sum_xi=0;
 		double sum_xi2=0;
 		double sum_xi_yi=0;
@@ -2059,23 +2091,28 @@ loge("cost value is sum_yi not alpha!");
 		b=(alpha_calc_dataset_size*sum_xi_yi-sum_xi*sum_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
 		std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
 
-		//std::cerr<<sum_yi/alpha_calc_dataset_size<<std::endl;
-
 		double alpha = -b;
 		final_ab.first = a;
-		final_ab.second = a;
+		final_ab.second = a;*/
+
+		double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0]);
+		std::cerr<<cost<<std::endl;
+		return -cost;
 
 
 		//std::cerr<<nom<<" "<<den<<" "<<alpha<<std::endl;
-		return alpha;//-sum_yi/alpha_calc_dataset_size;//alpha;//-this->_cost_fn(&this->train_set, &angles[0]).mean;
+
+
+
+		//return alpha;//-sum_yi/alpha_calc_dataset_size;//alpha;//-this->_cost_fn(&this->train_set, &angles[0]).mean;
 	}, num_params);
 
 	std::vector<double> initial_params;
 	std::mt19937 gen(0); //rd() instead of 0 - seed
 	std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
 	for(int i = 0; i < num_params/2; ++i){
-		double param1 = dis(gen);
-		double param2 = dis(gen);
+		double param1 = pi/4.;//dis(gen);
+		double param2 = pi/8.;//dis(gen);
 		std::cerr<<param1<<" "<<param2<<std::endl;
 		initial_params.push_back(param1);
 		initial_params.push_back(param2);
@@ -2091,9 +2128,14 @@ loge("cost value is sum_yi not alpha!");
 	//std::cerr<<".   2^"<<result.first.first<<"n+"<<result.second<<std::endl;
 	std::cerr<<"alpha: "<< result.first.first <<"\n";
 	std::cerr<<"num_iters: "<<iteration_i<<std::endl;
+	std::cerr<<"const std::vector<double> angles{";
+	bool start=true;
 	for(auto &a: result.first.second){
-		std::cerr<<a<<" ";
-	}
+		if(!start)
+			std::cerr<<", ";
+		std::cerr<<std::setprecision (15)<<a;
+		start=false;
+	}std::cerr<<"};";
 	std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
 
 	//EVALUATE TEST DATASET
@@ -2152,6 +2194,9 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 
 		for(auto &instance: dataset){
 
+			/*if(i >= 5)
+				continue;*/
+
 			if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
 				this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
 				this->qaoaOptions->accelerator->finalize();
@@ -2169,8 +2214,9 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 					ground_state_overlap+=output_row.finalStateVectorMap[index].second;
 				}*/
 			}else{
-				//qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
-				qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
+
+				qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
+				//qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
 				//qaoa_instance.run_cm_qaoa(&buffer, &instance.h, this->qaoaOptions, instance.zero_solutions[0].index);
 
 				/*for(auto &f: buffer.finalParams){
@@ -2223,6 +2269,14 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 				throw;
 			}*/
 
+			/*if(i == 0){
+				std::cerr<<instance.h.getMatrixRepresentation2(true)<<std::endl;
+				std::cerr<<"improvement ratio: "<< improvement_ratio<<std::endl<<std::endl;
+				for(int j = 0; j < 12; ++j)
+					std::cerr<<angles[j]<<" ";
+				std::cerr<<std::endl;
+			}*/
+
 			gs_overlaps.push_back(improvement_ratio);
 			//std::cerr<<ground_state_overlap<<" "<<instance.random_guess<<"\n";
 			i++;
@@ -2230,6 +2284,11 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 			this->qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
 
 		}
+
+		/*std::cerr<<std::endl;std::cerr<<std::endl;
+		for(auto &gg: gs_overlaps){
+			std::cerr<<gg<<" ";
+		}std::cerr<<std::endl;std::cerr<<std::endl;*/
 
 		double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
 		mean = sum / gs_overlaps.size();

@@ -133,7 +133,7 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 	std::vector<HamiltonianWrapper> res;
 	int m = param.m;
 
-	std::cerr<<"m: "<<m<<std::endl;
+	//std::cerr<<"m: "<<m<<std::endl;
 
 	auto gen = std::mt19937(param.seed);
 	auto dist = std::uniform_int_distribution<int>(0, param.sol_elem_bound);
@@ -174,7 +174,7 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 
 
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> orthonormal_basis(m,m);
-		std::cerr<< "sol: " << sol << std::endl;
+		//std::cerr<< "sol: " << sol << std::endl;
 
 		//sol.normalize();
 
@@ -183,14 +183,17 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 
 		int sv_len = dist2(gen);
 
-		std::cerr<< "svLen: " << sv_len << std::endl;
+		//std::cerr<< "svLen: " << sv_len << std::endl;
 
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> e_vals(m,m);
 		e_vals.setZero();
 		e_vals(0,0) = sv_len/sol.norm();
-		for(int k = 1; k < m; ++k)
-			e_vals(k,k) = (sv_len * pow(10, k));
-
+		for(int k = 1; k < m; ++k){
+			if(k < 3)
+				e_vals(k,k) = (sv_len * pow(10, k));
+			else
+				e_vals(k,k) = (sv_len * pow(10, 2) * k);
+		}
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> basis_inverse = orthonormal_basis.inverse();
 
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> B = orthonormal_basis * e_vals * basis_inverse;
@@ -202,7 +205,7 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 		//B = B.cast<double>();
 
 
-		std::cerr<< B << std::endl;
+		//std::cerr<< B << std::endl;
 
 		/*Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> X=randomVectors(m, 0, 1).cast<double>();
 		for(int p=0; p < X.rows(); ++p){
@@ -213,11 +216,19 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 			std::cerr<<"."<<x.transpose()<<"      "<<sqrt(r.transpose()*r)<<" "<<sqrt(rint.transpose()*rint)<<std::endl;
 		}*/
 
+
 		auto G=Bint.transpose()*Bint;
+
+		/*if(i==8){
+
+			std::cerr<<B<<"B="<<B<<std::endl;
+			std::cerr<<"Bint="<<Bint<<std::endl;
+			std::cerr<<"G="<<G<<std::endl;
+		}*/
 		HamiltonianWrapper HW = HamiltonianWrapper(G,"");
 		res.push_back(HW);
 
-		std::cerr<<std::endl<<std::endl;
+		//std::cerr<<std::endl<<std::endl;
 
 		//std::cerr<<orthonormal_basis<<std::endl<<std::endl<<std::endl;;
 		//non_zero_indices.clear();

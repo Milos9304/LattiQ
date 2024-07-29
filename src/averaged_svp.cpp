@@ -43,6 +43,8 @@ int main(int ac, char** av){
 		return 0;
 	}
 
+	loge("MaxCoeff normalisation in getHamiltonian!");
+
 	/*Database::DatasetRow row;
 	row.type = "qary";
 	row.q = 7;
@@ -149,8 +151,8 @@ int main(int ac, char** av){
 
 		loge("Changed angleResultsExp.run() to angleResultsExp.run_qaoa_with_optimizer()");
 
-		angleResultsExp.run_qaoa_with_optimizer();
-		//angleResultsExp.run();
+		//angleResultsExp.run_qaoa_with_optimizer();
+		angleResultsExp.run();
 
 		return 0;
 	}else if(g1->is_set()){

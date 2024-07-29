@@ -38,6 +38,15 @@ FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 
 	result.nbQubits = expression_qubo->getIdMapSize()-1; //-1 bc of identity
 
+	double maxCoeff = 2; /*0;
+	for(auto &term : expression_qubo->polynomial){
+		if(term.second == 0)
+			continue;
+
+		maxCoeff+=abs(term.second.get_d());
+
+	}*/
+
 	for(auto &term : expression_qubo->polynomial){
 
 		if(term.second == 0)
@@ -48,7 +57,7 @@ FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 
 		int pos1, pos2;
 
-		result.coeffs.push_back(term.second.get_d());
+		result.coeffs.push_back(term.second.get_d() /*/ maxCoeff*/);
 
 		if(id1 == -1 && id2 == -1){ //id
 			pos1=pos2=-1; //never matches
@@ -463,6 +472,12 @@ void Lattice::_bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolM
 
 	if (i == n) {
 		mpq_class result = expression_bin->evaluate_bin_expr(varBoolMap);
+
+		/*std::cerr<<result<<" ";
+		for (const auto & [key, value] : *varBoolMap){
+			std::cout<<key->name<<"="<<value<<" ";
+		}std::cout<<std::endl<<std::endl;*/
+
 
 		if(result < 0)
 			throw_runtime_error("Invalid result value");
