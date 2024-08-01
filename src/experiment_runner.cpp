@@ -225,7 +225,8 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOption
 	this->mapOptions = mapOptions;
 	this->database = database;
 
-	this->qaoaOptions->p = this->angles.size()/2;
+	assert(this->angles_optqaoa.size() == this->angles_cmqaoa.size());
+	this->qaoaOptions->p = this->angles_optqaoa.size()/2;
 	logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
 
 	this->logfile.open("log.txt");
@@ -421,7 +422,7 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 	}
 	python_output+="]\nys=";
 
-	std::cerr<<"q="<<q<<" p="<<this->angles.size()/2<<" #="<<max_num_instances<<std::endl;
+	std::cerr<<"q="<<q<<" p="<<this->qaoaOptions->p<<" #="<<max_num_instances<<std::endl;
 	//std::cerr<<"Will take around "<<30*max_num_instances<<" seconds"<<std::endl;
 
 	this->mapOptions->penalty = 0;
@@ -503,7 +504,13 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 
 				std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m, penalise);
 
-				Cost cost = this->_cost_fn(&dataset, &this->angles[0], meta_data, /*true*/false, this->seed);
+				Cost cost;
+				if(index == 0)
+					cost = this->_cost_fn(&dataset, &this->angles_cmqaoa[0], meta_data, /*true*/false, this->seed);
+				else if(index == 1)
+					cost = this->_cost_fn(&dataset, &this->angles_optqaoa[0], meta_data, /*true*/false, this->seed);
+				else
+					throw_runtime_error("Not implemented");
 
 				double mean = cost.mean;
 				double stdev = cost.stdev;
@@ -621,7 +628,7 @@ void AngleResultsExperiment::run(){
 	}
 	python_output+="]\nys=";
 
-	std::cerr<<"q="<<q<<" p="<<this->angles.size()/2<<" #="<<max_num_instances<<std::endl;
+	std::cerr<<"q="<<q<<" p="<<this->qaoaOptions->p<<" #="<<max_num_instances<<std::endl;
 	//std::cerr<<"Will take around "<<30*max_num_instances<<" seconds"<<std::endl;
 
 	this->mapOptions->penalty = 0;
@@ -693,7 +700,13 @@ void AngleResultsExperiment::run(){
 
 				std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m, penalise);
 
-				Cost cost = this->_cost_fn(&dataset, &this->angles[0], meta_data, /*true*/false);
+				Cost cost;
+				if(index == 0)
+					cost = this->_cost_fn(&dataset, &this->angles_cmqaoa[0], meta_data, /*true*/false, this->seed);
+				else if(index == 1)
+					cost = this->_cost_fn(&dataset, &this->angles_optqaoa[0], meta_data, /*true*/false, this->seed);
+				else
+					throw_runtime_error("Not implemented");
 
 				double mean = cost.mean;
 				double stdev = cost.stdev;
@@ -1868,6 +1881,11 @@ AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::
 
 void AlphaMinimizationExperiment::run(){
 
+	//std::string meta_data = "fixedQAOA";
+	std::string meta_data = "fixedCMQAOA";
+
+	std::cerr<<meta_data<<std::endl;
+
 	int p = 6;
 
 	int q = 97;
@@ -2095,7 +2113,7 @@ loge("cost value is sum_yi not alpha!");
 		final_ab.first = a;
 		final_ab.second = a;*/
 
-		double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0]);
+		double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0], meta_data);
 		std::cerr<<cost<<std::endl;
 		return -cost;
 
@@ -2111,8 +2129,8 @@ loge("cost value is sum_yi not alpha!");
 	std::mt19937 gen(0); //rd() instead of 0 - seed
 	std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
 	for(int i = 0; i < num_params/2; ++i){
-		double param1 = pi/4.;//dis(gen);
-		double param2 = pi/8.;//dis(gen);
+		double param1 = /*pi/4.;*/dis(gen);
+		double param2 = /*pi/8.;*/dis(gen);
 		std::cerr<<param1<<" "<<param2<<std::endl;
 		initial_params.push_back(param1);
 		initial_params.push_back(param2);
@@ -2128,7 +2146,12 @@ loge("cost value is sum_yi not alpha!");
 	//std::cerr<<".   2^"<<result.first.first<<"n+"<<result.second<<std::endl;
 	std::cerr<<"alpha: "<< result.first.first <<"\n";
 	std::cerr<<"num_iters: "<<iteration_i<<std::endl;
-	std::cerr<<"const std::vector<double> angles{";
+	if(meta_data == "fixedQAOA")
+		std::cerr<<"const std::vector<double> angles_optqaoa{";
+	else if(meta_data == "fixedCMQAOA")
+		std::cerr<<"const std::vector<double> angles_cmqaoa{";
+	else
+		throw_runtime_error("Not implemented");
 	bool start=true;
 	for(auto &a: result.first.second){
 		if(!start)
@@ -2144,7 +2167,7 @@ loge("cost value is sum_yi not alpha!");
 	double nom=0, den=0;
 
 	for(auto &dim: test_dataset){
-		double overlap = this->_cost_fn(dim, &final_angles[0]);
+		double overlap = this->_cost_fn(dim, &final_angles[0], meta_data);
 		nom += log2(overlap) * dim[0].m;
 		den += dim[0].m * dim[0].m;
 	}
@@ -2157,7 +2180,7 @@ loge("cost value is sum_yi not alpha!");
 	double sum_xi2=0;
 	double sum_xi_yi=0;
 	for(auto &dim: test_dataset){
-		double overlap = this->_cost_fn(dim, &final_angles[0]);
+		double overlap = this->_cost_fn(dim, &final_angles[0], meta_data);
 		//overlaps.push_back(log2(overlap));
 		sum_yi+=log2(overlap);
 		sum_xi+=dim[0].m;
@@ -2165,6 +2188,7 @@ loge("cost value is sum_yi not alpha!");
 		sum_xi_yi+=log2(overlap)*dim[0].m;
 	}
 	double a=0,b=0;
+
 	a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
 	b=(train_dataset.size()*sum_xi_yi-sum_xi*sum_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
 	//std::cerr<<pow(2.71828, a)<<"2^n*"<<b<<std::endl;
@@ -2174,7 +2198,7 @@ loge("cost value is sum_yi not alpha!");
 	std::cerr<<"Test alpha: "<<alpha<<std::endl;
 
 }
-double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, bool use_database){
+double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, std::string meta_data, bool use_database){
 	std::vector<int> num_sols;
 
 		int i = 0;
@@ -2214,9 +2238,12 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 					ground_state_overlap+=output_row.finalStateVectorMap[index].second;
 				}*/
 			}else{
-
-				qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
-				//qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
+				if(meta_data == "fixedQAOA")
+					qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
+				else if(meta_data == "fixedCMQAOA")
+					qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
+				else
+					throw_runtime_error("Not implemented");
 				//qaoa_instance.run_cm_qaoa(&buffer, &instance.h, this->qaoaOptions, instance.zero_solutions[0].index);
 
 				/*for(auto &f: buffer.finalParams){
