@@ -252,7 +252,16 @@ protected:
 [==================================================] [10m:05s<00m:00s] Running Angle Search Experiment FULL BRUTEFORCE p=2
 */
 class AngleResultsExperiment : AngleExperimentBase{
+private:
+	struct optAngle{
+		int p;
+		const std::vector<double> angles;
+		//2**(c+alpha*n)
+		double c;
+		double n;
+		std::string meta_data;
 
+	};
 public:
 
 	int q = 97;
@@ -320,8 +329,16 @@ public:
 	//const std::vector<double> angles_cmqaoa{0.60153895632161, 2.29118105158059, 2.92259102919125, 2.89587839310268, 0.723863020973766, -0.707890807050217, -1.25967440672003, -2.7906023907625, -1.41419435751768, -0.187750638872502, 1.95362922597325, -0.0547654081190543};
 
 
+	//p=5
+	/*
+	 * num_iters: 1000
+const std::vector<double> angles_cmqaoa{0.593466619587856, 2.16406666372329, 2.91680843513582, 2.90777554501237, 0.776326446551238, -0.709028070636096, -1.25692251514367, -2.78536849493982, -1.43170870653588, -0.125794565420379};
+MAXEVAL_REACHED
+2^-0.353648801738946+n*-0.863370504453672
+	 *
+	 */
 
-
+	//p=6
 	//best so far, optimized by 1/sum(f-1)
 	const std::vector<double> angles_cmqaoa{0.524413709222256, 2.50291231189887, 2.93878239982546, 2.93574145025635, 0.7554670199668, -0.830204156706467, -1.68347094505389, -2.81104037624286, -1.55329305113912, -0.244212853734048, 1.95196042386488, -0.228645879681772};
 
@@ -354,11 +371,12 @@ public:
 
 	//const std::vector<double> angles{0.583336, 2.16313 ,2.24903 ,2.18185};
 
+	const std::vector<optAngle> optAngles;
+
 	int loglevel = 1;
 	AngleResultsExperiment(int loglevel, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed);
 
 	void run_qaoa_with_optimizer();
-
 
 	MapOptions* mapOptions;
 

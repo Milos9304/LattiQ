@@ -1036,10 +1036,10 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 	for(auto &instance: (*dataset)){
 
-		/*if(i >= 5){
+		if((meta_data == "optQAOAnonpen" || meta_data == "optCMQAOA") && i >= 5){
 			loge("Breaking after 5 instances");
 			break;
-		}*/
+		}
 
 		logfile << "i=" << i << std::endl << std::flush;
 
