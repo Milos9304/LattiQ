@@ -15,7 +15,7 @@
 
 long long int Lattice::calculateSVLength(){
 
-	const vector<int> max_indices;
+	const std::vector<int> max_indices;
 	//fplll::ZZ_mat<mpz_t> blank;
 
 	//fplll::MatGSO<fplll::Z_NR<mpz_t>, fplll::FP_NR<double>> gso(current_lattice, blank, blank, fplll::GSO_INT_GRAM, true);
