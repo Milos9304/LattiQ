@@ -218,7 +218,7 @@ CmQaoaExperiment::Cost CmQaoaExperiment::_cost_fn(CmQaoaExperiment::Instance*, b
 }
 
 
-AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed){
+AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed){
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
@@ -232,6 +232,7 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, FastVQA::QAOAOption
 	this->logfile.open("log.txt");
 	this->angleAnalysisLog.open("angleAnalysis.txt");
 
+	this->m_end = m_end;
 	this->seed = seed;
 
 	//if(this->qaoaOptions->p != 2)
@@ -427,7 +428,7 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 
 	this->mapOptions->penalty = 0;
 
-	for(int index = 0; index < 1; ++index){
+	for(int index = 2; index < 2; ++index){
 
 		if(index == 0){
 			std::cerr<<std::endl<<"optCM-QAOA"<<std::endl;
@@ -1869,12 +1870,79 @@ void AngleSearchExperiment::run_p6_test(){
 }
 
 
+inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+
+	double nom=0, den=0;
+
+	/*for(auto &dim: train_dataset){
+		double overlap = this->_cost_fn(dim, &angles[0]);
+		//std::cerr<<overlap<<std::endl;
+		nom += log2(overlap) * dim[0].m;
+		den += dim[0].m * dim[0].m;
+		//overlaps.push_back(this->_cost_fn(dim, &angles[0]));
+	}
+	double alpha = -nom/den;
+	final_ab.first=0;
+	final_ab.second=alpha;*/
+
+
+	//std::vector<double> overlaps;
+
+
+	double sum_yi=0;
+	double sum_xi=0;
+	double sum_xi2=0;
+	double sum_xi_yi=0;
+	double alpha_calc_dataset_size=0;
+	for(auto &dim: train_dataset){
+		//overlaps.push_back(log2(overlap));
+		//if(dim[0].m > 14){
+			double overlap = this->_cost_fn(dim, &angles[0], meta_data);
+			sum_yi+=log2(overlap);
+			sum_xi+=dim[0].m;
+			sum_xi2+=dim[0].m * dim[0].m;
+			sum_xi_yi+=log2(overlap)*dim[0].m;
+			alpha_calc_dataset_size++;
+		//}
+ 	}
+	double a=0,b=0;
+	a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
+	b=(alpha_calc_dataset_size*sum_xi_yi-sum_xi*sum_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
+	std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
+
+	double alpha = -b;
+	//final_ab.first = a;
+	//final_ab.second = a;
+
+	return /*alpha*/a;
+}
+
+inline double AlphaMinimizationExperiment::strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+
+	double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
+
+	double den=0;
+	for(auto &dim: train_dataset){
+
+		double overlap = this->_cost_fn(dim, &angles[0], meta_data);
+		double diff = overlap * pow(2, dim[0].m)-1;//overlap / pow(2, -dim[0].m);
+		//if(diff < 0)
+		//	diff = 0;
+		den += diff * diff;
+	}
+
+	double res = 1./den;
+	std::cerr << res << std::endl;
+	return res;
+
+}
+
 
 AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
 	this->mapOptions = mapOptions;
-
+	this->p = qaoaOptions->p;
 	this->mapOptions->penalty = 0;
 }
 
@@ -1886,7 +1954,7 @@ void AlphaMinimizationExperiment::run(){
 
 	std::cerr<<meta_data<<std::endl;
 
-	int p = 6;
+	//int p = /*6*/7;
 
 	int q = 97;
 	int n = 3;
@@ -1899,9 +1967,9 @@ void AlphaMinimizationExperiment::run(){
 	int max_num_instances = 100;//1000;
 	double test_ratio = 0;//.2;
 
-	int num_params = p*2;
+	int num_params = this->p*2;
 
-	this->qaoaOptions->p = p;
+	this->qaoaOptions->p = this->p;
 	logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
 
 	std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset;
@@ -2054,7 +2122,7 @@ void AlphaMinimizationExperiment::run(){
 		option::Lead{">"},
 		option::Remainder{" "},
 		option::End{"]"},
-		option::PostfixText{"Running Angle Search Experiment p=2 with COBYLA"},
+		option::PostfixText{"Running Angle Search Experiment p="+std::to_string(p)+" with COBYLA"},
 		option::ShowElapsedTime{true},
 		option::ShowRemainingTime{true},
 		option::ForegroundColor{Color::yellow},
@@ -2063,7 +2131,7 @@ void AlphaMinimizationExperiment::run(){
 
 	unsigned int iteration_i = 0;
 loge("cost value is sum_yi not alpha!");
-	std::pair<double, double> final_ab;
+	//std::pair<double, double> final_ab;
 	FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
 		iteration_i++;
 		bar.tick();
@@ -2071,51 +2139,24 @@ loge("cost value is sum_yi not alpha!");
 		//std::cerr<<this->_cost_fn(&this->train_set, &angles[0]).mean<<std::endl;
 
 
-		double nom=0, den=0;
-
-		/*for(auto &dim: train_dataset){
-			double overlap = this->_cost_fn(dim, &angles[0]);
-			//std::cerr<<overlap<<std::endl;
-			nom += log2(overlap) * dim[0].m;
-			den += dim[0].m * dim[0].m;
-			//overlaps.push_back(this->_cost_fn(dim, &angles[0]));
-		}
-		double alpha = -nom/den;
-		final_ab.first=0;
-		final_ab.second=alpha;*/
 
 
-		//std::vector<double> overlaps;
 
 
-		/*double sum_yi=0;
-		double sum_xi=0;
-		double sum_xi2=0;
-		double sum_xi_yi=0;
-		double alpha_calc_dataset_size=0;
-		for(auto &dim: train_dataset){
-			//overlaps.push_back(log2(overlap));
-			//if(dim[0].m > 14){
-				double overlap = this->_cost_fn(dim, &angles[0]);
-				sum_yi+=log2(overlap);
-				sum_xi+=dim[0].m;
-				sum_xi2+=dim[0].m * dim[0].m;
-				sum_xi_yi+=log2(overlap)*dim[0].m;
-				alpha_calc_dataset_size++;
-			//}
-	 	}
-		double a=0,b=0;
-		a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
-		b=(alpha_calc_dataset_size*sum_xi_yi-sum_xi*sum_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
-		std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
 
-		double alpha = -b;
-		final_ab.first = a;
-		final_ab.second = a;*/
+		//return strategy_inv_diff(train_dataset, angles, meta_data);
+		return strategy_alpha_c(train_dataset, angles, meta_data);
 
-		double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0], meta_data);
-		std::cerr<<cost<<std::endl;
-		return -cost;
+
+
+
+
+
+
+
+		//double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0], meta_data);
+		//std::cerr<<cost<<std::endl;
+		//return -cost;
 
 
 		//std::cerr<<nom<<" "<<den<<" "<<alpha<<std::endl;
@@ -2161,25 +2202,14 @@ loge("cost value is sum_yi not alpha!");
 	}std::cerr<<"};";
 	std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
 
-	//EVALUATE TEST DATASET
+	//EVALUATE TRAIN DATASET
 	std::vector<double> final_angles(result.first.second);
-
-	double nom=0, den=0;
-
-	for(auto &dim: test_dataset){
-		double overlap = this->_cost_fn(dim, &final_angles[0], meta_data);
-		nom += log2(overlap) * dim[0].m;
-		den += dim[0].m * dim[0].m;
-	}
-	//double  alpha = -nom/den;
-	std::cerr<<"Simple alpha: "<< -nom/den << std::endl;
-
 
 	double sum_yi=0;
 	double sum_xi=0;
 	double sum_xi2=0;
 	double sum_xi_yi=0;
-	for(auto &dim: test_dataset){
+	for(auto &dim: train_dataset){
 		double overlap = this->_cost_fn(dim, &final_angles[0], meta_data);
 		//overlaps.push_back(log2(overlap));
 		sum_yi+=log2(overlap);

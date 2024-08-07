@@ -35,6 +35,7 @@ int main(int ac, char** av){
 	auto g1					   	= op.add<Switch>("", "g1", "generate graph 1");
 	auto g2					   	= op.add<Switch>("", "g2", "generate graph 2");
 	auto seed_opt	     		= op.add<Value<int>>("s", "seed", "Seed", 0);
+	auto m_end		     		= op.add<Value<int>>("", "mend", "m_end", 20);
 
 
 	op.parse(ac, av);
@@ -147,7 +148,7 @@ int main(int ac, char** av){
 
 
 		Database database(database_file, Database::DATABASE_ANGLERES);
-		AngleResultsExperiment angleResultsExp(loglevel, &qaoaOptions, &mapOptions, &database, seed_opt->value());
+		AngleResultsExperiment angleResultsExp(loglevel, m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value());
 
 		loge("Changed angleResultsExp.run() to angleResultsExp.run_qaoa_with_optimizer()");
 
