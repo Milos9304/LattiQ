@@ -27,6 +27,7 @@ int main(int ac, char** av){
 	auto param_experiment 		= op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
 	auto angle_search	  		= op.add<Switch>("a", "anglesearch", "run the angle search experiment");
 	auto angle_results	  		= op.add<Switch>("", "angleres", "results of constant angles experiment");
+	auto angle_results_opt 		= op.add<Switch>("", "angleresopt", "results of opt experiment");
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
 	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
 	auto cmqaoa					= op.add<Switch>("", "cm", "run cmqaoa experiment");
@@ -152,8 +153,10 @@ int main(int ac, char** av){
 
 		loge("Changed angleResultsExp.run() to angleResultsExp.run_qaoa_with_optimizer()");
 
-		//angleResultsExp.run_qaoa_with_optimizer();
-		angleResultsExp.run();
+		if(angle_results_opt->is_set())
+			angleResultsExp.run_qaoa_with_optimizer();
+		else
+			angleResultsExp.run();
 
 		return 0;
 	}else if(g1->is_set()){

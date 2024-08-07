@@ -406,8 +406,6 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 
 void AngleResultsExperiment::run_qaoa_with_optimizer(){
 
-	loge("m_start changed to 5");
-
 	bool penalise;
 
 	std::string meta_data;
@@ -428,7 +426,7 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 
 	this->mapOptions->penalty = 0;
 
-	for(int index = 2; index < 2; ++index){
+	for(int index = 0; index < 2; ++index){
 
 		if(index == 0){
 			std::cerr<<std::endl<<"optCM-QAOA"<<std::endl;
@@ -495,8 +493,8 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 				}*/
 
 				logfile << m << std::endl << std::flush;
-				this->qaoaOptions->p = 6/*m*(8./3.)+((-26./3.))*/;///this->angles.size()/2;
-				logi("Changing p to p="+std::to_string(this->qaoaOptions->p), this->loglevel);
+				//this->qaoaOptions->p = 6/*m*(8./3.)+((-26./3.))*/;///this->angles.size()/2;
+				logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
 
 				if(n >= m){
 					std::cout << std::setw(colWidth) << std::internal << "x";
@@ -1919,7 +1917,7 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 
 inline double AlphaMinimizationExperiment::strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
 
-	double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
+	//double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
 
 	double den=0;
 	for(auto &dim: train_dataset){
@@ -2144,8 +2142,8 @@ loge("cost value is sum_yi not alpha!");
 
 
 
-		//return strategy_inv_diff(train_dataset, angles, meta_data);
-		return strategy_alpha_c(train_dataset, angles, meta_data);
+		return strategy_inv_diff(train_dataset, angles, meta_data);
+		//return strategy_alpha_c(train_dataset, angles, meta_data);
 
 
 
