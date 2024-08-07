@@ -225,8 +225,6 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_end, FastVQA:
 	this->mapOptions = mapOptions;
 	this->database = database;
 
-	assert(this->angles_optqaoa.size() == this->angles_cmqaoa.size());
-	this->qaoaOptions->p = this->angles_optqaoa.size()/2;
 	logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
 
 	this->logfile.open("log.txt");
@@ -618,6 +616,8 @@ void AngleResultsExperiment::run(){
 	std::string alphas_output="alphas=";
 	std::string z_alphas_output="zero_alphas=";
 
+	assert(this->angles_optqaoa.size() == this->angles_cmqaoa.size());
+	this->qaoaOptions->p = this->angles_optqaoa.size()/2;
 
 	std::string python_output="ms=[";
 	for(int m = this->m_start; m <= this->m_end; ++m){
