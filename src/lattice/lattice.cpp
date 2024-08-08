@@ -270,6 +270,7 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 			bin_initialized = true;
 		}
 
+
 		if(!solutions_calculated){
 			calculate_solutions(options->penalty == 0 ? true : false, print);
 			solutions_calculated = true;
@@ -513,7 +514,13 @@ void Lattice::calculate_solutions(bool allow_for_zero_ground_state, bool print){
 
 	std::map<FastVQA::Var*, int> varBoolMap;
 	for(int i = 1; i < variables.size(); ++i)
-		varBoolMap.emplace(variables[i], 0);
+		varBoolMap.emplace(variables[i], 0); //do not change 0 as it is important later
+
+	if(solutions_will_be_zero_vector){
+		//set to 0 in the previous step
+		solutions.push_back(varBoolMap);
+		return;
+	}
 
 	this->solutions_length_squared=-1;
 	this->_bruteForceSolutions(variables.size()-1, &varBoolMap, 0, allow_for_zero_ground_state);

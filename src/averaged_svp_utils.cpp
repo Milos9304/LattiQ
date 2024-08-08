@@ -145,6 +145,7 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 	//std::cerr<<identity<<std::endl;
 
 	//std::vector<int> non_zero_indices;
+
 	for(int i = 0; i < param.num_instances; ++i){
 
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> sol(1, m);

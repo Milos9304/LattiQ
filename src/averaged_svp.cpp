@@ -25,7 +25,6 @@ int main(int ac, char** av){
 	auto penalty         		= op.add<Value<int>>("l", "penalty", "penalty", 100);
 	auto save_eigenspace  		= op.add<Switch>("", "espace", "save eigenspace to file");
 	auto param_experiment 		= op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
-	auto angle_search	  		= op.add<Switch>("a", "anglesearch", "run the angle search experiment");
 	auto angle_results	  		= op.add<Switch>("", "angleres", "results of constant angles experiment");
 	auto angle_results_opt 		= op.add<Switch>("", "angleresopt", "results of opt experiment");
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
@@ -36,6 +35,7 @@ int main(int ac, char** av){
 	auto g1					   	= op.add<Switch>("", "g1", "generate graph 1");
 	auto g2					   	= op.add<Switch>("", "g2", "generate graph 2");
 	auto seed_opt	     		= op.add<Value<int>>("s", "seed", "Seed", 0);
+	auto m_start	     		= op.add<Value<int>>("", "mstart", "m_start", 4);
 	auto m_end		     		= op.add<Value<int>>("", "mend", "m_end", 20);
 
 
@@ -123,14 +123,6 @@ int main(int ac, char** av){
 	}else if(test_variable_subst->is_set()){
 		test_variable_substitution(&mapOptions);
 		return 0;
-	}else if(angle_search->is_set()){
-		logi("Running angleSearch experiment", loglevel);
-		experimentSetup.experiment_type = "angleSearch";
-
-		AngleSearchExperiment angleSearchExp(loglevel, &qaoaOptions, &mapOptions);
-		angleSearchExp.run();
-
-		return 0;
 	}else if(alphaminim->is_set()){
 		logi("Running alpha minimization experiment", loglevel);
 		AlphaMinimizationExperiment alphaMinimExp(loglevel, &qaoaOptions, &mapOptions);
@@ -139,7 +131,7 @@ int main(int ac, char** av){
 		return 0;
 	}else if(angle_results->is_set()){
 
-		const std::string database_file = "../experiments/database_angleres_p3.db";
+		const std::string database_file = "../experiments/database_eigengen.db";
 		if(database_info->is_set()){
 			Database::print_sqlite_info(database_file);
 			return 0;
@@ -148,8 +140,8 @@ int main(int ac, char** av){
 		//qaoaOptions.p = 6;
 
 
-		Database database(database_file, Database::DATABASE_ANGLERES);
-		AngleResultsExperiment angleResultsExp(loglevel, m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value());
+		Database database(database_file, Database::DATABASE_EIGENGEN_DATASET);
+		AngleResultsExperiment angleResultsExp(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true);
 
 		loge("Changed angleResultsExp.run() to angleResultsExp.run_qaoa_with_optimizer()");
 

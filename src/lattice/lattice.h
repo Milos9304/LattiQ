@@ -196,6 +196,10 @@ class Lattice {
 		//classical state that corresponds to zero eigen-value of Hamiltonian
 		std::vector<long long unsigned int> getZeroReferenceStates();
 
+		void setSolutionsToZeroVector(){
+			solutions_will_be_zero_vector = true;
+		}
+
 		void outputGramianToFile(std::string filename);
 
 		int getSquaredLengthOfFirstBasisVector(){
@@ -226,6 +230,7 @@ class Lattice {
 		FastVQA::Expression *expression_int, *expression_bin, *expression_penalized, *expression_qubo;
 		std::vector<std::map<FastVQA::Var*, int>> solutions;
 		bool solutions_calculated = false;
+		bool solutions_will_be_zero_vector = false;
 		mpq_class solutions_length_squared=-1;
 		void calculate_solutions(bool allow_for_zero_ground_state, bool print=false);
 		void _bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i, bool allow_for_zero_ground_state);

@@ -19,7 +19,7 @@ typedef std::vector<std::pair<qreal, double>> FinalStateVectorMap;
 class Database{
 public:
 
-	enum DATABASE_TYPE{ DATABASE_QARY_PERFORMANCE, DATABASE_ANGLERES, DATABASE_CM_QAOA };
+	enum DATABASE_TYPE{ DATABASE_QARY_PERFORMANCE, DATABASE_ANGLERES, DATABASE_CM_QAOA, DATABASE_EIGENGEN_DATASET };
 
 	struct DatasetRow{
 		std::string type;
@@ -43,11 +43,18 @@ public:
 		double probSv1;
 		std::string opt_res;
 		std::string comment;
+		std::vector<long double> hamDiagReals;
 	};
 
 	static void print_sqlite_info(std::string filename);
 
 	Database(std::string filename, DATABASE_TYPE, int loglevel=0);
+	//~Database(){
+	//	sqlite3_close(db);
+	//}
+	bool getDataset(int m, int index, int qs_per_x, std::vector<long double> *result);
+	void insertDataset(int m, int index, int qs_per_x, std::vector<long double> result);
+
 	bool contains_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed);
 	double getSv1Probability(int q, int n, int m, int p, int num_qs, int index);
 	bool getOrCalculate_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed, Lattice *l, FastVQA::PauliHamiltonian* h, DatasetRow* output_row, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions);

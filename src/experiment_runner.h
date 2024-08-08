@@ -127,6 +127,8 @@ protected:
 			int sv1Squared;
 
 			int q,m,n;
+
+			FastVQA::Accelerator::DiagonalOpDuplicate diagOpDuplicate;
 	};
 
 	std::ofstream logfile, angleAnalysisLog;
@@ -137,136 +139,74 @@ protected:
 	Cost _cost_fn(std::vector<Instance>*, const double *angles, std::string meta_data, bool use_database=false, int seed=0);
 };
 
-/*
-(0.4, 0.7, 2.55, 0.6) m=1.20085 std=0.735449       ] [01m:23s<08m:21s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.4, 0.7, 2.55, 0.7) m=1.20233 std=0.763791       ] [01m:23s<08m:21s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.6, 2.1, 0.5) m=1.20024 std=0.714068       ] [01m:31s<08m:14s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.6, 2.1, 0.6) m=1.2135 std=0.741774        ] [01m:31s<08m:14s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.6, 2.1, 0.7) m=1.22119 std=0.774281       ] [01m:31s<08m:14s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.6, 2.6, 0.7) m=1.20686 std=0.690428       ] [01m:31s<08m:14s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 0.2, 0.6) m=1.21386 std=0.772585       ] [01m:31s<08m:13s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 0.2, 0.7) m=1.22436 std=0.792591       ] [01m:31s<08m:13s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 2.1, 0.4) m=1.20024 std=0.751449       ] [01m:32s<08m:13s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 2.1, 0.5) m=1.22297 std=0.776773       ] [01m:32s<08m:13s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 2.1, 0.6) m=1.2407 std=0.806287        ] [01m:32s<08m:13s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 2.1, 0.7) m=1.25273 std=0.838836       ] [01m:32s<08m:13s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 2.6, 0.6) m=1.2053 std=0.728198        ] [01m:32s<08m:12s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.45, 0.7, 2.6, 0.7) m=1.2153 std=0.746282        ] [01m:32s<08m:12s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.4, 1.8, 0.7) m=1.20513 std=0.719734        ] [02m:16s<07m:33s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.5, 1.1, 0.7) m=1.20276 std=0.772552        ] [02m:17s<07m:32s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.5, 1.8, 0.6) m=1.20255 std=0.704427        ] [02m:17s<07m:32s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.5, 1.8, 0.7) m=1.20999 std=0.726975        ] [02m:17s<07m:32s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.6, 1.1, 0.6) m=1.20976 std=0.794958        ] [02m:18s<07m:31s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.6, 1.1, 0.7) m=1.21748 std=0.816357        ] [02m:18s<07m:31s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.6, 1.45, 0.6) m=1.20263 std=0.835759       ] [02m:18s<07m:31s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.6, 1.45, 0.7) m=1.20994 std=0.861156       ] [02m:18s<07m:31s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.6, 1.8, 0.7) m=1.20376 std=0.745728        ] [02m:18s<07m:31s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.7, 1.1, 0.5) m=1.20279 std=0.825044        ] [02m:19s<07m:30s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.7, 1.1, 0.6) m=1.21699 std=0.851496        ] [02m:19s<07m:30s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.7, 1.1, 0.7) m=1.2251 std=0.872055         ] [02m:19s<07m:30s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.7, 1.45, 0.6) m=1.2099 std=0.864439        ] [02m:19s<07m:30s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(0.7, 0.7, 1.45, 0.7) m=1.21761 std=0.887912       ] [02m:19s<07m:30s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.2, 0.7, 1.6, 0.7) m=1.20571 std=0.72866         ] [03m:55s<05m:58s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.4, 1.4, 0.6) m=1.20742 std=0.657616       ] [05m:16s<04m:37s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.4, 1.4, 0.7) m=1.21249 std=0.693342       ] [05m:16s<04m:37s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.5, 1.4, 0.5) m=1.21913 std=0.650394       ] [05m:17s<04m:36s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.5, 1.4, 0.6) m=1.23374 std=0.679792       ] [05m:17s<04m:36s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.5, 1.4, 0.7) m=1.2402 std=0.709574        ] [05m:17s<04m:36s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.6, 0.8, 0.7) m=1.2044 std=0.719789        ] [05m:18s<04m:35s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.6, 1.4, 0.4) m=1.21706 std=0.670801       ] [05m:19s<04m:35s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.6, 1.4, 0.5) m=1.24227 std=0.689541       ] [05m:19s<04m:35s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.6, 1.4, 0.6) m=1.25945 std=0.711656       ] [05m:19s<04m:35s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.6, 1.4, 0.7) m=1.26792 std=0.736485       ] [05m:19s<04m:35s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.6, 2.05, 0.7) m=1.20424 std=0.736236      ] [05m:19s<04m:35s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 0.5, 0.6) m=1.20901 std=0.7865         ] [05m:19s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 0.5, 0.7) m=1.21552 std=0.804463       ] [05m:19s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 0.8, 0.5) m=1.20372 std=0.73826        ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 0.8, 0.6) m=1.21731 std=0.756439       ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 0.8, 0.7) m=1.22429 std=0.775797       ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 0.85, 0.6) m=1.20646 std=0.727297      ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 0.85, 0.7) m=1.21282 std=0.752763      ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 1.4, 0.4) m=1.23375 std=0.711285       ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 1.4, 0.5) m=1.262 std=0.728491         ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 1.4, 0.6) m=1.28186 std=0.748646       ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 1.4, 0.7) m=1.29254 std=0.771486       ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 2.05, 0.5) m=1.20549 std=0.754843      ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 2.05, 0.6) m=1.21927 std=0.773254      ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.65, 0.7, 2.05, 0.7) m=1.22636 std=0.793157      ] [05m:20s<04m:34s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.8, 0.7, 0.35, 0.5) m=1.20028 std=0.720313       ] [05m:48s<04m:06s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(1.8, 0.7, 0.35, 0.6) m=1.20082 std=0.715097       ] [05m:48s<04m:06s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.25, 0.5, 0.25, 0.7) m=1.20666 std=0.657876      ] [07m:11s<02m:44s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.25, 0.6, 0.25, 0.6) m=1.20515 std=0.63879       ] [07m:12s<02m:43s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.25, 0.6, 0.25, 0.7) m=1.21892 std=0.659179      ] [07m:12s<02m:43s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.25, 0.7, 0.25, 0.6) m=1.20862 std=0.658873      ] [07m:14s<02m:41s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.25, 0.7, 0.25, 0.7) m=1.22345 std=0.673932      ] [07m:14s<02m:41s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.5, 0.3, 0.6) m=1.20176 std=0.732425        ] [08m:00s<01m:57s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.5, 0.3, 0.7) m=1.20282 std=0.743403        ] [08m:00s<01m:57s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 0.3, 0.4) m=1.20712 std=0.728205        ] [08m:02s<01m:56s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 0.3, 0.5) m=1.22285 std=0.740456        ] [08m:02s<01m:56s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 0.3, 0.6) m=1.23223 std=0.751652        ] [08m:02s<01m:56s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 0.3, 0.7) m=1.23491 std=0.76248         ] [08m:02s<01m:56s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 1.05, 0.5) m=1.21361 std=0.715643       ] [08m:02s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 1.05, 0.6) m=1.222 std=0.732047         ] [08m:02s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 1.05, 0.7) m=1.22409 std=0.750495       ] [08m:02s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 1.55, 0.5) m=1.20143 std=0.678285       ] [08m:02s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 1.55, 0.6) m=1.20852 std=0.684767       ] [08m:02s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.6, 1.55, 0.7) m=1.20983 std=0.69564        ] [08m:02s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 0.3, 0.3) m=1.20187 std=0.738367        ] [08m:03s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 0.3, 0.4) m=1.22631 std=0.748232        ] [08m:03s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 0.3, 0.5) m=1.24455 std=0.758426        ] [08m:03s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 0.3, 0.6) m=1.25586 std=0.770143        ] [08m:03s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 0.3, 0.7) m=1.25978 std=0.784244        ] [08m:03s<01m:55s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.05, 0.4) m=1.2128 std=0.742194        ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.05, 0.5) m=1.2287 std=0.75507         ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.05, 0.6) m=1.23831 std=0.770027       ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.05, 0.7) m=1.24123 std=0.787226       ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.55, 0.4) m=1.21326 std=0.721561       ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.55, 0.5) m=1.22924 std=0.725548       ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.55, 0.6) m=1.2389 std=0.732482        ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.5, 0.7, 1.55, 0.7) m=1.24186 std=0.743778       ] [08m:03s<01m:54s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.6, 0.7, 0.3, 0.4) m=1.20565 std=0.654758        ] [08m:23s<01m:36s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.6, 0.7, 0.3, 0.5) m=1.21052 std=0.675124        ] [08m:23s<01m:36s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.6, 0.7, 0.3, 0.6) m=1.20857 std=0.700061        ] [08m:23s<01m:36s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.75, 0.6, 1.9, 0.7) m=1.20289 std=0.684776=>     ] [08m:53s<01m:08s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.75, 0.7, 1.45, 0.7) m=1.20884 std=0.803466>     ] [08m:54s<01m:07s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.75, 0.7, 1.9, 0.6) m=1.22173 std=0.702966=>     ] [08m:54s<01m:07s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.75, 0.7, 1.9, 0.7) m=1.24354 std=0.719761=>     ] [08m:54s<01m:07s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.9, 0.4, 0.15, 0.7) m=1.20056 std=0.727066===>   ] [09m:20s<00m:43s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.9, 0.7, 0.95, 0.7) m=1.20829 std=0.767989===>   ] [09m:24s<00m:39s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.95, 0.7, 2.6, 0.6) m=1.20516 std=0.783387====>  ] [09m:34s<00m:28s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(2.95, 0.7, 2.6, 0.7) m=1.21541 std=0.80946=====>  ] [09m:34s<00m:28s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3, 0.6, 2.2, 0.6) m=1.21207 std=0.745026========> ] [09m:43s<00m:20s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3, 0.6, 2.2, 0.7) m=1.23031 std=0.773396========> ] [09m:43s<00m:20s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3, 0.7, 2.2, 0.5) m=1.21139 std=0.765012========> ] [09m:44s<00m:19s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3, 0.7, 2.2, 0.6) m=1.24102 std=0.79716=========> ] [09m:44s<00m:19s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3, 0.7, 2.2, 0.7) m=1.26175 std=0.833805========> ] [09m:44s<00m:19s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.6, 2.8, 0.4) m=1.20894 std=0.756895======>] [09m:54s<00m:10s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.6, 2.8, 0.5) m=1.2131 std=0.77812========>] [09m:54s<00m:10s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.6, 2.8, 0.6) m=1.20997 std=0.796467======>] [09m:54s<00m:10s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.7, 2.8, 0.2) m=1.20596 std=0.745482======>] [09m:55s<00m:09s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.7, 2.8, 0.3) m=1.23324 std=0.772544======>] [09m:55s<00m:09s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.7, 2.8, 0.4) m=1.25328 std=0.796601======>] [09m:55s<00m:09s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.7, 2.8, 0.5) m=1.26528 std=0.817729======>] [09m:55s<00m:09s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.7, 2.8, 0.6) m=1.26877 std=0.83619=======>] [09m:55s<00m:09s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-(3.05, 0.7, 2.8, 0.7) m=1.2636 std=0.85229========>] [09m:55s<00m:09s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-[==================================================] [10m:05s<00m:00s] Running Angle Search Experiment FULL BRUTEFORCE p=2
-*/
 class AngleResultsExperiment : AngleExperimentBase{
 private:
 	struct optAngle{
-		int p;
-		const std::vector<double> angles;
+
 		//2**(c+alpha*n)
-		double c;
-		double n;
-		std::string meta_data;
+
+		int p;
+		std::vector<double> cm_angles;
+		double cm_c;
+		double cm_n;
+		std::string cm_meta_data = "nan";
+
+		std::vector<double> qaoa_angles;
+		double qaoa_c;
+		double qaoa_n;
+		std::string qaoa_meta_data = "nan";
+
+		optAngle(int p, const std::vector<double> cm_angles, double cm_c, double cm_n, std::string cm_meta_data, const std::vector<double> qaoa_angles, double qaoa_c, double qaoa_n, std::string qaoa_meta_data){
+			this->p = p;
+			this->cm_angles = cm_angles;
+			this->cm_c=cm_c;
+			this->cm_n=cm_n;
+			this->cm_meta_data = cm_meta_data;
+
+			this->qaoa_angles = qaoa_angles;
+			this->qaoa_c = qaoa_c;
+			this->qaoa_n = qaoa_n;
+			this->qaoa_meta_data = qaoa_meta_data;
+		}
+
+		optAngle(int p){this->p = p;};
 
 	};
 public:
 
+	const std::vector<optAngle> optAngles{
+		//0 to 4 just to make index of arrays match p
+		optAngle(0),
+		optAngle(1),
+		optAngle(2),
+		optAngle(3),
+		optAngle(4),
+		optAngle(
+				5,
+				//CM
+				{0.593466619587856, 2.16406666372329, 2.91680843513582,
+				2.90777554501237, 0.776326446551238, -0.709028070636096,
+				-1.25692251514367, -2.78536849493982, -1.43170870653588,
+				-0.125794565420379},
+				-0.353648801738946,
+				-0.863370504453672,
+				"CM: optimized by diff, MAXEVAL_REACHED, num_iters: 1000",
+
+				//QAOA
+				{2.16757160644228, 2.18531279230608, 2.41412345494909,
+				2.1843093644902, 0.77104656059519, -0.74637995068122,
+				-1.27432665185911, -2.78883772481428, -1.43167967368264,
+				-0.169083861050817},
+				-0.660683735633075,
+				-0.681604944157161,
+				"QAOA: optimized by diff, FTOL_REACHED, num:iters 951"
+		)
+		//optAngle()
+	};
+
 	int q = 97;
 
-	int m_start = 4/*9*/;
+	int m_start; /*9*/;
 	int m_end;// = 20;//10;///20; //10;
 
 	int max_num_instances = 100;//3000;
@@ -306,7 +246,7 @@ public:
 
 
 	//const std::vector<double> angles_optqaoa{0.668373713325827, 0.395489639960678, 1.01189488174712, 0.0716902196238647, 2.36312900989193, 0.3910579937851, 2.37481345843973, 0.364219890147565, 0.809596592930284, 0.356048847055572, 0.799885077937716, 0.345458300846393};
-	const std::vector<double> angles_optqaoa{2.15117201255203, 2.16366715121114, 2.24799259022539, 2.18206089715351, 0.776037279297707, -0.723740787022484, 0.299514557193188, -2.78580448703939, -1.43471061039816, -0.14667707028971, 1.95826294997079, -0.127924272009467};
+	//const std::vector<double> angles_optqaoa{2.15117201255203, 2.16366715121114, 2.24799259022539, 2.18206089715351, 0.776037279297707, -0.723740787022484, 0.299514557193188, -2.78580448703939, -1.43471061039816, -0.14667707028971, 1.95826294997079, -0.127924272009467};
 
 	//p=7
 	//const std::vector<double> angles_optqaoa{0.712592176356089, 1.13183206034174, -0.267304592085007, 2.17025670667795, 3.04413825248703, -0.172930821841033, 1.69485996479564, -0.133274769031307, 2.48402745282503, 0.899294329780828, 2.23541397782318, 0.91098670585426, -1.37356405013328, 0.870114051197184};
@@ -340,7 +280,7 @@ MAXEVAL_REACHED
 
 	//p=6
 	//best so far, optimized by 1/sum(f-1)
-	const std::vector<double> angles_cmqaoa{0.524413709222256, 2.50291231189887, 2.93878239982546, 2.93574145025635, 0.7554670199668, -0.830204156706467, -1.68347094505389, -2.81104037624286, -1.55329305113912, -0.244212853734048, 1.95196042386488, -0.228645879681772};
+	//const std::vector<double> angles_cmqaoa{0.524413709222256, 2.50291231189887, 2.93878239982546, 2.93574145025635, 0.7554670199668, -0.830204156706467, -1.68347094505389, -2.81104037624286, -1.55329305113912, -0.244212853734048, 1.95196042386488, -0.228645879681772};
 
 	//2nd best, optimized by c in 2^c+xn
 	//const std::vector<double> angles_cmqaoa{0.624252283373159, 2.88050061815466, 2.19376394838984, 2.35633892704388, 0.642474779825364, -0.572273387754715, -1.34097902496242, -2.79962116072776, -0.0398835051960656, -0.136707786034164, 2.09058913512657, -0.245809192212849};
@@ -371,10 +311,8 @@ MAXEVAL_REACHED
 
 	//const std::vector<double> angles{0.583336, 2.16313 ,2.24903 ,2.18185};
 
-	const std::vector<optAngle> optAngles;
-
 	int loglevel = 1;
-	AngleResultsExperiment(int loglevel, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed);
+	AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed, bool use_database_to_load_dataset);
 
 	void run_qaoa_with_optimizer();
 
@@ -385,10 +323,11 @@ MAXEVAL_REACHED
 private:
 	std::vector<Instance> _generate_dataset(int n, int m, bool penalise=false);
 	int seed=0;
+	bool use_database_to_load_dataset;
 
 };
 
-class AngleSearchExperiment : AngleExperimentBase{
+/*class AngleSearchExperiment : AngleExperimentBase{
 
 public:
 
@@ -424,7 +363,7 @@ private:
 	void run_p6_test();
 	void run_cobyla();
 
-};
+};*/
 
 class AlphaMinimizationExperiment{
 

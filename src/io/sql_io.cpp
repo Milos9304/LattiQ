@@ -42,6 +42,79 @@ inline std::stringstream query_unbind(std::string col_name, SQLite::Statement* q
 
 }
 
+Database::Database(std::string filename, DATABASE_TYPE database_type, int loglevel){
+
+	this->loglevel = loglevel;
+
+	try{// Open a database file in create/write mode
+		db = new SQLite::Database(filename, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE);
+		logd("SQLite database file '" + db->getFilename() + "' opened successfully\n", loglevel);
+
+		switch(database_type){
+		case DATABASE_QARY_PERFORMANCE:
+			db->exec("CREATE TABLE IF NOT EXISTS qary (q INTEGER, n INTEGER, m INTEGER, p INTEGER, indexx INTEGER, num_qs INTEGER, penaltyBool BOOL, penalty INTEGER, volume REAL, "
+				"sv1Squared INTEGER, degeneracy INTEGER, duration_s INTEGER, iters INTEGER, initAngles BLOB, finalStateVectorMap BLOB, "
+				"intermediateAngles BLOB, intermediateEnergies BLOB, finalAngles BLOB, probSv1 REAL, opt_res TEXT, comment TEXT, "
+				"PRIMARY KEY (q, n, m, p, indexx, num_qs, penaltyBool))");
+			break;
+		case Database::DATABASE_ANGLERES:
+				db->exec("CREATE TABLE IF NOT EXISTS qary_angleres (gramian TEXT, p INTEGER, num_qs INTEGER,  "
+					"finalStateVectorMap BLOB, comment TEXT, "
+					"PRIMARY KEY (gramian, comment))");
+			break;
+		case Database::DATABASE_CM_QAOA:
+			db->exec("CREATE TABLE IF NOT EXISTS qary_cm_qaoa (cm BOOL, m INTEGER, p INTEGER, indexx INTEGER, qs_per_x INTEGER,  "
+					"finalStateVectorMap BLOB, comment TEXT, "
+					"PRIMARY KEY (cm, m, p, indexx, qs_per_x))");
+			break;
+		case Database::DATABASE_EIGENGEN_DATASET:
+			db->exec("CREATE TABLE IF NOT EXISTS eigengen_dataset (m INTEGER, indexx INTEGER, qs_per_x INTEGER,  "
+					"real_array BLOB, "
+					"PRIMARY KEY (m, indexx, qs_per_x))");
+				break;
+		default:
+			throw_runtime_error("Unimplemented switch case.");
+		}
+
+	}catch (std::exception& e){
+		throw_runtime_error(e.what());
+	}
+}
+
+bool Database::getDataset(int m, int index, int qs_per_x, std::vector<long double> *result){
+
+	bool found = false;
+	try{
+		SQLite::Statement query(*db, "SELECT real_array FROM eigengen_dataset WHERE (m=" +s(m)+" AND indexx="+s(index)+" AND qs_per_x="+s(qs_per_x)+")");
+		//std::cerr<<"SELECT * FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)";
+
+		while (query.executeStep()){
+
+			std::stringstream ss = query_unbind("real_array", &query);
+			boost::archive::binary_iarchive ia2(ss);
+			ia2 >> (*result);
+
+			found = true;
+			break;
+		}
+	}catch (std::exception& e){
+		throw_runtime_error(e.what());
+	}
+
+	return found;
+}
+
+void Database::insertDataset(int m, int index, int qs_per_x, std::vector<long double> result){
+
+	DatasetRow row;
+	row.m = m;
+	row.index = index;
+	row.num_qs = qs_per_x;
+	row.hamDiagReals = result;
+
+	this->write(&row, DATABASE_EIGENGEN_DATASET);
+}
+
 double Database::getSv1Probability(int q, int n, int m, int p, int num_qs, int index){
 
 	double result;
@@ -316,6 +389,12 @@ void Database::write(DatasetRow* row, DATABASE_TYPE database_type){
 
 			query_bind(1, &query, row->finalStateVectorMap);
 			query.exec();
+		}else if(database_type == DATABASE_EIGENGEN_DATASET){
+
+			SQLite::Statement query(*db, "INSERT or IGNORE INTO eigengen_dataset VALUES ("+s(row->m)+", "+s(row->index)+", "+s(row->num_qs)+", ?)");
+			query_bind(1, &query, row->hamDiagReals);
+			query.exec();
+
 		}
 		else
 			throw_runtime_error("Unimplemented switch case.");
@@ -323,40 +402,6 @@ void Database::write(DatasetRow* row, DATABASE_TYPE database_type){
 		throw_runtime_error(e.what());
 	}
 
-}
-
-Database::Database(std::string filename, DATABASE_TYPE database_type, int loglevel){
-
-	this->loglevel = loglevel;
-
-	try{// Open a database file in create/write mode
-		db = new SQLite::Database(filename, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE);
-		logd("SQLite database file '" + db->getFilename() + "' opened successfully\n", loglevel);
-
-		switch(database_type){
-		case DATABASE_QARY_PERFORMANCE:
-			db->exec("CREATE TABLE IF NOT EXISTS qary (q INTEGER, n INTEGER, m INTEGER, p INTEGER, indexx INTEGER, num_qs INTEGER, penaltyBool BOOL, penalty INTEGER, volume REAL, "
-				"sv1Squared INTEGER, degeneracy INTEGER, duration_s INTEGER, iters INTEGER, initAngles BLOB, finalStateVectorMap BLOB, "
-				"intermediateAngles BLOB, intermediateEnergies BLOB, finalAngles BLOB, probSv1 REAL, opt_res TEXT, comment TEXT, "
-				"PRIMARY KEY (q, n, m, p, indexx, num_qs, penaltyBool))");
-			break;
-		case Database::DATABASE_ANGLERES:
-				db->exec("CREATE TABLE IF NOT EXISTS qary_angleres (gramian TEXT, p INTEGER, num_qs INTEGER,  "
-					"finalStateVectorMap BLOB, comment TEXT, "
-					"PRIMARY KEY (gramian, comment))");
-			break;
-		case Database::DATABASE_CM_QAOA:
-			db->exec("CREATE TABLE IF NOT EXISTS qary_cm_qaoa (cm BOOL, m INTEGER, p INTEGER, indexx INTEGER, qs_per_x INTEGER,  "
-					"finalStateVectorMap BLOB, comment TEXT, "
-					"PRIMARY KEY (cm, m, p, indexx, qs_per_x))");
-			break;
-		default:
-			throw_runtime_error("Unimplemented switch case.");
-		}
-
-	}catch (std::exception& e){
-		throw_runtime_error(e.what());
-	}
 }
 
 void Database::print_sqlite_info(std::string filename){
