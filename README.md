@@ -21,3 +21,7 @@ make
 ./bin/LattiQ -e --vqe -r 25 -x 0.175
 ```
 The **-e** option says that the qary_25_50 experiment should be run, **vqe**/**qaoa** specifies an algorithm to run, **-r** specifies the rank for the experiment as described in the paper and **-x** is CVaR's alpha value.
+
+```
+../bin/averagedSvp -q 1 --angleres -p 5 --mstart 4 --mend 25 
+```
