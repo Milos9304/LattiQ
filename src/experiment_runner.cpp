@@ -713,21 +713,21 @@ void AngleResultsExperiment::run(){
 	for(int index = 0; index < 2; ++index){
 
 		if(index == 0){
-			std::cerr<<std::endl<<"CM-QAOA"<<std::endl;
+			std::cerr<<std::endl<<"  CM-QAOA"<<std::endl<<std::endl;
 			python_output+="{\"CMQAOA\": [";
 			alphas_output+="{\"CMQAOA\": ";
 			z_alphas_output+="{\"CMQAOA\": ";
 			meta_data="";
 			penalise=false;
 		}else if(index == 1){
-			std::cerr<<std::endl<<"QAOA penalty=0"<<std::endl;
+			std::cerr<<std::endl<<"  QAOA penalty=0"<<std::endl<<std::endl;
 			python_output+=", \"QAOA non_pen\": [";
 			alphas_output+=", \"QAOA non_pen\": ";
 			z_alphas_output+=", \"QAOA non_pen\": ";
 			meta_data="QAOAnonpen";
 			penalise=false;
 		}else{
-			std::cerr<<std::endl<<"QAOA penalised"<<std::endl;
+			std::cerr<<std::endl<<"  QAOA penalised"<<std::endl<<std::endl;
 			python_output+=", \"QAOA penalised\": [";
 			alphas_output+=", \"QAOA penalised\": ";
 			z_alphas_output+=", \"QAOA penalised\": ";
@@ -736,145 +736,104 @@ void AngleResultsExperiment::run(){
 		}
 
 
-		std::map<std::pair<int, int>, double> mean_map;
-		std::map<std::pair<int, int>, double> stdev_map;
-		std::map<std::pair<int, int>, double> num_sols_map;
+		std::map<int, double> mean_map;
+		std::map<int, double> stdev_map;
+		std::map<int, double> num_sols_map;
 
 		const int colWidth = 20;
 
-		std::vector<int> n_list;
+		//std::cout << std::setw(colWidth) << std::internal << "alpha";
+		//std::cout << std::setw(colWidth) << std::internal << "alpha_ext";
+		//std::cout<<std::endl;
 
-		n_list.push_back(3);
-		loge("Changed n from 3 to 8, m_start from 4 to 9, m_end from 20 to 15!");
-		//for(int i = 1; i < m_end; ++i)
-		//	n_list.push_back(i);
+		double nom=0, den=0, z_nom=0, z_den=0;
+		double sum_yi=0;
+		double sum_xi=0;
+		double sum_xi2=0;
+		double sum_xi_yi=0;
+		double z_sum_yi=0;
+		double z_sum_xi=0;
+		double z_sum_xi2=0;
+		double z_sum_xi_yi=0;
+		double counter=0;
+		for(int m = this->m_start; m <= m_end; ++m){
 
+			std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(3, m, penalise); //3 is ignored
 
+			Cost cost;
+			if(index == 0)
+				cost = this->_cost_fn(&dataset, &angles_cmqaoa[0], meta_data, /*true*/false, this->seed);
+			else if(index == 1)
+				cost = this->_cost_fn(&dataset, &angles_optqaoa[0], meta_data, /*true*/false, this->seed);
+			else
+				throw_runtime_error("Not implemented");
 
-		for(int m = this->m_start; m <= this->m_end; ++m)
-			std::cout << std::setw(colWidth) << std::internal << m;
-		std::cout << std::setw(colWidth) << std::internal << "alpha";
-		std::cout << std::setw(colWidth) << std::internal << "alpha_ext";
-		std::cout<<std::endl;
+			double mean = cost.mean;
+			double stdev = cost.stdev;
+			double mean_zero = cost.mean_zero;
+			double num_sols = cost.mean_num_of_sols;
 
-		for(int n : n_list){
-			std::cout << std::setw(3) << std::internal << n << "   ";
-			double nom=0, den=0, z_nom=0, z_den=0;
-			double sum_yi=0;
-			double sum_xi=0;
-			double sum_xi2=0;
-			double sum_xi_yi=0;
-			double z_sum_yi=0;
-			double z_sum_xi=0;
-			double z_sum_xi2=0;
-			double z_sum_xi_yi=0;
-			double counter=0;
-			for(int m = this->m_start; m <= m_end; ++m){
-				if(n >= m){
-					std::cout << std::setw(colWidth) << std::internal << "x";
-					continue;
-				}
+			double overlap = mean;
+			nom += log2(overlap) * m;
+			den += m * m;
 
-				std::vector<AngleResultsExperiment::Instance> dataset = this->_generate_dataset(n, m, penalise);
+			sum_yi+=log2(overlap);
+			sum_xi+=m;
+			sum_xi2+=m * m;
+			sum_xi_yi+=log2(overlap)*m;
+			counter++;
 
-				Cost cost;
-				if(index == 0)
-					cost = this->_cost_fn(&dataset, &angles_cmqaoa[0], meta_data, /*true*/false, this->seed);
-				else if(index == 1)
-					cost = this->_cost_fn(&dataset, &angles_optqaoa[0], meta_data, /*true*/false, this->seed);
-				else
-					throw_runtime_error("Not implemented");
+			double zero_overlap = mean_zero;
+			z_nom += log2(zero_overlap) * m;
+			z_den += m * m;
 
-				double mean = cost.mean;
-				double stdev = cost.stdev;
-				double mean_zero = cost.mean_zero;
-				double num_sols = cost.mean_num_of_sols;
+			z_sum_yi+=log2(zero_overlap);
+			z_sum_xi+=m;
+			z_sum_xi2+=m * m;
+			z_sum_xi_yi+=log2(zero_overlap)*m;
 
-				double overlap = mean;
-				nom += log2(overlap) * m;
-				den += m * m;
+			mean_map.emplace(m, mean);
+			stdev_map.emplace(m, stdev);
+			num_sols_map.emplace(m, num_sols);
+			if(m > this->m_start)
+				python_output+=", ";
+			if(index == 0)
+				python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(stdev)+")";
+			else
+				python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(mean_zero)+", "+to_string_with_precision(stdev)+")";
 
-				sum_yi+=log2(overlap);
-				sum_xi+=m;
-				sum_xi2+=m * m;
-				sum_xi_yi+=log2(overlap)*m;
-				counter++;
+			stringstream ss;
+			ss << m <<":   " << std::fixed << std::setprecision(15) << mean << "/" << stdev << "/" << zero_overlap << std::endl;
+			logi(ss.str());
 
-				double zero_overlap = mean_zero;
-				z_nom += log2(zero_overlap) * m;
-				z_den += m * m;
-
-				z_sum_yi+=log2(zero_overlap);
-				z_sum_xi+=m;
-				z_sum_xi2+=m * m;
-				z_sum_xi_yi+=log2(zero_overlap)*m;
-
-				mean_map.emplace(std::pair<int, int>(n,m), mean);
-				stdev_map.emplace(std::pair<int, int>(n,m), stdev);
-				num_sols_map.emplace(std::pair<int, int>(n,m), num_sols);
-				if(m>this->m_start)
-					python_output+=", ";
-				if(index == 0)
-					python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(stdev)+")";
-				else
-					python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(mean_zero)+", "+to_string_with_precision(stdev)+")";
-				std::cout << std::setw(colWidth) << std::internal << std::fixed << std::setprecision(15) << mean << "/" << stdev << "/" << zero_overlap << std::flush;
-			}
-
-			//double  alpha = -nom/den;
-			std::cout << std::setw(colWidth) << std::internal << -nom/den << "/z="<< -z_nom/z_den << std::flush;
-
-			double a=0,b=0,z_a=0,z_b=0;
-			a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(counter*sum_xi2-sum_xi*sum_xi);
-			b=(counter*sum_xi_yi-sum_xi*sum_yi)/(counter*sum_xi2-sum_xi*sum_xi);
-			z_a=(z_sum_yi*z_sum_xi2-z_sum_xi*z_sum_xi_yi)/(counter*z_sum_xi2-z_sum_xi*z_sum_xi);
-			z_b=(counter*z_sum_xi_yi-z_sum_xi*z_sum_yi)/(counter*z_sum_xi2-z_sum_xi*z_sum_xi);
-			std::cout << std::setw(colWidth) << std::internal << "2^"<<a<<"+n*"<<b << " z="<< "2^"<<z_a<<"+n*"<<z_b <<std::flush;
-
-			alphas_output += std::to_string(b);
-			z_alphas_output += std::to_string(z_b);
-
-			//std::cerr<<"Simple alpha: "<< -nom/den << std::endl;
-			python_output+="]";
-			std::cout<<std::endl;
 		}
 
-		std::cout<<std::endl<<std::endl;
-		std::cout<<"   Standard deviations:"<<std::endl;
-		std::cout << " n \\ m";
-		for(int m = this->m_start; m <= this->m_end; ++m)
-			std::cout << std::setw(colWidth) << std::internal << m;
+		//double  alpha = -nom/den;
+		std::cout << "alpha:" << std::setw(colWidth-4) << std::internal << nom/den << "/alpha_zero="<< z_nom/z_den << std::endl;
+
+		double a=0,b=0,z_a=0,z_b=0;
+		a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(counter*sum_xi2-sum_xi*sum_xi);
+		b=(counter*sum_xi_yi-sum_xi*sum_yi)/(counter*sum_xi2-sum_xi*sum_xi);
+		z_a=(z_sum_yi*z_sum_xi2-z_sum_xi*z_sum_xi_yi)/(counter*z_sum_xi2-z_sum_xi*z_sum_xi);
+		z_b=(counter*z_sum_xi_yi-z_sum_xi*z_sum_yi)/(counter*z_sum_xi2-z_sum_xi*z_sum_xi);
+
+		std::cout << "alpha_ext:" << std::setw(colWidth-14) << std::internal << "2^"<<a<<"+n*"<<b<< " alpha_ext_zero="<< "2^"<<z_a<<"+n*"<<z_b <<std::endl;
+
+		alphas_output += std::to_string(b);
+		z_alphas_output += std::to_string(z_b);
+
+		//std::cerr<<"Simple alpha: "<< -nom/den << std::endl;
+		python_output+="]";
 		std::cout<<std::endl;
 
-		for(int n : n_list){
-			std::cout << std::setw(3) << std::internal << n << "   ";
-			for(int m = this->m_start; m <= m_end; ++m){
-				if(n >= m){
-					std::cout << std::setw(colWidth) << std::internal << "x";
-					continue;
-				}
-				std::cout << std::setw(colWidth) << std::internal << stdev_map[std::pair<int, int>(n,m)];
-			}
-			std::cout<<std::endl;
-		}
 		std::cout<<std::endl<<std::endl;
 		std::cout<<"   Num sols"<<std::endl;
-		std::cout << " n \\ m";
-		for(int m = this->m_start; m <= this->m_end; ++m)
-			std::cout << std::setw(colWidth) << std::internal << m;
+
+		for(int m = this->m_start; m <= m_end; ++m){
+			std::cout << std::setw(colWidth) << std::internal << to_string_with_precision(num_sols_map[m], 2);
+		}
 		std::cout<<std::endl;
 
-		for(int n : n_list){
-			std::cout << std::setw(3) << std::internal << n << "   ";
-			for(int m = this->m_start; m <= m_end; ++m){
-				if(n >= m){
-					std::cout << std::setw(colWidth) << std::internal << "x";
-					continue;
-				}
-				std::cout << std::setw(colWidth) << std::internal << num_sols_map[std::pair<int, int>(n,m)];
-			}
-			std::cout<<std::endl;
-		}
 	}
 	python_output+="}";
 	alphas_output+="}";

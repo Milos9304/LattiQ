@@ -143,8 +143,6 @@ int main(int ac, char** av){
 		Database database(database_file, Database::DATABASE_EIGENGEN_DATASET);
 		AngleResultsExperiment angleResultsExp(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true);
 
-		loge("Changed angleResultsExp.run() to angleResultsExp.run_qaoa_with_optimizer()");
-
 		if(angle_results_opt->is_set())
 			angleResultsExp.run_qaoa_with_optimizer();
 		else
