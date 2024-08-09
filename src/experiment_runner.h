@@ -28,67 +28,17 @@ public:
 	int num_rand_params;
 };
 
-class CmQaoaExperiment{
-public:
-
-	const int q = 97;
-	const int n = 1;
-
-	const int m_start = 2;
-	const int m_end   = 5;//8;
-
-	const int p_start = 1;
-	const int p_end   = 6;
-
-	const int num_instances = /*9*/6;
-
-	FastVQA::QAOAOptions* qaoaOptions;
-	MapOptions* mapOptions;
-
-	CmQaoaExperiment(FastVQA::QAOAOptions*, MapOptions*, Database*, int loglevel=1);
-
-	void run();
-
-
-private:
-
-	int loglevel=1;
-	Database* database;
-
-	struct Instance{
-		FastVQA::PauliHamiltonian h;
-		FastVQA::RefEnergies zero_solutions;
-		FastVQA::RefEnergies sv_solutions;
-		//FastVQA::RefEnergies eigenspace; //for debug
-		//qreal min_energy;
-		//qreal random_guess;
-
-		double volume;
-		//int sv1Squared;
-
-		int num_qubits_per_dim;
-		int q,m,n;
-	};
-
-	struct Cost{
-		double prob_zero;
-		double prob_first_excited_state;
-
-		long long int first_excited_state;
-		int degeneracy;
-
-		//Cost(){}
-	};
-
-	Cost _cost_fn(Instance*, bool use_database=false);
-
-
-};
-
 class AngleExperimentBase{
 public:
 
 	FastVQA::QAOAOptions* qaoaOptions;
+
+	int q = 97;
+
+	int m_start; /*9*/;
+	int m_end;// = 20;//10;///20; //10;
+
+	int max_num_instances = 100;//3000;
 
 	struct Cost{
 			double mean;
@@ -114,6 +64,8 @@ public:
 protected:
 
 	Database* database;
+	int loglevel = 1;
+	MapOptions* mapOptions;
 
 	struct Instance{
 			FastVQA::PauliHamiltonian h;
@@ -135,8 +87,39 @@ protected:
 	std::mt19937 gen19937;
 	bool seeded=false;
 
+	std::vector<Instance> _generate_dataset(int n, int m, bool penalise=false);
+	int seed=0;
+	bool use_database_to_load_dataset;
+
 	std::pair<double, double> try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed);
 	Cost _cost_fn(std::vector<Instance>*, const double *angles, std::string meta_data, bool use_database=false, int seed=0);
+};
+
+class AqcPqcExperiment : AngleExperimentBase{
+
+public:
+	AqcPqcExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed, bool use_database_to_load_dataset){
+
+		this->loglevel = loglevel;
+		this->qaoaOptions = qaoaOptions;
+		this->mapOptions = mapOptions;
+		this->database = database;
+
+		logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
+
+		//this->logfile.open("log.txt");
+		//this->angleAnalysisLog.open("angleAnalysis.txt");
+
+		this->m_start = m_start;
+		this->m_end = m_end;
+		this->seed = seed;
+
+		this->use_database_to_load_dataset = use_database_to_load_dataset;
+
+	}
+
+	void run();
+
 };
 
 class AngleResultsExperiment : AngleExperimentBase{
@@ -199,17 +182,33 @@ public:
 				-0.169083861050817},
 				-0.660683735633075,
 				-0.681604944157161,
-				"QAOA: optimized by diff, FTOL_REACHED, num:iters 951"
+				"QAOA: optimized by diff, FTOL_REACHED, num_iters: 951"
+		),
+		optAngle(
+				6,
+				//CM
+				{0.524413709222256, 2.50291231189887,
+				2.93878239982546, 2.93574145025635, 0.7554670199668,
+				-0.830204156706467, -1.68347094505389, -2.81104037624286,
+				-1.55329305113912, -0.244212853734048, 1.95196042386488,
+				-0.228645879681772},
+				-0.408258795390403,
+				-0.86303052301192,
+				"CM: optimized by diff, MAXEVAL_REACHED, num_iters: 1000",
+				//QAOA
+				{2.14754824256986, 2.16836131486609,
+				2.12837988684515, 2.18142325302405, 0.785432792698188,
+				-0.726508211167727, -1.27266845242185, -2.78530660573082,
+				-1.43028367472466, -0.136623665542789, 2.84748587759566,
+				-0.126958255879974},
+				-0.483670508627367,
+				-0.677773130871272,
+				"QAOA: optimized by diff, MAXEVAL_REACHED, num_iters: 1000"
 		)
+
 		//optAngle()
 	};
 
-	int q = 97;
-
-	int m_start; /*9*/;
-	int m_end;// = 20;//10;///20; //10;
-
-	int max_num_instances = 100;//3000;
 
 	//const std::vector<double> angles{0.4,0.48,5.56,0.28}; //work interesting
 
@@ -311,59 +310,18 @@ MAXEVAL_REACHED
 
 	//const std::vector<double> angles{0.583336, 2.16313 ,2.24903 ,2.18185};
 
-	int loglevel = 1;
 	AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed, bool use_database_to_load_dataset);
 
 	void run_qaoa_with_optimizer();
 
-	MapOptions* mapOptions;
-
 	void run();
 
 private:
-	std::vector<Instance> _generate_dataset(int n, int m, bool penalise=false);
+	//std::vector<Instance> _generate_dataset(int n, int m, bool penalise=false);
 	int seed=0;
 	bool use_database_to_load_dataset;
 
 };
-
-/*class AngleSearchExperiment : AngleExperimentBase{
-
-public:
-
-	int loglevel = 1;
-
-	int q = 97;
-	int n = 1;
-	int m = 5;//7;
-
-	int max_num_instances = 100;
-
-	AngleSearchExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
-
-	void run();
-
-private:
-	long long int num_instances;
-	int nbQubits;
-	const double test_ratio = 0.2;
-	int num_train_instances;
-	int num_test_instances;
-
-	int num_params;
-
-	std::vector<Instance> train_set;
-	std::vector<Instance> test_set;
-
-	void _generate_dataset(MapOptions*);
-	void run_p1();
-	void run_p2();
-	void run_p2_full_bruteforce();
-	void run_p3_full_bruteforce();
-	void run_p6_test();
-	void run_cobyla();
-
-};*/
 
 class AlphaMinimizationExperiment{
 
@@ -371,9 +329,9 @@ class AlphaMinimizationExperiment{
 		int loglevel = 1;
 		int p = 1;
 
-	AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*);
+	AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*);
 
-	void run();
+	void run(bool use_database_to_load_dataset);
 
 	private:
 
@@ -385,16 +343,19 @@ class AlphaMinimizationExperiment{
 		double volume;
 
 		int num_qubits_per_dim;
-		int q,m,n;
+		int q,m;
+
+		FastVQA::Accelerator::DiagonalOpDuplicate diagOpDuplicate;
 	};
 
 	inline double strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 	inline double strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 
-	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, std::string meta_data, bool use_database=false);
+	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, std::string meta_data);
 
 	FastVQA::QAOAOptions* qaoaOptions;
 	MapOptions* mapOptions;
+	Database* database;
 };
 
 void experiment_runner(ExperimentSetup*, std::string experiment_name, int loglevel);

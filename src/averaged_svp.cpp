@@ -29,7 +29,7 @@ int main(int ac, char** av){
 	auto angle_results_opt 		= op.add<Switch>("", "angleresopt", "results of opt experiment");
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
 	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
-	auto cmqaoa					= op.add<Switch>("", "cm", "run cmqaoa experiment");
+	//auto cmqaoa					= op.add<Switch>("", "cm", "run cmqaoa experiment");
 	auto alphaminim				= op.add<Switch>("", "alpha", "run alpha minimization experiment");
 	auto database_info		   	= op.add<Switch>("", "dinfo", "get database info");
 	auto g1					   	= op.add<Switch>("", "g1", "generate graph 1");
@@ -37,6 +37,7 @@ int main(int ac, char** av){
 	auto seed_opt	     		= op.add<Value<int>>("s", "seed", "Seed", 0);
 	auto m_start	     		= op.add<Value<int>>("", "mstart", "m_start", 4);
 	auto m_end		     		= op.add<Value<int>>("", "mend", "m_end", 20);
+	auto aqc_pqc	     		= op.add<Switch>("", "aqcpqc", "aqcpqc");
 
 
 	op.parse(ac, av);
@@ -64,7 +65,7 @@ int main(int ac, char** av){
 	int n = n_opt->value();
 	int m = m_opt->value();
 
-	if( cmqaoa->is_set() == false && (!performance_calc->is_set()) && ((qubits_per_x->value() == -1 && absolute_bound->value()==-1) || (qubits_per_x->value() != -1 && absolute_bound->value() !=-1)) ){
+	if( (!performance_calc->is_set()) && ((qubits_per_x->value() == -1 && absolute_bound->value()==-1) || (qubits_per_x->value() != -1 && absolute_bound->value() !=-1)) ){
 		throw_runtime_error("Exactly one of 'qubits_per_x' or 'absolute_bound' must be set.");
 	}
 
@@ -125,8 +126,16 @@ int main(int ac, char** av){
 		return 0;
 	}else if(alphaminim->is_set()){
 		logi("Running alpha minimization experiment", loglevel);
-		AlphaMinimizationExperiment alphaMinimExp(loglevel, &qaoaOptions, &mapOptions);
-		alphaMinimExp.run();
+
+		const std::string database_file = "../experiments/database_eigengen.db";
+		if(database_info->is_set()){
+			Database::print_sqlite_info(database_file);
+			return 0;
+		}
+
+		Database database(database_file, Database::DATABASE_EIGENGEN_DATASET);
+		AlphaMinimizationExperiment alphaMinimExp(loglevel, &qaoaOptions, &mapOptions, &database);
+		alphaMinimExp.run(true);
 
 		return 0;
 	}else if(angle_results->is_set()){
@@ -149,6 +158,18 @@ int main(int ac, char** av){
 			angleResultsExp.run();
 
 		return 0;
+	}else if(aqc_pqc->is_set()){
+
+		const std::string database_file = "../experiments/database_eigengen.db";
+		if(database_info->is_set()){
+			Database::print_sqlite_info(database_file);
+			return 0;
+		}
+
+		Database database(database_file, Database::DATABASE_EIGENGEN_DATASET);
+		AqcPqcExperiment aqcPqcExperiment(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true);
+		aqcPqcExperiment.run();
+
 	}else if(g1->is_set()){
 
 		//const std::string database_file = "../experiments/database_g1.db";
@@ -168,7 +189,7 @@ int main(int ac, char** av){
 		g2.run();
 
 		return 0;
-	}else if(cmqaoa->is_set()){
+	}/*else if(cmqaoa->is_set()){
 		const std::string database_file = "../experiments/database_cmqaoa.db";
 		if(database_info->is_set()){
 			Database::print_sqlite_info(database_file);
@@ -179,7 +200,7 @@ int main(int ac, char** av){
 		cmQaoaExperiment.run();
 		return 0;
 
-	}else if(param_experiment->value() > 0){
+	}*/else if(param_experiment->value() > 0){
 		logi("Running manyParams experiment", loglevel);
 		experimentSetup.experiment_type = "manyParams";
 		experimentSetup.num_rand_params=param_experiment->value();

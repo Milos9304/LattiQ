@@ -56,22 +56,22 @@ std::string to_string_with_precision(const T a_value, const int n = 15)
     return std::move(out).str();
 }
 
-CmQaoaExperiment::CmQaoaExperiment(FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int loglevel){
+/*CmQaoaExperiment::CmQaoaExperiment(FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int loglevel){
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
 	this->mapOptions = mapOptions;
 	this->database = database;
-}
+}*/
 
-void CmQaoaExperiment::run(){
+/*void CmQaoaExperiment::run(){
 
 	int nbQubits_acc = -1;
 	this->mapOptions->penalty = 0;
 
 	FastVQA::Qaoa qaoa_instance;
 
-	std::vector<std::vector<std::tuple<int /*m*/, double, double, double, double>>> plot(this->p_end - this->p_start + 1);
+	std::vector<std::vector<std::tuple<int , double, double, double, double>>> plot(this->p_end - this->p_start + 1);
 
 	for(int m = this->m_start; m <= this->m_end; ++m){
 
@@ -86,7 +86,6 @@ void CmQaoaExperiment::run(){
 			Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
 			instance.q = this->q;
 			instance.m = m;
-			instance.n = this-> n;
 			instance.h = l.getHamiltonian(mapOptions);
 			instance.volume = l.getVolume();
 
@@ -182,31 +181,7 @@ void CmQaoaExperiment::run(){
 
 				plot[p - this->p_start].push_back(std::tuple<int, double, double, double, double>(m, zero_overlap_qaoa, zero_overlap_cm_qaoa, sv_overlap_qaoa, sv_overlap_cm_qaoa));
 
-				//PRINT
-				/*int max_index=999999999; double max_val=-1;
-				std::cerr<<"min: "<<min<<std::endl;
-				for(int j = 0; j < buffer.stateVector->numAmpsTotal; ++j){
-					double val;
-					for(int k = 0; k < refEnergies.size(); ++k){
-						if(refEnergies[k].index == j){
-							val = refEnergies[k].value;
-							break;
-						}
-					}
 
-					double prob = buffer.stateVector->stateVec.real[j]*buffer.stateVector->stateVec.real[j]+buffer.stateVector->stateVec.imag[j]*buffer.stateVector->stateVec.imag[j];
-					if(prob > max_val){
-						max_index = j;
-						max_val = prob;
-					}
-
-					std::cerr<<j<<": "<<prob<<"    "<<val<<"\n";
-				}
-				std::cerr<<std::endl;
-				std::cerr<<max_val<<" "<<max_index<<std::endl;
-				//PRINT
-
-				throw;*/
 
 
 			}
@@ -230,7 +205,7 @@ CmQaoaExperiment::Cost CmQaoaExperiment::_cost_fn(CmQaoaExperiment::Instance*, b
 
 
 	return cost;
-}
+}*/
 
 
 AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset){
@@ -256,11 +231,11 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_
 
 }
 
-std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_dataset(int n, int m, bool penalise){
+std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_dataset(int n, int m, bool penalise){
 
 	//logfile << "dataset gen start" <<std::endl<<std::flush;
 
-	std::vector<AngleResultsExperiment::Instance> dataset;
+	std::vector<AngleExperimentBase::Instance> dataset;
 
 	bool new_way=true;
 	long long int num_instances;
@@ -273,7 +248,7 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 	std::vector<HamiltonianWrapper> gramian_wrappers;
 
 	if(new_way){
-		GeneratorParam param(q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
+		GeneratorParam param(this->q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
 		gramian_wrappers = generateFromEvalDecomposition(param);//generateQaryUniform(param);
 
 		/*num_instances = q;
@@ -1178,7 +1153,7 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 	double a=0,b=0;
 	a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
 	b=(alpha_calc_dataset_size*sum_xi_yi-sum_xi*sum_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
-	std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
+	//std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
 
 	double alpha = -b;
 	//final_ab.first = a;
@@ -1202,37 +1177,38 @@ inline double AlphaMinimizationExperiment::strategy_inv_diff(std::vector<std::ve
 	}
 
 	double res = 1./den;
-	std::cerr << res << std::endl;
+	//std::cerr << res << std::endl;
 	return res;
 
 }
 
 
-AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions){
+AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database){
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
 	this->mapOptions = mapOptions;
 	this->p = qaoaOptions->p;
 	this->mapOptions->penalty = 0;
+	this->database=database;
 }
 
 
-void AlphaMinimizationExperiment::run(){
+void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
-	std::string meta_data = "fixedQAOA";
-	//std::string meta_data = "fixedCMQAOA";
+	this->qaoaOptions->ftol = 1e-10;
+	this->qaoaOptions->max_iters = 1000; //1000
 
-	std::cerr<<meta_data<<std::endl;
+	std::string meta_data;
+	std::stringstream output;
 
-	//int p = /*6*/7;
+	std::string space = "				";
+	output << "		optAngle(\n"<<space<<this->p<<",\n"<<space<<"//";
 
 	int q = 97;
-	int n = 3;
 	int m_start = 4;
 	int m_end = 10;
 
-	bool new_way=/*false*/true;
-	loge("new_way="+std::to_string(new_way));
+	bool new_way=true;
 
 	int max_num_instances = 100;//1000;
 	double test_ratio = 0;//.2;
@@ -1270,7 +1246,7 @@ void AlphaMinimizationExperiment::run(){
 			if(max_num_instances < num_instances)
 				num_instances = max_num_instances;
 				*/
-			GeneratorParam param(q, n, m, true, 97, 100); //q, n, m, shuffle, seed, cutoff
+			GeneratorParam param(q, 3, m, true, 97, 100); //q, n, m, shuffle, seed, cutoff; n is ignored
 			gramian_wrappers = generateFromEvalDecomposition(param);//generateQaryUniform(param);
 
 					/*num_instances = q;
@@ -1329,7 +1305,6 @@ void AlphaMinimizationExperiment::run(){
 			AlphaMinimizationExperimentInstance instance;
 			instance.h = l.getHamiltonian(mapOptions);
 			instance.q = q;
-			instance.n = n;
 			instance.m = m;
 			if(nbQubits_acc < 0)
 				nbQubits_acc = instance.h.nbQubits;
@@ -1339,7 +1314,31 @@ void AlphaMinimizationExperiment::run(){
 				qaoaOptions->accelerator->finalize();
 			}
 
-			qaoaOptions->accelerator->initialize(&instance.h);
+			if(use_database_to_load_dataset){
+
+				FastVQA::Accelerator::DiagonalOpDuplicate diagonalOpDuplicate;
+				std::vector<long double> real;
+				bool found = this->database->getDataset(instance.h.nbQubits, counter, this->mapOptions->num_qbits_per_x, &real);
+
+				if(found){
+					diagonalOpDuplicate.numQubits = instance.h.nbQubits;
+					diagonalOpDuplicate.real = real;
+					qaoaOptions->accelerator->initialize(&instance.h, true, &diagonalOpDuplicate);
+				}else{
+					diagonalOpDuplicate.numQubits = -1; //flag that not found
+					qaoaOptions->accelerator->initialize(&instance.h, true, &diagonalOpDuplicate);
+
+					this->database->insertDataset(m, counter, mapOptions->num_qbits_per_x, diagonalOpDuplicate.real);
+				}
+
+				instance.diagOpDuplicate = diagonalOpDuplicate;
+
+			}else{
+				qaoaOptions->accelerator->initialize(&instance.h, false, nullptr);
+			}
+
+			//qaoaOptions->accelerator->initialize(&instance.h);
+
 			qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
 
 			instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
@@ -1381,124 +1380,152 @@ void AlphaMinimizationExperiment::run(){
 
 	logi("Dataset generated");
 
-	this->qaoaOptions->ftol = 1e-10;
-	this->qaoaOptions->max_iters = 1000;
+	for(int indexx = 0; indexx < 2; ++indexx){
 
-	ProgressBar bar{
-		option::BarWidth{50},
-		option::MaxProgress{this->qaoaOptions->max_iters},
-		option::Start{"["},
-		option::Fill{"="},
-		option::Lead{">"},
-		option::Remainder{" "},
-		option::End{"]"},
-		option::PostfixText{"Running Angle Search Experiment p="+std::to_string(p)+" with COBYLA"},
-		option::ShowElapsedTime{true},
-		option::ShowRemainingTime{true},
-		option::ForegroundColor{Color::yellow},
-		option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
-	};
-
-	unsigned int iteration_i = 0;
-loge("cost value is sum_yi not alpha!");
-	//std::pair<double, double> final_ab;
-	FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
-		iteration_i++;
-		bar.tick();
-		std::vector<double> angles(x);
-		//std::cerr<<this->_cost_fn(&this->train_set, &angles[0]).mean<<std::endl;
+		if(indexx == 0){
+					meta_data = "fixedCMQAOA";
+					output<<"CM\n"<<space<<"{";
+				}
+				else{
+					meta_data = "fixedQAOA";
+					output<<space<<"{";
+				}
 
 
+				ProgressBar bar{
+					option::BarWidth{50},
+					option::MaxProgress{this->qaoaOptions->max_iters},
+					option::Start{"["},
+					option::Fill{"="},
+					option::Lead{">"},
+					option::Remainder{" "},
+					option::End{"]"},
+					option::PostfixText{"Running Angle Search Experiment p="+std::to_string(p)+" with COBYLA"},
+					option::ShowElapsedTime{true},
+					option::ShowRemainingTime{true},
+					option::ForegroundColor{Color::yellow},
+					option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
+				};
 
+				unsigned int iteration_i = 0;
 
-
-
-
-		return strategy_inv_diff(train_dataset, angles, meta_data);
-		//return strategy_alpha_c(train_dataset, angles, meta_data);
-
-
+				//std::pair<double, double> final_ab;
+				FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
+					iteration_i++;
+					bar.tick();
+					std::vector<double> angles(x);
+					//std::cerr<<this->_cost_fn(&this->train_set, &angles[0]).mean<<std::endl;
 
 
 
 
 
 
-		//double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0], meta_data);
-		//std::cerr<<cost<<std::endl;
-		//return -cost;
 
-
-		//std::cerr<<nom<<" "<<den<<" "<<alpha<<std::endl;
+					return strategy_inv_diff(train_dataset, angles, meta_data);
+					//return strategy_alpha_c(train_dataset, angles, meta_data);
 
 
 
-		//return alpha;//-sum_yi/alpha_calc_dataset_size;//alpha;//-this->_cost_fn(&this->train_set, &angles[0]).mean;
-	}, num_params);
 
-	std::vector<double> initial_params;
-	std::mt19937 gen(0); //rd() instead of 0 - seed
-	std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
-	for(int i = 0; i < num_params/2; ++i){
-		double param1 = /*pi/4.;*/dis(gen);
-		double param2 = /*pi/8.;*/dis(gen);
-		std::cerr<<param1<<" "<<param2<<std::endl;
-		initial_params.push_back(param1);
-		initial_params.push_back(param2);
+
+
+
+
+					//double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0], meta_data);
+					//std::cerr<<cost<<std::endl;
+					//return -cost;
+
+
+					//std::cerr<<nom<<" "<<den<<" "<<alpha<<std::endl;
+
+
+
+					//return alpha;//-sum_yi/alpha_calc_dataset_size;//alpha;//-this->_cost_fn(&this->train_set, &angles[0]).mean;
+				}, num_params);
+
+				std::vector<double> initial_params;
+				std::mt19937 gen(0); //rd() instead of 0 - seed
+				std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
+				for(int i = 0; i < num_params/2; ++i){
+					double param1 = /*pi/4.;*/dis(gen);
+					double param2 = /*pi/8.;*/dis(gen);
+					std::cerr<<param1<<" "<<param2<<std::endl;
+					initial_params.push_back(param1);
+					initial_params.push_back(param2);
+				}
+
+				std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
+				std::vector<double> upperBounds(initial_params.size(), 3.141592654);
+
+				logd("QAOA starting optimization", this->loglevel);
+				FastVQA::OptResult result = this->qaoaOptions->optimizer->optimize(f, initial_params, this->qaoaOptions->ftol, this->qaoaOptions->max_iters, lowerBounds, upperBounds);
+				logd("QAOA finishing optimization", this->loglevel);
+
+				//std::cerr<<".   2^"<<result.first.first<<"n+"<<result.second<<std::endl;
+				std::cerr<<"alpha: "<< result.first.first <<"\n";
+				std::cerr<<"num_iters: "<<iteration_i<<std::endl;
+				/*if(meta_data == "fixedCMQAOA"){
+					//std::cerr<<"const std::vector<double> angles_cmqaoa{";
+
+				}
+				else if(meta_data == "fixedQAOA"){
+					//std::cerr<<"const std::vector<double> angles_optqaoa{";
+
+				}
+				else
+					throw_runtime_error("Not implemented");*/
+				bool start=true;
+				int jj = 0;
+				for(auto &a: result.first.second){
+					if(!start){
+						output<<", ";
+						if(((jj++)-1) % 3 == 0)
+							output<<"\n"<<space;
+					}
+					output<<std::setprecision (15)<<a;
+					start=false;
+				}output<<"},\n";
+				//std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
+
+				//EVALUATE TRAIN DATASET
+				std::vector<double> final_angles(result.first.second);
+
+				double sum_yi=0;
+				double sum_xi=0;
+				double sum_xi2=0;
+				double sum_xi_yi=0;
+				for(auto &dim: train_dataset){
+					double overlap = this->_cost_fn(dim, &final_angles[0], meta_data);
+					//overlaps.push_back(log2(overlap));
+					sum_yi+=log2(overlap);
+					sum_xi+=dim[0].m;
+					sum_xi2+=dim[0].m * dim[0].m;
+					sum_xi_yi+=log2(overlap)*dim[0].m;
+				}
+				double a=0,b=0;
+
+				a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
+				b=(train_dataset.size()*sum_xi_yi-sum_xi*sum_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
+				//std::cerr<<pow(2.71828, a)<<"2^n*"<<b<<std::endl;
+				//std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
+				output<<space<<a<<",\n"<<space<<b<<",\n"<<space;
+				if(meta_data == "fixedCMQAOA"){
+					output<<"\"CM: optimized by diff, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\",\n"<<space<<"//QAOA\n";
+				}else if(meta_data == "fixedQAOA"){
+					output<<"\"QAOA: optimized by diff, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\"\n		)";
+				}
+
+				double alpha = -b;
+
 	}
 
-	std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
-	std::vector<double> upperBounds(initial_params.size(), 3.141592654);
+	std::cout<<output.str()<<std::endl;
 
-	logd("QAOA starting optimization", this->loglevel);
-	FastVQA::OptResult result = this->qaoaOptions->optimizer->optimize(f, initial_params, this->qaoaOptions->ftol, this->qaoaOptions->max_iters, lowerBounds, upperBounds);
-	logd("QAOA finishing optimization", this->loglevel);
 
-	//std::cerr<<".   2^"<<result.first.first<<"n+"<<result.second<<std::endl;
-	std::cerr<<"alpha: "<< result.first.first <<"\n";
-	std::cerr<<"num_iters: "<<iteration_i<<std::endl;
-	if(meta_data == "fixedQAOA")
-		std::cerr<<"const std::vector<double> angles_optqaoa{";
-	else if(meta_data == "fixedCMQAOA")
-		std::cerr<<"const std::vector<double> angles_cmqaoa{";
-	else
-		throw_runtime_error("Not implemented");
-	bool start=true;
-	for(auto &a: result.first.second){
-		if(!start)
-			std::cerr<<", ";
-		std::cerr<<std::setprecision (15)<<a;
-		start=false;
-	}std::cerr<<"};";
-	std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
-
-	//EVALUATE TRAIN DATASET
-	std::vector<double> final_angles(result.first.second);
-
-	double sum_yi=0;
-	double sum_xi=0;
-	double sum_xi2=0;
-	double sum_xi_yi=0;
-	for(auto &dim: train_dataset){
-		double overlap = this->_cost_fn(dim, &final_angles[0], meta_data);
-		//overlaps.push_back(log2(overlap));
-		sum_yi+=log2(overlap);
-		sum_xi+=dim[0].m;
-		sum_xi2+=dim[0].m * dim[0].m;
-		sum_xi_yi+=log2(overlap)*dim[0].m;
-	}
-	double a=0,b=0;
-
-	a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
-	b=(train_dataset.size()*sum_xi_yi-sum_xi*sum_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
-	//std::cerr<<pow(2.71828, a)<<"2^n*"<<b<<std::endl;
-	std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
-	double alpha = -b;
-
-	std::cerr<<"Test alpha: "<<alpha<<std::endl;
 
 }
-double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, std::string meta_data, bool use_database){
+double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, std::string meta_data){
 	std::vector<int> num_sols;
 
 		int i = 0;
@@ -1526,35 +1553,30 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 				this->qaoaOptions->accelerator->finalize();
 			}
 
+			if(instance.diagOpDuplicate.numQubits != -1)
+				this->qaoaOptions->diagOpDuplicatePtr = &instance.diagOpDuplicate;
+
 			FastVQA::ExperimentBuffer buffer;
 			buffer.storeQuregPtr = true;
 
 			double ground_state_overlap = 0;
-			if(use_database){throw;
-				/*Database::DatasetRow output_row;
-				this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 6, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
-				for(auto &sol: instance.sv_solutions){
-					long long int index = sol.index;
-					ground_state_overlap+=output_row.finalStateVectorMap[index].second;
-				}*/
-			}else{
-				if(meta_data == "fixedQAOA")
-					qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
-				else if(meta_data == "fixedCMQAOA")
-					qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
-				else
-					throw_runtime_error("Not implemented");
-				//qaoa_instance.run_cm_qaoa(&buffer, &instance.h, this->qaoaOptions, instance.zero_solutions[0].index);
+			if(meta_data == "fixedQAOA")
+				qaoa_instance.run_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles);
+			else if(meta_data == "fixedCMQAOA")
+				qaoa_instance.run_cm_qaoa_fixed_angles(&buffer, &instance.h, this->qaoaOptions, angles, instance.zero_solutions[0].index);
+			else
+				throw_runtime_error("Not implemented");
+			//qaoa_instance.run_cm_qaoa(&buffer, &instance.h, this->qaoaOptions, instance.zero_solutions[0].index);
 
-				/*for(auto &f: buffer.finalParams){
-					std::cerr<<f<<" ";
-				}std::cerr<<std::endl;*/
+			/*for(auto &f: buffer.finalParams){
+				std::cerr<<f<<" ";
+			}std::cerr<<std::endl;*/
 
-				for(auto &sol: instance.sv_solutions){
-					long long int index   = sol.index;
-					ground_state_overlap += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
-				}
+			for(auto &sol: instance.sv_solutions){
+				long long int index   = sol.index;
+				ground_state_overlap += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 			}
+
 
 			num_sols.push_back(instance.h.custom_solutions.size());
 			qreal improvement_ratio = ground_state_overlap;// / instance.random_guess;
@@ -1609,6 +1631,7 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 			i++;
 
 			this->qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
+			this->qaoaOptions->diagOpDuplicatePtr = nullptr;
 
 		}
 
