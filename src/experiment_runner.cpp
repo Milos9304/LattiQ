@@ -818,7 +818,7 @@ void AngleResultsExperiment::run(){
 					python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(stdev)+")";
 				else
 					python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(mean_zero)+", "+to_string_with_precision(stdev)+")";
-				std::cout << std::setw(colWidth) << std::internal << mean/* << "/" << stdev */<< std::flush;
+				std::cout << std::setw(colWidth) << std::internal << std::fixed << std::setprecision(15) << mean << "/" << stdev << "/" << zero_overlap << std::flush;
 			}
 
 			//double  alpha = -nom/den;
