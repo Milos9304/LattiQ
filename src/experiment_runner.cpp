@@ -13,7 +13,7 @@
 #include <sstream>
 
 //delete
-#include <chrono>
+//#include <chrono>
 
 
 # if QuEST_PREC==1
@@ -258,7 +258,7 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_
 
 std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_dataset(int n, int m, bool penalise){
 
-	logfile << "dataset gen start" <<std::endl<<std::flush;
+	//logfile << "dataset gen start" <<std::endl<<std::flush;
 
 	std::vector<AngleResultsExperiment::Instance> dataset;
 
@@ -332,16 +332,16 @@ std::vector<AngleResultsExperiment::Instance> AngleResultsExperiment::_generate_
 		if(penalise)
 			mapOptions->penalty = 5*l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
 
-auto t_start = std::chrono::high_resolution_clock::now();
+//auto t_start = std::chrono::high_resolution_clock::now();
 
 
 //std::cerr<<gramian_wrappers[i].hamiltonian<<std::endl;
 
 		l.setSolutionsToZeroVector();
 		instance.h = l.getHamiltonian(mapOptions);
-auto t_end = std::chrono::high_resolution_clock::now();
-double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
-logfile << "del include, " << elapsed_time_ms <<std::endl<<std::flush;
+//auto t_end = std::chrono::high_resolution_clock::now();
+//double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
+//logfile << "del include, " << elapsed_time_ms <<std::endl<<std::flush;
 
 
 		/*if(i < 10)
@@ -378,18 +378,18 @@ logfile << "del include, " << elapsed_time_ms <<std::endl<<std::flush;
 			qaoaOptions->accelerator->initialize(&instance.h, false, nullptr);
 		}
 
-		t_end = std::chrono::high_resolution_clock::now();
-		elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
-		logfile << "del include2, " << elapsed_time_ms <<std::endl<<std::flush;
+		//t_end = std::chrono::high_resolution_clock::now();
+		//elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
+		//logfile << "del include2, " << elapsed_time_ms <<std::endl<<std::flush;
 
 		qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
 		long long int numAmpsTotal = qaoaOptions->accelerator->getQuregPtr()->numAmpsTotal;
 		FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
 		qreal min = QREAL_MAX;//refEnergies[0].value;
 
-		t_end = std::chrono::high_resolution_clock::now();
-		elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
-		logfile << "del include3, " << elapsed_time_ms <<std::endl<<std::flush;
+		//t_end = std::chrono::high_resolution_clock::now();
+		//elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
+		//logfile << "del include3, " << elapsed_time_ms <<std::endl<<std::flush;
 
 		for(long long int j = 0; j < numAmpsTotal; ++j){
 
@@ -407,9 +407,9 @@ logfile << "del include, " << elapsed_time_ms <<std::endl<<std::flush;
 			}
 		}
 
-		t_end = std::chrono::high_resolution_clock::now();
-		elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
-		logfile << "del include4, " << elapsed_time_ms <<std::endl<<std::flush;
+		//t_end = std::chrono::high_resolution_clock::now();
+		//elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
+		//logfile << "del include4, " << elapsed_time_ms <<std::endl<<std::flush;
 
 		instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
 		if(instance.zero_solutions.size() > 1)
@@ -458,9 +458,9 @@ logfile << "del include, " << elapsed_time_ms <<std::endl<<std::flush;
 		}*/
 
 		dataset.push_back(instance);
-		t_end = std::chrono::high_resolution_clock::now();
-		elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
-		logfile << "del include10, " << elapsed_time_ms <<std::endl<<std::flush;
+		//t_end = std::chrono::high_resolution_clock::now();
+		//elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
+		//logfile << "del include10, " << elapsed_time_ms <<std::endl<<std::flush;
 
 	}
 
@@ -469,7 +469,7 @@ logfile << "del include, " << elapsed_time_ms <<std::endl<<std::flush;
 	qaoaOptions->accelerator->finalize();
 
 	//logi("Experiment dataset generated", this->loglevel);
-	logfile << "dataset gen complete" <<std::endl<<std::flush;
+	//logfile << "dataset gen complete" <<std::endl<<std::flush;
 	return dataset;
 }
 
@@ -948,7 +948,7 @@ std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_
 
 	}
 
-	logfile << i << " start points were needed " << std::endl << std::flush;
+	logfile << i << " random start points were used" << std::endl << std::flush;
 
 
 /*	angleAnalysisLog << "[";
