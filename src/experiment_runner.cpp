@@ -387,8 +387,9 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		//logfile << "del include4, " << elapsed_time_ms <<std::endl<<std::flush;
 
 		instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
-		if(instance.zero_solutions.size() > 1)
+		if(instance.zero_solutions.size() > 1){
 			loge("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+		}
 
 		for(auto &sol: instance.zero_solutions){
 			if(sol.value != 0)

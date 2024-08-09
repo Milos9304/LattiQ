@@ -98,18 +98,12 @@ protected:
 class AqcPqcExperiment : AngleExperimentBase{
 
 public:
-	AqcPqcExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed, bool use_database_to_load_dataset){
+	AqcPqcExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset){
 
 		this->loglevel = loglevel;
 		this->qaoaOptions = qaoaOptions;
 		this->mapOptions = mapOptions;
 		this->database = database;
-
-		logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
-
-		//this->logfile.open("log.txt");
-		//this->angleAnalysisLog.open("angleAnalysis.txt");
-
 		this->m_start = m_start;
 		this->m_end = m_end;
 		this->seed = seed;
