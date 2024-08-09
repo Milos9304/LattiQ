@@ -802,7 +802,7 @@ void AngleResultsExperiment::run(){
 			else
 				python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(mean_zero)+", "+to_string_with_precision(stdev)+")";
 
-			stringstream ss;
+			std::stringstream ss;
 			ss << m <<":   " << std::fixed << std::setprecision(15) << mean << "/" << stdev << "/" << zero_overlap << std::endl;
 			logi(ss.str());
 
