@@ -342,11 +342,13 @@ class AlphaMinimizationExperiment{
 		FastVQA::Accelerator::DiagonalOpDuplicate diagOpDuplicate;
 	};
 
+
 	inline double strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 	inline double strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 
-	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, std::string meta_data);
+	inline double strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 
+	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, std::string meta_data, int probability100=100);
 	FastVQA::QAOAOptions* qaoaOptions;
 	MapOptions* mapOptions;
 	Database* database;
