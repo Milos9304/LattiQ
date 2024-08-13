@@ -1165,14 +1165,12 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 
 inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
 
-	this->qaoaOptions->max_iters = 10000;
-
 	//double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
 
 	//else
 	//	tails++; //This is tail
 
-	int probability = 100;
+	int probability = 50;
 
 	double den=0;
 	for(auto &dim: train_dataset){
@@ -1227,7 +1225,7 @@ AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::
 void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	this->qaoaOptions->ftol = 1e-10;
-	this->qaoaOptions->max_iters = 1000; //1000
+	this->qaoaOptions->max_iters = 2000; //1000
 
 	std::string meta_data;
 	std::stringstream output;
