@@ -1170,20 +1170,33 @@ inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<
 	//else
 	//	tails++; //This is tail
 
-	int probability = 50;
 
-	double den=0;
+	int probability_dim = 50;
+
+	int probability_instance = 50;
+
+	double res = 0;
+	int num_dims = 0;
+	double sum_dims = 0;
+	int i = 0;
 	for(auto &dim: train_dataset){
 
-			double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability);
-			double diff = overlap * pow(2, dim[0].m)-1;//overlap / pow(2, -dim[0].m);
+			i++;
+
+			int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
+			if (p_num > probability_dim && (num_dims > 0 || i < train_dataset.size()-1))
+				continue;
+
+			double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability_instance);
+			double diff = /*pow(2, dim[0].m)*/2-overlap;//overlap / pow(2, -dim[0].m);
 			//if(diff < 0)
 			//	diff = 0;
-			den += diff * diff;
+			res += diff * diff;
+			num_dims++;
+			sum_dims += pow(2, dim[0].m);
 	}
-
-	double res = 1./den;
-	//std::cerr << res << std::endl;
+	res*=0.25/ /*sum_dims*/num_dims;
+	std::cerr << res << std::endl;
 	return res;
 
 }
@@ -1225,7 +1238,7 @@ AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::
 void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	this->qaoaOptions->ftol = 1e-10;
-	this->qaoaOptions->max_iters = 2000; //1000
+	this->qaoaOptions->max_iters = 4000; //1000
 
 	std::string meta_data;
 	std::stringstream output;
@@ -1580,7 +1593,7 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 
 			if(probability100 < 100){
 				int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
-				if (p_num > probability100 || (i == dataset.size()-2 && gs_overlaps.size() == 0))
+				if (p_num > probability100 && (i < dataset.size()-2 || gs_overlaps.size() > 0))
 					continue;
 			}
 
