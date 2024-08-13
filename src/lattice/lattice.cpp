@@ -38,7 +38,7 @@ FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 
 	result.nbQubits = expression_qubo->getIdMapSize()-1; //-1 bc of identity
 
-	double maxCoeff = 2; /*0;
+	/*double maxCoeff = 2;
 	for(auto &term : expression_qubo->polynomial){
 		if(term.second == 0)
 			continue;
@@ -337,7 +337,6 @@ void Lattice::init_x(MapOptions::x_init_mode mode, int num_qbits_per_x, int abso
 			else if(absolute_bound != -1){
 				int lb = -absolute_bound;
 				int ub = absolute_bound;
-
 				int id = expression_int->addIntegerVar("x"+std::to_string(k), lb, ub);
 				x_ids.push_back(id);
 			}else{

@@ -98,18 +98,12 @@ protected:
 class AqcPqcExperiment : AngleExperimentBase{
 
 public:
-	AqcPqcExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed, bool use_database_to_load_dataset){
+	AqcPqcExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset){
 
 		this->loglevel = loglevel;
 		this->qaoaOptions = qaoaOptions;
 		this->mapOptions = mapOptions;
 		this->database = database;
-
-		logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
-
-		//this->logfile.open("log.txt");
-		//this->angleAnalysisLog.open("angleAnalysis.txt");
-
 		this->m_start = m_start;
 		this->m_end = m_end;
 		this->seed = seed;
@@ -376,11 +370,13 @@ class AlphaMinimizationExperiment{
 		FastVQA::Accelerator::DiagonalOpDuplicate diagOpDuplicate;
 	};
 
+
 	inline double strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 	inline double strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 
-	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, std::string meta_data);
+	inline double strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
 
+	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, std::string meta_data, int probability100=100);
 	FastVQA::QAOAOptions* qaoaOptions;
 	MapOptions* mapOptions;
 	Database* database;

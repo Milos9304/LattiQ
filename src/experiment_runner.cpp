@@ -387,8 +387,9 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		//logfile << "del include4, " << elapsed_time_ms <<std::endl<<std::flush;
 
 		instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
-		if(instance.zero_solutions.size() > 1)
+		if(instance.zero_solutions.size() > 1){
 			loge("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+		}
 
 		for(auto &sol: instance.zero_solutions){
 			if(sol.value != 0)
@@ -1162,6 +1163,33 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 	return alpha;
 }
 
+inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+
+	this->qaoaOptions->max_iters = 10000;
+
+	//double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
+
+	//else
+	//	tails++; //This is tail
+
+	int probability = 100;
+
+	double den=0;
+	for(auto &dim: train_dataset){
+
+			double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability);
+			double diff = overlap * pow(2, dim[0].m)-1;//overlap / pow(2, -dim[0].m);
+			//if(diff < 0)
+			//	diff = 0;
+			den += diff * diff;
+	}
+
+	double res = 1./den;
+	//std::cerr << res << std::endl;
+	return res;
+
+}
+
 inline double AlphaMinimizationExperiment::strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
 
 	//double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
@@ -1190,6 +1218,9 @@ AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::
 	this->p = qaoaOptions->p;
 	this->mapOptions->penalty = 0;
 	this->database=database;
+
+	srand(0);
+
 }
 
 
@@ -1422,7 +1453,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 
 
-					return strategy_inv_diff(train_dataset, angles, meta_data);
+					return strategy_random_inv_diff(train_dataset, angles, meta_data);
 					//return strategy_alpha_c(train_dataset, angles, meta_data);
 
 
@@ -1463,7 +1494,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				logd("QAOA finishing optimization", this->loglevel);
 
 				//std::cerr<<".   2^"<<result.first.first<<"n+"<<result.second<<std::endl;
-				std::cerr<<"alpha: "<< result.first.first <<"\n";
+				std::cerr<<"cost_f min: "<< result.first.first <<"\n";
 				std::cerr<<"num_iters: "<<iteration_i<<std::endl;
 				/*if(meta_data == "fixedCMQAOA"){
 					//std::cerr<<"const std::vector<double> angles_cmqaoa{";
@@ -1508,7 +1539,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
 				b=(train_dataset.size()*sum_xi_yi-sum_xi*sum_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
 				//std::cerr<<pow(2.71828, a)<<"2^n*"<<b<<std::endl;
-				//std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
+				std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
 				output<<space<<a<<",\n"<<space<<b<<",\n"<<space;
 				if(meta_data == "fixedCMQAOA"){
 					output<<"\"CM: optimized by diff, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\",\n"<<space<<"//QAOA\n";
@@ -1525,7 +1556,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 
 }
-double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, std::string meta_data){
+double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, std::string meta_data, int probability100){
 	std::vector<int> num_sols;
 
 		int i = 0;
@@ -1547,6 +1578,14 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 
 			/*if(i >= 5)
 				continue;*/
+
+
+			if(probability100 < 100){
+				int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
+				if (p_num > probability100 || (i == dataset.size()-2 && gs_overlaps.size() == 0))
+					continue;
+			}
+
 
 			if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
 				this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;

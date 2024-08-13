@@ -170,6 +170,7 @@ int main(int ac, char** av){
 		AqcPqcExperiment aqcPqcExperiment(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true);
 		aqcPqcExperiment.run();
 
+		return 0;
 	}else if(g1->is_set()){
 
 		//const std::string database_file = "../experiments/database_g1.db";
