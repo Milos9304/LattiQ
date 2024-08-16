@@ -1163,6 +1163,87 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 	return alpha;
 }
 
+inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+
+	double nom=0, den=0;
+
+	/*for(auto &dim: train_dataset){
+		double overlap = this->_cost_fn(dim, &angles[0]);
+		//std::cerr<<overlap<<std::endl;
+		nom += log2(overlap) * dim[0].m;
+		den += dim[0].m * dim[0].m;
+		//overlaps.push_back(this->_cost_fn(dim, &angles[0]));
+	}
+	double alpha = -nom/den;
+	final_ab.first=0;
+	final_ab.second=alpha;*/
+
+
+	//std::vector<double> overlaps;
+
+
+	int probability_dim = 50;
+	int probability_instance = 75;
+
+	int i = 0;
+	double sum_yi=0;
+	double sum_xi=0;
+	double sum_xi2=0;
+	double sum_xi_yi=0;
+	double alpha_calc_dataset_size=0;
+
+	for(auto &dim: train_dataset){
+		i++;
+		int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
+		if (p_num > probability_dim && (alpha_calc_dataset_size >= 2 || i < train_dataset.size()-1))
+			continue;
+
+		double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability_instance);
+		//std::cerr<<overlap<<std::endl;
+		nom += log2(overlap) * dim[0].m;
+		den += dim[0].m * dim[0].m;
+		//overlaps.push_back(this->_cost_fn(dim, &angles[0]));
+	}
+		double alpha = -nom/den;
+		std::cerr<<"2^n*-"<<alpha<<std::endl;
+
+		//final_ab.first=0;
+		//final_ab.second=alpha;
+
+		/*		for(auto &dim: train_dataset){
+
+					i++;
+
+					int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
+					if (p_num > probability_dim && (alpha_calc_dataset_size >= 2 || i < train_dataset.size()-1))
+						continue;
+
+					double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability_instance);
+
+					//overlaps.push_back(log2(overlap));
+					//if(dim[0].m > 14){
+						sum_yi+=log2(overlap);
+						sum_xi+=dim[0].m;
+						sum_xi2+=dim[0].m * dim[0].m;
+						sum_xi_yi+=log2(overlap)*dim[0].m;
+						alpha_calc_dataset_size++;
+					//}
+				}
+				double a=0,b=0;
+				//std::cerr<<alpha_calc_dataset_size<<"   "<<alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi<<std::endl;
+				a=(sum_yi*sum_xi2-sum_xi*sum_xi_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
+				b=(alpha_calc_dataset_size*sum_xi_yi-sum_xi*sum_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
+				std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
+
+				double alpha = -b;
+				//final_ab.first = a;
+				//final_ab.second = a;
+
+		*/
+
+	return alpha;
+}
+
 inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
 
 	//double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
@@ -1237,7 +1318,7 @@ AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::
 
 void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
-	this->qaoaOptions->ftol = 1e-10;
+	this->qaoaOptions->ftol = 1e-8;
 	this->qaoaOptions->max_iters = 4000; //1000
 
 	std::string meta_data;
@@ -1464,8 +1545,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 
 
-					return strategy_random_inv_diff(train_dataset, angles, meta_data);
-					//return strategy_alpha_c(train_dataset, angles, meta_data);
+					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
+					return strategy_random_alpha_c(train_dataset, angles, meta_data);
 
 
 
