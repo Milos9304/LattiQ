@@ -1182,8 +1182,8 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 	//std::vector<double> overlaps;
 
 
-	int probability_dim = 50;
-	int probability_instance = 75;
+	int probability_dim = 80;
+	int probability_instance = 80;
 
 	int i = 0;
 	double sum_yi=0;
@@ -1544,10 +1544,10 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 
 
-					return strategy_inv_diff(train_dataset, angles, meta_data);
+					//return strategy_inv_diff(train_dataset, angles, meta_data);
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
-					//return strategy_random_alpha_c(train_dataset, angles, meta_data);
+					return strategy_random_alpha_c(train_dataset, angles, meta_data);
 
 
 
