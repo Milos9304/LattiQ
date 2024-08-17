@@ -1544,9 +1544,10 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 
 
+					return strategy_inv_diff(train_dataset, angles, meta_data);
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
-					return strategy_random_alpha_c(train_dataset, angles, meta_data);
+					//return strategy_random_alpha_c(train_dataset, angles, meta_data);
 
 
 
