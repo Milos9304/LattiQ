@@ -1318,6 +1318,8 @@ AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::
 
 void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
+	bool append_previous_angles = true; //initialize with prev angles padded with 2 zeros
+
 	this->qaoaOptions->ftol = 1e-8;
 	this->qaoaOptions->max_iters = 4000; //1000
 
@@ -1337,6 +1339,10 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 	double test_ratio = 0;//.2;
 
 	int num_params = this->p*2;
+	/*f(use_previous_angles){
+		num_params = true;
+		loge("use_previous_angles = true;");
+	}*/
 
 	this->qaoaOptions->p = this->p;
 	logi("p="+std::to_string(this->qaoaOptions->p), this->loglevel);
@@ -1569,15 +1575,50 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				}, num_params);
 
 				std::vector<double> initial_params;
-				std::mt19937 gen(0); //rd() instead of 0 - seed
-				std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
-				for(int i = 0; i < num_params/2; ++i){
-					double param1 = /*pi/4.;*/dis(gen);
-					double param2 = /*pi/8.;*/dis(gen);
-					std::cerr<<param1<<" "<<param2<<std::endl;
-					initial_params.push_back(param1);
-					initial_params.push_back(param2);
+
+				if(append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true){
+
+					if(indexx == 0){
+						for(int i = 0; i < num_params/2-1; ++i){
+							double param1 = AngleResultsExperiment::optAngles[p-1].cm_angles[2*i];
+							double param2 = AngleResultsExperiment::optAngles[p-1].cm_angles[2*i+1];
+							std::cerr<<param1<<" "<<param2<<std::endl;
+							initial_params.push_back(param1);
+							initial_params.push_back(param2);
+						}
+						initial_params.push_back(0);
+						initial_params.push_back(0);
+						std::cerr<<0<<" "<<0<<std::endl;
+
+					}else if(indexx == 1){
+						for(int i = 0; i < num_params/2-1; ++i){
+							double param1 = AngleResultsExperiment::optAngles[p-1].qaoa_angles[2*i];
+							double param2 = AngleResultsExperiment::optAngles[p-1].qaoa_angles[2*i+1];
+							std::cerr<<param1<<" "<<param2<<std::endl;
+							initial_params.push_back(param1);
+							initial_params.push_back(param2);
+						}
+						initial_params.push_back(0);
+						initial_params.push_back(0);
+						std::cerr<<0<<" "<<0<<std::endl;
+					}else{
+						throw_runtime_error("Unimplemented condition case");
+					}
+
+
+				}else{
+					std::mt19937 gen(0); //rd() instead of 0 - seed
+					std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
+					for(int i = 0; i < num_params/2; ++i){
+						double param1 = /*pi/4.;*/dis(gen);
+						double param2 = /*pi/8.;*/dis(gen);
+						std::cerr<<param1<<" "<<param2<<std::endl;
+						initial_params.push_back(param1);
+						initial_params.push_back(param2);
+					}
 				}
+
+
 
 				std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
 				std::vector<double> upperBounds(initial_params.size(), 3.141592654);

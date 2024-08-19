@@ -47,6 +47,7 @@ file(GLOB SRC_ORIG_AVERAGEDSVP
 	${PROJECT_SOURCE_DIR}/src/paper_experiments/g2.cpp
 	${PROJECT_SOURCE_DIR}/src/run_paper_experiment.cpp
 	${PROJECT_SOURCE_DIR}/src/aqc_pqc.cpp
+	${PROJECT_SOURCE_DIR}/src/optAngles.cpp
 )
        
 add_subdirectory(src)

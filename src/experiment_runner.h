@@ -133,6 +133,8 @@ private:
 		double qaoa_n;
 		std::string qaoa_meta_data = "nan";
 
+		bool initialized=false;
+
 		optAngle(int p, const std::vector<double> cm_angles, double cm_c, double cm_n, std::string cm_meta_data, const std::vector<double> qaoa_angles, double qaoa_c, double qaoa_n, std::string qaoa_meta_data){
 			this->p = p;
 			this->cm_angles = cm_angles;
@@ -144,14 +146,19 @@ private:
 			this->qaoa_c = qaoa_c;
 			this->qaoa_n = qaoa_n;
 			this->qaoa_meta_data = qaoa_meta_data;
+			this->initialized = true;
 		}
 
-		optAngle(int p){this->p = p;};
+		optAngle(int p){
+			this->p = p;
+			this->initialized = false;
+		};
 
 	};
 public:
 
-	const std::vector<optAngle> optAngles{
+	const static std::vector<optAngle> optAngles;
+	/*{
 		//0 to 4 just to make index of arrays match p
 		optAngle(0),
 		optAngle(1),
@@ -177,7 +184,7 @@ public:
 		                                -0.699699552159603,
 		                                "QAOA: optimized by diff, ROUNDOFF_LIMITED, num_iters: 2329"
 		                ),
-		/*optAngle(
+		optAngle(
 				5,
 				//CM
 				{2.15627340276711, 2.16452766247427,
@@ -195,7 +202,7 @@ public:
 				-0.660683735633075,
 				-0.681604944157161,
 				"QAOA: optimized by diff, FTOL_REACHED, num_iters: 951"
-		),*/
+		),
 
 		optAngle(
 				6,
@@ -249,6 +256,7 @@ public:
 
 		//optAngle()
 	};
+	*/
 
 
 	//const std::vector<double> angles{0.4,0.48,5.56,0.28}; //work interesting
