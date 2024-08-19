@@ -1553,19 +1553,21 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					//return strategy_inv_diff(train_dataset, angles, meta_data);
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
-					return strategy_random_alpha_c(train_dataset, angles, meta_data);
-
-
-
-
-
+					if(indexx == 0) //CM-QAOA
+						return strategy_inv_diff(train_dataset, angles, meta_data);//strategy_random_alpha_c(train_dataset, angles, meta_data);
+					else if(indexx == 1) //QAOA
+						return strategy_inv_diff(train_dataset, angles, meta_data);
+					else{
+						throw_runtime_error("Not implemented conditional case");
+						return 0.;
+					}
 
 
 
 					//double cost = this->_cost_fn(train_dataset[train_dataset.size()-1], &angles[0], meta_data);
 					//std::cerr<<cost<<std::endl;
 					//return -cost;
-
+\
 
 					//std::cerr<<nom<<" "<<den<<" "<<alpha<<std::endl;
 
@@ -1676,7 +1678,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
 				output<<space<<a<<",\n"<<space<<b<<",\n"<<space;
 				if(meta_data == "fixedCMQAOA"){
-					output<<"\"CM: optimized by diff, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\",\n"<<space<<"//QAOA\n";
+					output<<"\"CM: optimized by random alpha, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\",\n"<<space<<"//QAOA\n";
 				}else if(meta_data == "fixedQAOA"){
 					output<<"\"QAOA: optimized by diff, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\"\n		)";
 				}
