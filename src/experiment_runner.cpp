@@ -1318,10 +1318,10 @@ AlphaMinimizationExperiment::AlphaMinimizationExperiment(int loglevel, FastVQA::
 
 void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
-	bool append_previous_angles = true; //initialize with prev angles padded with 2 zeros
+	bool append_previous_angles = false; //initialize with prev angles padded with 2 zeros
 
 	this->qaoaOptions->ftol = 1e-8;
-	this->qaoaOptions->max_iters = 4000; //1000
+	this->qaoaOptions->max_iters = 2000; //1000
 
 	std::string meta_data;
 	std::stringstream output;
@@ -1509,7 +1509,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	logi("Dataset generated");
 
-	for(int indexx = 0; indexx < 2; ++indexx){
+	for(int indexx = 1; indexx < 2; ++indexx){
 
 		if(indexx == 0){
 					meta_data = "fixedCMQAOA";
@@ -1556,7 +1556,9 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					if(indexx == 0) //CM-QAOA
 						return strategy_inv_diff(train_dataset, angles, meta_data);//strategy_random_alpha_c(train_dataset, angles, meta_data);
 					else if(indexx == 1) //QAOA
-						return strategy_inv_diff(train_dataset, angles, meta_data);
+						return strategy_alpha_c(train_dataset, angles, meta_data);
+
+								//strategy_inv_diff(train_dataset, angles, meta_data);
 					else{
 						throw_runtime_error("Not implemented conditional case");
 						return 0.;
@@ -1579,6 +1581,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				std::vector<double> initial_params;
 
 				if(append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true){
+
+					loge("Append previous angles");
 
 					if(indexx == 0){
 						for(int i = 0; i < num_params/2-1; ++i){
@@ -1609,6 +1613,9 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 
 				}else{
+
+					loge("append_previous_angles = false");
+
 					std::mt19937 gen(0); //rd() instead of 0 - seed
 					std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
 					for(int i = 0; i < num_params/2; ++i){
