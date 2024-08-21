@@ -134,7 +134,7 @@ int main(int ac, char** av){
 		}
 
 		Database database(database_file, Database::DATABASE_EIGENGEN_DATASET);
-		AlphaMinimizationExperiment alphaMinimExp(loglevel, &qaoaOptions, &mapOptions, &database);
+		AlphaMinimizationExperiment alphaMinimExp(loglevel, &qaoaOptions, &mapOptions, &database, seed_opt->value());
 		alphaMinimExp.run(true);
 
 		return 0;

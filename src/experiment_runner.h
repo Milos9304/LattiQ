@@ -382,7 +382,7 @@ class AlphaMinimizationExperiment{
 		int loglevel = 1;
 		int p = 1;
 
-	AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*);
+	AlphaMinimizationExperiment(int loglevel, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed = 0);
 
 	void run(bool use_database_to_load_dataset);
 
@@ -400,6 +400,8 @@ class AlphaMinimizationExperiment{
 
 		FastVQA::Accelerator::DiagonalOpDuplicate diagOpDuplicate;
 	};
+
+	int seed = 0;
 
 
 	inline double strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data, std::string* optimized_by);

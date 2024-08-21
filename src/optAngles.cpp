@@ -2,21 +2,31 @@
 
 const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optAngles = std::vector<optAngle>{	//0 to 4 just to make index of arrays match p
 	optAngle(0),
+			/*optAngle(
+			                                1,
+			                                //CM
+			                                {-1.9818560023213, 2.49080900690849},
+			                                -1.1606568894798,
+			                                -0.760314510728059,
+			                                -0.91360881688577,
+			                                "CM: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 13013",
+			                                //QAOA*/
+
 	optAngle(
-					1,
-					//CM
-					{-0.60222557789019, 2.40185903315653},
-					-1.57446128495984,
-					-0.782063856258521,
-					-0.990011573140009,
-					"CM: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 94",
-					//QAOA
-					{-2.89091783500495, 3.141592654},
-					-1.3302380874829e-09,
-					-0.999999999763265,
-					-0.999999999938959,
-					"QAOA: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 85"
-					),
+			1,
+			//CM
+			{-2.98137153429522, 0.856181470968223},
+			-0.371610181073469,
+			-0.826727403450366,
+			-0.875807993403466,
+			"CM: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 11804",
+			//QAOA
+			{-2.89091783500495, 3.141592654},
+			-1.3302380874829e-09,
+			-0.999999999763265,
+			-0.999999999938959,
+			"QAOA: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 85"
+			),
 	optAngle(1),
 	optAngle(2),
 	optAngle(3),
