@@ -1116,7 +1116,10 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 }
 
 
-inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset,
+		std::vector<double> angles, std::string meta_data, std::string* optimized_by){
+
+	*optimized_by = "strategy_alpha_c";
 
 	double nom=0, den=0;
 
@@ -1163,7 +1166,11 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 	return alpha;
 }
 
-inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset,
+		std::vector<double> angles, std::string meta_data, std::string* optimized_by){
+
+	*optimized_by = "strategy_random_alpha";
+
 
 	double nom=0, den=0;
 
@@ -1244,7 +1251,10 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 	return alpha;
 }
 
-inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset,
+		std::vector<double> angles, std::string meta_data, std::string* optimized_by){
+
+	*optimized_by = "strategy_random_inv_diff";
 
 	//double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
 
@@ -1282,7 +1292,10 @@ inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<
 
 }
 
-inline double AlphaMinimizationExperiment::strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data){
+inline double AlphaMinimizationExperiment::strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset,
+		std::vector<double> angles, std::string meta_data, std::string* optimized_by){
+
+	*optimized_by = "strategy_inv_diff";
 
 	//double alpha = strategy_alpha_c(train_dataset, angles, meta_data);
 
@@ -1320,7 +1333,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	bool append_previous_angles = false; //initialize with prev angles padded with 2 zeros
 
-	this->qaoaOptions->ftol = 1e-8;
+	this->qaoaOptions->ftol = 1e-15;
 	this->qaoaOptions->max_iters = 2000; //1000
 
 	std::string meta_data;
@@ -1509,7 +1522,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	logi("Dataset generated");
 
-	for(int indexx = 1; indexx < 2; ++indexx){
+	for(int indexx = 0; indexx < 2; ++indexx){
 
 		if(indexx == 0){
 					meta_data = "fixedCMQAOA";
@@ -1538,6 +1551,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 				unsigned int iteration_i = 0;
 
+				std::string optimized_by;
 				//std::pair<double, double> final_ab;
 				FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
 					iteration_i++;
@@ -1554,11 +1568,9 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
 					if(indexx == 0) //CM-QAOA
-						return strategy_inv_diff(train_dataset, angles, meta_data);//strategy_random_alpha_c(train_dataset, angles, meta_data);
+						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);//strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
 					else if(indexx == 1) //QAOA
-						return strategy_alpha_c(train_dataset, angles, meta_data);
-
-								//strategy_inv_diff(train_dataset, angles, meta_data);
+						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//strategy_inv_diff(train_dataset, angles, meta_data);
 					else{
 						throw_runtime_error("Not implemented conditional case");
 						return 0.;
@@ -1665,6 +1677,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				//EVALUATE TRAIN DATASET
 				std::vector<double> final_angles(result.first.second);
 
+				double nom=0, den=0;
 				double sum_yi=0;
 				double sum_xi=0;
 				double sum_xi2=0;
@@ -1676,6 +1689,11 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					sum_xi+=dim[0].m;
 					sum_xi2+=dim[0].m * dim[0].m;
 					sum_xi_yi+=log2(overlap)*dim[0].m;
+
+					//for simple alpha
+					nom += log2(overlap) * dim[0].m;
+					den += dim[0].m * dim[0].m;
+
 				}
 				double a=0,b=0;
 
@@ -1683,11 +1701,11 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				b=(train_dataset.size()*sum_xi_yi-sum_xi*sum_yi)/(train_dataset.size()*sum_xi2-sum_xi*sum_xi);
 				//std::cerr<<pow(2.71828, a)<<"2^n*"<<b<<std::endl;
 				std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
-				output<<space<<a<<",\n"<<space<<b<<",\n"<<space;
+				output<<space<<a<<",\n"<<space<<b<<",\n"<<space<<nom/den<<",\n"<<space;
 				if(meta_data == "fixedCMQAOA"){
-					output<<"\"CM: optimized by random alpha, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\",\n"<<space<<"//QAOA\n";
+					output<<"\"CM: optimized by "<<optimized_by<<", "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\",\n"<<space<<"//QAOA\n";
 				}else if(meta_data == "fixedQAOA"){
-					output<<"\"QAOA: optimized by diff, "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\"\n		)";
+					output<<"\"QAOA: optimized by "<<optimized_by<<", "<<nlopt_res_to_str(result.second)<<", num_iters: "<<iteration_i<<"\"\n		)";
 				}
 
 				double alpha = -b;

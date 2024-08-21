@@ -2,6 +2,21 @@
 
 const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optAngles = std::vector<optAngle>{	//0 to 4 just to make index of arrays match p
 	optAngle(0),
+	optAngle(
+					1,
+					//CM
+					{-0.60222557789019, 2.40185903315653},
+					-1.57446128495984,
+					-0.782063856258521,
+					-0.990011573140009,
+					"CM: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 94",
+					//QAOA
+					{-2.89091783500495, 3.141592654},
+					-1.3302380874829e-09,
+					-0.999999999763265,
+					-0.999999999938959,
+					"QAOA: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 85"
+					),
 	optAngle(1),
 	optAngle(2),
 	optAngle(3),
@@ -15,6 +30,7 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 	                                -1.43004934263276, -0.144646908663418},
 	                                -0.154599807724666,
 	                                -0.918378730087432,
+									0,
 	                                "CM: optimized by diff, ROUNDOFF_LIMITED, num_iters: 2314",
 	                                //QAOA
 	                                {2.13567836738189, 2.1596482051349,
@@ -23,6 +39,7 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 	                                0.142592564243054, -0.144818073999694},
 	                                -0.314404252698797,
 	                                -0.699699552159603,
+									0,
 	                                "QAOA: optimized by diff, ROUNDOFF_LIMITED, num_iters: 2329"
 	                ),
 	/*optAngle(
@@ -76,6 +93,7 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 					                                9.33605255133508e-09},
 					                                -0.231226196869362,
 					                                -0.900253110229867,
+													0,
 					                                "CM: optimized by random alpha, MAXEVAL_REACHED, num_iters: 4000",
 					                                //QAOA
 													{2.15117201258113, 2.16366715116623,
@@ -85,6 +103,7 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 													-0.127924272028654},
 													-2.06315843846787,
 													-0.535304471708114,
+													0,
 													"QAOA: optimized by diff, MAXEVAL_REACHED, num_iters: 2000"
 
 					                ),/*
@@ -125,6 +144,7 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 2.87239055072913, -2.2597427073567, 2.32532677849527},
 -0.98589263139679,
 -0.860452253113452,
+0,
 "CM: optimized by diff, MAXEVAL_REACHED, num_iters: 1000",
 //QAOA
 {0.580242709724772, 2.89704003868955,
@@ -136,6 +156,7 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 3.07282948236154, -1.59870132989752, 2.32523201768276},
 -0.543107907573785,
 -0.537928642679504,
+0,
 "QAOA: optimized by diff, MAXEVAL_REACHED, num_iters: 1000"
 )
 };

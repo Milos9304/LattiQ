@@ -126,25 +126,29 @@ private:
 		std::vector<double> cm_angles;
 		double cm_c;
 		double cm_n;
+		double cm_pure_alpha;
 		std::string cm_meta_data = "nan";
 
 		std::vector<double> qaoa_angles;
 		double qaoa_c;
 		double qaoa_n;
+		double qaoa_pure_alpha;
 		std::string qaoa_meta_data = "nan";
 
 		bool initialized=false;
 
-		optAngle(int p, const std::vector<double> cm_angles, double cm_c, double cm_n, std::string cm_meta_data, const std::vector<double> qaoa_angles, double qaoa_c, double qaoa_n, std::string qaoa_meta_data){
+		optAngle(int p, const std::vector<double> cm_angles, double cm_c, double cm_n, double cm_pure_alpha, std::string cm_meta_data, const std::vector<double> qaoa_angles, double qaoa_c, double qaoa_n, double qaoa_pure_alpha, std::string qaoa_meta_data){
 			this->p = p;
 			this->cm_angles = cm_angles;
 			this->cm_c=cm_c;
 			this->cm_n=cm_n;
+			this->cm_pure_alpha = cm_pure_alpha;
 			this->cm_meta_data = cm_meta_data;
 
 			this->qaoa_angles = qaoa_angles;
 			this->qaoa_c = qaoa_c;
 			this->qaoa_n = qaoa_n;
+			this->qaoa_pure_alpha = qaoa_pure_alpha;
 			this->qaoa_meta_data = qaoa_meta_data;
 			this->initialized = true;
 		}
@@ -398,11 +402,11 @@ class AlphaMinimizationExperiment{
 	};
 
 
-	inline double strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
-	inline double strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
+	inline double strategy_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data, std::string* optimized_by);
+	inline double strategy_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data, std::string* optimized_by);
 
-	inline double strategy_random_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
-	inline double strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data);
+	inline double strategy_random_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data, std::string* optimized_by);
+	inline double strategy_random_inv_diff(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset, std::vector<double> angles, std::string meta_data, std::string* optimized_by);
 
 	double _cost_fn(std::vector<AlphaMinimizationExperimentInstance>, const double *angles, std::string meta_data, int probability100=100);
 	FastVQA::QAOAOptions* qaoaOptions;
