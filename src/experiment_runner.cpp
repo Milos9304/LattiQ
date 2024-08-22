@@ -1538,7 +1538,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	logi("Dataset generated");
 
-	for(int indexx = 1; indexx < 2; ++indexx){ //<2
+	for(int indexx = 0; indexx < 2; ++indexx){ //<2
 
 		if(indexx == 0){
 					meta_data = "fixedCMQAOA";
