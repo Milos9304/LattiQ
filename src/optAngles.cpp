@@ -2,33 +2,38 @@
 
 const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optAngles = std::vector<optAngle>{	//0 to 4 just to make index of arrays match p
 	optAngle(0),
-			/*optAngle(
-			                                1,
-			                                //CM
-			                                {-1.9818560023213, 2.49080900690849},
-			                                -1.1606568894798,
-			                                -0.760314510728059,
-			                                -0.91360881688577,
-			                                "CM: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 13013",
-			                                //QAOA*/
-
-	optAngle(
-			1,
-			//CM
-			{-2.98137153429522, 0.856181470968223},
-			-0.371610181073469,
-			-0.826727403450366,
-			-0.875807993403466,
-			"CM: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 11804",
-			//QAOA
-			{-2.89091783500495, 3.141592654},
-			-1.3302380874829e-09,
-			-0.999999999763265,
-			-0.999999999938959,
-			"QAOA: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 85"
+		optAngle(
+			 1,
+			 //CM
+			 {-1.9818560023213, 2.49080900690849},
+			 -1.1606568894798,
+			 -0.760314510728059,
+			 -0.91360881688577,
+			 "CM: optimized by strategy_alpha_c, FTOL_REACHED, num_iters: 13013",
+			 //QAOA
+			{-2.93822689293179, 0.649554060019249},
+                        0.205486995094955,
+                        -0.728346781110618,
+                        -0.701206989305623,
+                        "QAOA: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 17908"
 			),
-	optAngle(1),
-	optAngle(2),
+	optAngle(
+				2,
+				//CM
+				{-2.62904184702749, 0.934365389567761, 
+				-0.891064087361401, 3.01942666836609},
+				-0.566291448854019,
+				-0.790916721882354,
+				-0.865709932108357,
+				"CM: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 75954",
+				//QAOA
+				{3.0790487715258, 2.44047352891003, 
+				-2.46598803170775, 0.282795837640577},
+				0.425185806166174,
+				-0.74683475147189,
+				-0.69067813556315,
+				"QAOA: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 74343"
+		),
 	optAngle(3),
 	optAngle(4),
 	optAngle( //newest today 80 80
