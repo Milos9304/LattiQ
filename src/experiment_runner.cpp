@@ -1538,7 +1538,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	logi("Dataset generated");
 
-	for(int indexx = 0; indexx < 2; ++indexx){ //<2
+	for(int indexx = 1; indexx < 2; ++indexx){ //<2
 
 		if(indexx == 0){
 					meta_data = "fixedCMQAOA";
@@ -1586,7 +1586,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					if(indexx == 0) //CM-QAOA
 						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);//strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
 					else if(indexx == 1) //QAOA
-						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//strategy_inv_diff(train_dataset, angles, meta_data);
+						return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);//strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//strategy_inv_diff(train_dataset, angles, meta_data);
 					else{
 						throw_runtime_error("Not implemented conditional case");
 						return 0.;
@@ -1610,11 +1610,13 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 				FastVQA::OptResult best_result;
 
-				for(int i_rand_angles = 0; i_rand_angles < 100; i_rand_angles++){
+				int max_i_rand_angles = (append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true) ? 1 : 100;
+
+				for(int i_rand_angles = 0; i_rand_angles < max_i_rand_angles; i_rand_angles++){
 
 					initial_params.clear();
 
-					logi("Random angles "+std::to_string(i_rand_angles)+"/100");
+					logi("Random angles "+std::to_string(i_rand_angles)+"/"+std::to_string(max_i_rand_angles));
 
 					if(append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true){
 
