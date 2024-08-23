@@ -119,7 +119,7 @@ class Lattice {
 			this -> current_lattice = MatrixInt(lattice);
 			this -> orig_gh_sq = calculate_gh_squared(&orig_lattice);
 
-			this->firstVectorLengthSquared=0;
+			//this->firstVectorLengthSquared=-1;
 			for(int x = 0; x < this->orig_lattice.get_cols(); ++x)
 				this->firstVectorLengthSquared+=this->orig_lattice(0, x).get_d()*this->orig_lattice(0, x).get_d();
 			//loge("firstVectorLengthSquared calculation not yet implemented");
@@ -158,6 +158,7 @@ class Lattice {
 
 			gso_current_initialized = true;
 			this->firstVectorLengthSquared=gramian(0,0);
+			//loge("came from here");loge(std::to_string(gramian(0,0)));
 
 			this -> expression_int = new FastVQA::Expression("expression_int");
 		};
@@ -203,10 +204,18 @@ class Lattice {
 		void outputGramianToFile(std::string filename);
 
 		int getSquaredLengthOfFirstBasisVector(){
+			if(this->firstVectorLengthSquared < 0)
+				throw_runtime_error("getSquaredLengthOfFirstBasisVector called but firstVectorLengthSquared not set");
 			return this->firstVectorLengthSquared;
 		}
 
-		long long int firstVectorLengthSquared=0;
+		void setFirstVectorLengthSquared(int value){
+			if(this->firstVectorLengthSquared > 0){
+				//std::cerr<<value<<" "<<this->firstVectorLengthSquared;
+				throw_runtime_error("firstVectorLengthSquared was already set");
+			}
+			this->firstVectorLengthSquared = value;
+		}
 
 		qreal get_random_guess_one_vect(){
 			if(bin_initialized)
@@ -215,6 +224,8 @@ class Lattice {
 		}
 
 	private:
+
+		long long int firstVectorLengthSquared=-1;
 
 		bool gramian;
 		bool gramian_diag;

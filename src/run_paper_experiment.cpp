@@ -191,7 +191,7 @@ void initialize_paper_experiment(std::string experiment_name, std::vector<Lattic
 		//std::cerr<<m<<std::endl<<"end :)";
 		Lattice* new_lattice = new Lattice(m, std::to_string(solutions[i].lattice_id)+"_"+std::to_string(solutions[i].rank));
 		new_lattice->reduce_rank(solutions[i].rank);
-		new_lattice->firstVectorLengthSquared = solutions[i].svLength;
+		new_lattice->setFirstVectorLengthSquared(solutions[i].svLength);
 		lattices.push_back(new_lattice);
 		//std::cout << (std::to_string(solutions[i].lattice_id)+"_"+std::to_string(solutions[i].rank)) << " ";
 
