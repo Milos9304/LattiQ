@@ -27,12 +27,19 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 				-0.865709932108357,
 				"CM: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 75954",
 				//QAOA
-				{3.0790487715258, 2.44047352891003, 
+				/*{3.0790487715258, 2.44047352891003, 
 				-2.46598803170775, 0.282795837640577},
 				0.425185806166174,
 				-0.74683475147189,
 				-0.69067813556315,
-				"QAOA: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 74343"
+				"QAOA: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 74343"*/
+				{0.422893724621816, 2.89751136368467,
+				-0.953980008922711, -2.45539483558622},
+				0.173598095358752,
+				-0.681497316357708,
+				-0.658569266027306,
+				"QAOA: optimized by strategy_inv_diff, FTOL_REACHED, num_iters: 81944"
+		
 		),
 
 		/*this comes from angle append
