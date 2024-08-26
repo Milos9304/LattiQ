@@ -146,8 +146,8 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 
 	//std::vector<int> non_zero_indices;
 
-	for(int i = 0; i < /*param.num_instances*/1; ++i){
-		loge("Uncomment above in average utils to get more instances!!!!");
+	for(int i = 0; i < param.num_instances /*1*/; ++i){
+		//loge("Uncomment above in average utils to get more instances!!!!");
 
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> sol(1, m);
 		//Eigen::Vector<int, Eigen::Dynamic> solution(m);

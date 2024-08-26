@@ -305,16 +305,19 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
 
 
-		std::cerr<<"setting penalty="<<l.getSquaredLengthOfFirstBasisVector();
-		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
+		if(penalise){
+			std::cerr<<"setting penalty="<<l.getSquaredLengthOfFirstBasisVector();
+			mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
+		}else{
+			mapOptions->penalty = 0;
+			l.setSolutionsToZeroVector();
+		}
 
 //auto t_start = std::chrono::high_resolution_clock::now();
 
 
 //std::cerr<<gramian_wrappers[i].hamiltonian<<std::endl;
 
-		if(!penalise)
-			l.setSolutionsToZeroVector();
 		instance.h = l.getHamiltonian(mapOptions);
 //auto t_end = std::chrono::high_resolution_clock::now();
 //double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
@@ -1700,6 +1703,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 						best_result = result;
 						std::cerr<<"new min: "<<result.first.first<<std::endl;
 					}
+
+					std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
 
 				}FastVQA::OptResult result = best_result;
 
