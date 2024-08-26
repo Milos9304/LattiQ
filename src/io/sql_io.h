@@ -19,7 +19,9 @@ typedef std::vector<std::pair<qreal, double>> FinalStateVectorMap;
 class Database{
 public:
 
-	enum DATABASE_TYPE{ DATABASE_QARY_PERFORMANCE, DATABASE_ANGLERES, DATABASE_CM_QAOA, DATABASE_EIGENGEN_DATASET };
+	enum DATABASE_TYPE{ DATABASE_QARY_PERFORMANCE, DATABASE_ANGLERES, DATABASE_CM_QAOA, DATABASE_EIGENGEN_DATASET, DATABASE_EIGENGEN_AQCPQC_DATASET };
+
+	DATABASE_TYPE database_type;
 
 	struct DatasetRow{
 		std::string type;
@@ -52,8 +54,8 @@ public:
 	//~Database(){
 	//	sqlite3_close(db);
 	//}
-	bool getDataset(int m, int index, int qs_per_x, std::vector<long double> *result);
-	void insertDataset(int m, int index, int qs_per_x, std::vector<long double> result);
+	bool getDataset(int m, int index, int qs_per_x, int penalty, std::vector<long double> *result);
+	void insertDataset(int m, int index, int qs_per_x, int penalty, std::vector<long double> result);
 
 	bool contains_qary(int q, int n, int m, int p, int index, int num_qs, bool penaltyUsed);
 	double getSv1Probability(int q, int n, int m, int p, int num_qs, int index);

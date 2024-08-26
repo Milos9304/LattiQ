@@ -45,6 +45,7 @@ inline std::stringstream query_unbind(std::string col_name, SQLite::Statement* q
 Database::Database(std::string filename, DATABASE_TYPE database_type, int loglevel){
 
 	this->loglevel = loglevel;
+	this->database_type = database_type;
 
 	try{// Open a database file in create/write mode
 		db = new SQLite::Database(filename, SQLite::OPEN_READWRITE|SQLite::OPEN_CREATE);
@@ -72,6 +73,11 @@ Database::Database(std::string filename, DATABASE_TYPE database_type, int loglev
 					"real_array BLOB, "
 					"PRIMARY KEY (m, indexx, qs_per_x))");
 				break;
+		case Database::DATABASE_EIGENGEN_AQCPQC_DATASET:
+			db->exec("CREATE TABLE IF NOT EXISTS eigengen_dataset_aqc_pqc (m INTEGER, indexx INTEGER, qs_per_x INTEGER, penalty INTEGER, "
+				"real_array BLOB, "
+				"PRIMARY KEY (m, indexx, qs_per_x, penalty))");
+			break;
 		default:
 			throw_runtime_error("Unimplemented switch case.");
 		}
@@ -81,11 +87,20 @@ Database::Database(std::string filename, DATABASE_TYPE database_type, int loglev
 	}
 }
 
-bool Database::getDataset(int m, int index, int qs_per_x, std::vector<long double> *result){
+bool Database::getDataset(int m, int index, int qs_per_x, int penalty, std::vector<long double> *result){
 
 	bool found = false;
+	std::string query_str;
+	if(this->database_type == DATABASE_EIGENGEN_DATASET)
+		query_str = "SELECT real_array FROM eigengen_dataset WHERE (m=" +s(m)+" AND indexx="+s(index)+" AND qs_per_x="+s(qs_per_x)+")";
+	else if(this->database_type == DATABASE_EIGENGEN_AQCPQC_DATASET)
+		query_str = "SELECT real_array FROM eigengen_dataset_aqc_pqc WHERE (m=" +s(m)+" AND indexx="+s(index)+" AND qs_per_x="+s(qs_per_x)+" AND penalty="+s(penalty)+")";
+	else
+		throw_runtime_error("case not valid");
+
 	try{
-		SQLite::Statement query(*db, "SELECT real_array FROM eigengen_dataset WHERE (m=" +s(m)+" AND indexx="+s(index)+" AND qs_per_x="+s(qs_per_x)+")");
+
+		SQLite::Statement query(*db, query_str);
 		//std::cerr<<"SELECT * FROM qary WHERE (q=" +s(q)+" AND n="+s(n)+" AND m="+s(m)+" AND p="+s(p)+" AND indexx="+s(index)+" AND num_qs="+s(num_qs)+" AND " + (!penaltyUsed ? "NOT " : "")+ "penaltyBool)";
 
 		while (query.executeStep()){
@@ -104,15 +119,22 @@ bool Database::getDataset(int m, int index, int qs_per_x, std::vector<long doubl
 	return found;
 }
 
-void Database::insertDataset(int m, int index, int qs_per_x, std::vector<long double> result){
+void Database::insertDataset(int m, int index, int qs_per_x, int penalty, std::vector<long double> result){
 
 	DatasetRow row;
 	row.m = m;
 	row.index = index;
 	row.num_qs = qs_per_x;
 	row.hamDiagReals = result;
+	row.penalty = penalty;
 
-	this->write(&row, DATABASE_EIGENGEN_DATASET);
+	if(this->database_type == DATABASE_EIGENGEN_DATASET)
+		this->write(&row, DATABASE_EIGENGEN_DATASET);
+	else if(this->database_type == DATABASE_EIGENGEN_AQCPQC_DATASET)
+		this->write(&row, DATABASE_EIGENGEN_AQCPQC_DATASET);
+	else
+		throw_runtime_error("case not valid");
+
 }
 
 double Database::getSv1Probability(int q, int n, int m, int p, int num_qs, int index){
@@ -395,6 +417,10 @@ void Database::write(DatasetRow* row, DATABASE_TYPE database_type){
 			query_bind(1, &query, row->hamDiagReals);
 			query.exec();
 
+		}else if(database_type == DATABASE_EIGENGEN_AQCPQC_DATASET){
+			SQLite::Statement query(*db, "INSERT or IGNORE INTO eigengen_dataset_aqc_pqc VALUES ("+s(row->m)+", "+s(row->index)+", "+s(row->num_qs)+", "+s(row->penalty)+", ?)");
+				query_bind(1, &query, row->hamDiagReals);
+				query.exec();
 		}
 		else
 			throw_runtime_error("Unimplemented switch case.");

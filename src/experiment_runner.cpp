@@ -304,15 +304,17 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 
 		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
 
-		if(penalise)
-			mapOptions->penalty = 5*l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
+
+		std::cerr<<"setting penalty="<<l.getSquaredLengthOfFirstBasisVector();
+		mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
 
 //auto t_start = std::chrono::high_resolution_clock::now();
 
 
 //std::cerr<<gramian_wrappers[i].hamiltonian<<std::endl;
 
-		l.setSolutionsToZeroVector();
+		if(!penalise)
+			l.setSolutionsToZeroVector();
 		instance.h = l.getHamiltonian(mapOptions);
 //auto t_end = std::chrono::high_resolution_clock::now();
 //double elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
@@ -333,7 +335,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 
 			FastVQA::Accelerator::DiagonalOpDuplicate diagonalOpDuplicate;
 			std::vector<long double> real;
-			bool found = this->database->getDataset(nbQubits, i, this->mapOptions->num_qbits_per_x, &real);
+			bool found = this->database->getDataset(nbQubits, i, this->mapOptions->num_qbits_per_x, mapOptions->penalty, &real);
 
 			if(found){
 				diagonalOpDuplicate.numQubits = nbQubits;
@@ -343,7 +345,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 				diagonalOpDuplicate.numQubits = -1; //flag that not found
 				qaoaOptions->accelerator->initialize(&instance.h, true, &diagonalOpDuplicate);
 
-				this->database->insertDataset(m, i, mapOptions->num_qbits_per_x, diagonalOpDuplicate.real);
+				this->database->insertDataset(m, i, mapOptions->num_qbits_per_x, mapOptions->penalty, diagonalOpDuplicate.real);
 
 			}
 
@@ -372,6 +374,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 						std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<std::endl;
 					else
 						throw;*/
+			//std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<std::endl;
 
 			if(refEnergies[j].value == min)
 				instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
@@ -382,6 +385,17 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 			}
 		}
 
+		loge("Size of instance.sv_solutions is "+s(instance.sv_solutions.size()));
+		if(instance.sv_solutions.size() == 0)
+			throw_runtime_error("No solutions set!");
+
+		int sv1Squared = instance.sv_solutions[0].value;
+		for(auto &sol : instance.sv_solutions){
+			if(sol.value != sv1Squared)
+				throw_runtime_error("solutions with different values!");
+			logw(s(sol.index)+" "+s(sol.value));
+		}
+
 		//t_end = std::chrono::high_resolution_clock::now();
 		//elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
 		//logfile << "del include4, " << elapsed_time_ms <<std::endl<<std::flush;
@@ -389,6 +403,10 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
 		if(instance.zero_solutions.size() > 1){
 			loge("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+			loge("Solutions marked as zero (index value):");
+			for(auto &sol : instance.zero_solutions){
+				loge("("+s(sol.index)+" "+s(sol.value)+")");
+			}
 		}
 
 		for(auto &sol: instance.zero_solutions){
@@ -415,7 +433,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		//std::cerr<<nbQubits<<" "<<instance.solutions.size()<<" "<<instance.random_guess<<std::endl;
 
 		instance.volume	= l.getVolume();
-		instance.sv1Squared= l.getSquaredLengthOfFirstBasisVector();
+		instance.sv1Squared= sv1Squared;//l.getSquaredLengthOfFirstBasisVector();
 		instance.q = q;
 		instance.m = m;
 		instance.n = n;
@@ -1476,7 +1494,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 				FastVQA::Accelerator::DiagonalOpDuplicate diagonalOpDuplicate;
 				std::vector<long double> real;
-				bool found = this->database->getDataset(instance.h.nbQubits, counter, this->mapOptions->num_qbits_per_x, &real);
+				bool found = this->database->getDataset(instance.h.nbQubits, counter, this->mapOptions->num_qbits_per_x, mapOptions->penalty, &real);
 
 				if(found){
 					diagonalOpDuplicate.numQubits = instance.h.nbQubits;
@@ -1486,7 +1504,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					diagonalOpDuplicate.numQubits = -1; //flag that not found
 					qaoaOptions->accelerator->initialize(&instance.h, true, &diagonalOpDuplicate);
 
-					this->database->insertDataset(m, counter, mapOptions->num_qbits_per_x, diagonalOpDuplicate.real);
+					this->database->insertDataset(m, counter, mapOptions->num_qbits_per_x, mapOptions->penalty, diagonalOpDuplicate.real);
 				}
 
 				instance.diagOpDuplicate = diagonalOpDuplicate;
@@ -1538,7 +1556,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	logi("Dataset generated");
 
-	for(int indexx = 1; indexx < 2; ++indexx){ //<2
+	for(int indexx = 0; indexx < 2; ++indexx){ //<2
 
 		if(indexx == 0){
 					meta_data = "fixedCMQAOA";
