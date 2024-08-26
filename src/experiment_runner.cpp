@@ -1576,7 +1576,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					option::Lead{">"},
 					option::Remainder{" "},
 					option::End{"]"},
-					option::PostfixText{"Running Angle Search Experiment p="+std::to_string(p)+" with COBYLA"},
+					option::PostfixText{"Running Angle Search Experiment p="+std::to_string(p)+" with COBYLA with indexx"+std::to_string(indexx)},
 					option::ShowElapsedTime{true},
 					option::ShowRemainingTime{true},
 					option::ForegroundColor{Color::yellow},
