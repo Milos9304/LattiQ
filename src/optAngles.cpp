@@ -60,7 +60,25 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 		                                -0.701206988981537,
 		                                "QAOA: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: 178"
 		                )*/
-	optAngle(3),
+	optAngle(
+				3,
+				//CM
+				{1.37405229519096, 2.97982492443362, 
+				0.120331074004508, 3.04451969902882, 0.964965837096694, 
+				-0.902157465495305},
+				-0.110263471008016,
+				-0.864217587631346,
+				-0.878780687575802,
+				"CM: optimized by strategy_alpha_trivial, MAXEVAL_REACHED, num_iters: 106788",
+				//QAOA
+				{2.15716733995899, 2.15884232758313, 
+				2.25424333068428, 2.17236853814546, 0.763099959521827, 
+				-0.734511748171839},
+				-0.0644310433896435,
+				-0.667310341316709,
+				-0.675820101764399,
+				"QAOA: optimized by strategy_inv_diff, FTOL_REACHED, num_iters: 128962"
+		),
 	optAngle(4),
 	optAngle( //newest today 80 80
 	                                5,

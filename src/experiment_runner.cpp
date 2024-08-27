@@ -707,8 +707,8 @@ void AngleResultsExperiment::run(){
 
 	this->mapOptions->penalty = 0;
 
-	for(int index = 1; index < 2; ++index){
-		loge("ONLY QAOA");
+	for(int index = 0; index < 1; ++index){
+		loge("Only CM");
 		if(index == 0){
 			std::cerr<<std::endl<<"  CM-QAOA"<<std::endl<<std::endl;
 			python_output+="{\"CMQAOA\": [";
