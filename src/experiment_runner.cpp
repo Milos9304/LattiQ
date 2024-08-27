@@ -388,7 +388,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 			}
 		}
 
-		loge("Size of instance.sv_solutions is "+s(instance.sv_solutions.size()));
+		//loge("Size of instance.sv_solutions is "+s(instance.sv_solutions.size()));
 		if(instance.sv_solutions.size() == 0)
 			throw_runtime_error("No solutions set!");
 
@@ -396,7 +396,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		for(auto &sol : instance.sv_solutions){
 			if(sol.value != sv1Squared)
 				throw_runtime_error("solutions with different values!");
-			logw(s(sol.index)+" "+s(sol.value));
+		//	logw(s(sol.index)+" "+s(sol.value));
 		}
 
 		//t_end = std::chrono::high_resolution_clock::now();

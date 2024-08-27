@@ -24,15 +24,15 @@ void AqcPqcExperiment::run(){
 	const int round_decimals = 5; //-1 undefined
 	const int opt_strategy = 0;	  //0=trivially, 1=rank_reduction
 	const int num_steps = 20;
-	const int ansatz_depth = 1;
+	const int ansatz_depth = 2;
 	const double xtol = 10e-5;
 	const double catol = 0.0002;
 	const bool classical_esolver_compare = false;
-	const bool outputLogToFile = true;
+	const bool outputLogToFile = false;
 	const bool checkHessian = true;
-	const bool printGroundStateOverlap = true;
+	const bool printGroundStateOverlap = false;
 	const bool print_eps = false;
-	const int eval_limit_step = 600; //max iterations per step
+	const int eval_limit_step = 6000; //max iterations per step
 
 
 	FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;
@@ -76,7 +76,10 @@ void AqcPqcExperiment::run(){
 	acceleratorOptions.eval_limit_step = eval_limit_step;
 	acceleratorOptions.initialGroundState = FastVQA::InitialGroundState::PlusState;
 
-	this->mapOptions->penalty = 0;
+	//this->mapOptions->penalty = 0;
+
+	std::vector<int> num_iters;
+	std::vector<double> final_overlap;
 
 	for(int m = m_start; m <= m_end; ++m){
 
@@ -100,28 +103,28 @@ void AqcPqcExperiment::run(){
 
 			FastVQA::AqcPqcAccelerator accelerator(acceleratorOptions);
 
-			logw("Num sols: " + std::to_string(acceleratorOptions.solutions.size()));
+			/*logw("Num sols: " + std::to_string(acceleratorOptions.solutions.size()));
 			for(const auto &sol: solutions){
 				std::cerr<<"solution index="<<sol<<" with value="<<instance.sv1Squared<<std::endl;
 			}
 			logw("SV1Squared: " + std::to_string(instance.sv1Squared));
 			for(const auto &sol: instance.zero_solutions){
 				std::cerr<<sol.value<<" "<<sol.index<<std::endl;
-			}
+			}*/
 
 			FastVQA::PauliHamiltonian h0(instance.h.nbQubits);
 
 
 			Eigen::Matrix<qreal, Eigen::Dynamic, Eigen::Dynamic> matrix = instance.h.getMatrixRepresentation2(true);
 			std::vector<double> energies;
-			for(int j = 0; j < matrix.cols(); ++j){
+			/*for(int j = 0; j < matrix.cols(); ++j){
 				std::cerr<<j<<":  "<<matrix(j,j)<<std::endl;
 				energies.push_back(matrix(j,j));
 			}
 
 			std::sort(energies.begin(), energies.end());
 			for(auto &a:energies)
-				std::cerr<<a<<" ";
+				std::cerr<<a<<" ";*/
 
 			h0.initializeSumMinusSigmaXHamiltonian();
 
