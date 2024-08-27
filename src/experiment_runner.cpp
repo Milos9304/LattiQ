@@ -1633,7 +1633,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 				int max_i_rand_angles = (append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true) ? 1 : 100;
 
-				for(int i_rand_angles = 0; i_rand_angles < max_i_rand_angles; i_rand_angles++){
+				for(int i_rand_angles = 0; i_rand_angles < /*max_i_rand_angles*/1; i_rand_angles++){
 
 					initial_params.clear();
 
@@ -1685,6 +1685,28 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 							initial_params.push_back(param2);
 						}
 					}
+
+					/*DELETEME
+					 *
+					 *
+					 *
+					 *
+					 *
+					 * */
+					initial_params.clear();
+					initial_params.push_back(1.37405229519096);
+					initial_params.push_back(2.97982492443362);
+					initial_params.push_back(0.120331074004508);
+					initial_params.push_back(3.04451969902882);
+					initial_params.push_back(0.964965837096694);
+					initial_params.push_back(-0.902157465495305);
+					/*
+					 *
+					 * DELETEME
+					 *
+					 * */
+
+
 
 					std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
 					std::vector<double> upperBounds(initial_params.size(), 3.141592654);
