@@ -1203,7 +1203,7 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 }
 
 inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset,
-		std::vector<double> angles, std::string meta_data, std::string* optimized_by){
+		std::vector<double> angles, std::string meta_data, std::string* optimized_by, int iter_num, int* p_num){
 
 	*optimized_by = "strategy_random_alpha";
 
@@ -1225,8 +1225,8 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 	//std::vector<double> overlaps;
 
 
-	int probability_dim = 80;
-	int probability_instance = 80;
+	int probability_dim = 50;
+	int probability_instance = 70;
 
 	int i = 0;
 	double sum_yi=0;
@@ -1235,10 +1235,17 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 	double sum_xi_yi=0;
 	double alpha_calc_dataset_size=0;
 
+	//int* p_num = (int *)calloc(train_dataset.size(), sizeof(int));;
+
 	for(auto &dim: train_dataset){
 		i++;
-		int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
-		if (p_num > probability_dim && (alpha_calc_dataset_size >= 2 || i < train_dataset.size()-1))
+		if(iter_num % 50 == 0){
+			p_num[i-1] = rand() % 100 + 1;  //Generate random number 1 to 100
+			if(i==1)
+				std::cerr<<"new p dim";
+		}
+
+		if (p_num[i-1] > probability_dim && (alpha_calc_dataset_size >= 2 || i < train_dataset.size()-1))
 			continue;
 
 		double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability_instance);
@@ -1270,7 +1277,7 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 						sum_xi2+=dim[0].m * dim[0].m;
 						sum_xi_yi+=log2(overlap)*dim[0].m;
 						alpha_calc_dataset_size++;
-					//}
+					//}`
 				}
 				double a=0,b=0;
 				//std::cerr<<alpha_calc_dataset_size<<"   "<<alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi<<std::endl;
@@ -1283,6 +1290,8 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 				//final_ab.second = a;
 
 		*/
+
+	//free(p_num);
 
 	return alpha;
 }
@@ -1371,7 +1380,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 	bool append_previous_angles = false; //initialize with prev angles padded with 2 zeros
 
 	this->qaoaOptions->ftol = 1e-12;
-	this->qaoaOptions->max_iters = 2000; //1000
+	this->qaoaOptions->max_iters = 6000; //1000
 
 	std::string meta_data;
 	std::stringstream output;
@@ -1381,7 +1390,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	int q = 97;
 	int m_start = 4;
-	int m_end = 10;
+	int m_end = 10; //11
+	//loge("m_end changed from 10 to 11");
 
 	bool new_way=true;
 
@@ -1558,8 +1568,9 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 	}
 
 	logi("Dataset generated");
+	int* p_num = (int *)calloc(train_dataset.size(), sizeof(int));
 
-	for(int indexx = 0; indexx < 2; ++indexx){ //<2
+	for(int indexx = 0; indexx < 1; ++indexx){ //<2
 
 		if(indexx == 0){
 					meta_data = "fixedCMQAOA";
@@ -1590,6 +1601,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 				std::string optimized_by;
 				//std::pair<double, double> final_ab;
+				
 				FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
 					iteration_i++;
 					bar.tick();
@@ -1605,8 +1617,11 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
 					if(indexx == 0){ //CM-QAOA
+						return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num);
 						//return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
-						return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
+						
+						
+						//return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
 					}else if(indexx == 1) //QAOA
 						return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);//strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//strategy_inv_diff(train_dataset, angles, meta_data);
 					else{
@@ -1695,19 +1710,28 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					 *
 					 * */
 					initial_params.clear();
-					initial_params.push_back(1.37405229519096);
+					/*initial_params.push_back(1.37405229519096);
 					initial_params.push_back(2.97982492443362);
 					initial_params.push_back(0.120331074004508);
 					initial_params.push_back(3.04451969902882);
 					initial_params.push_back(0.964965837096694);
 					initial_params.push_back(-0.902157465495305);
+					*/
+					initial_params.push_back(0.122554609026554);
+					initial_params.push_back(-2.8571310975287);
+					initial_params.push_back(1.30884475955703);
+				        initial_params.push_back(0.678293734557697);
+				        initial_params.push_back(2.23375586290952);
+				        initial_params.push_back(0.427026918238707);
 					/*
 					 *
 					 * DELETEME
 					 *
 					 * */
 
-
+					for(auto &a:initial_params)
+						std::cerr<<a<<" ";
+					std::cerr<<std::endl;
 
 					std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
 					std::vector<double> upperBounds(initial_params.size(), 3.141592654);
@@ -1727,7 +1751,11 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 						std::cerr<<"new min: "<<result.first.first<<std::endl;
 					}
 
-					std::cerr<<"\n"<<nlopt_res_to_str(result.second)<<std::endl;
+					std::cerr<<nlopt_res_to_str(result.second)<<std::endl;
+
+					for(auto &a: result.first.second){
+						std::cerr<<std::setprecision(15)<<a<<" ";
+					}std::cerr<<std::endl<<std::endl;
 
 				}FastVQA::OptResult result = best_result;
 
@@ -1797,11 +1825,11 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 	}
 
 	std::cout<<output.str()<<std::endl;
-
+	free(p_num);
 
 
 }
-double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, std::string meta_data, int probability100){
+double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperimentInstance> dataset, const double *angles, std::string meta_data, int probability100, int* p_inst){
 	std::vector<int> num_sols;
 
 		int i = 0;
