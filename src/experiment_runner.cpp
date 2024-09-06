@@ -1856,6 +1856,9 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 			print=true;
 		}*/
 
+		//std::cerr<<" X ";
+
+
 		for(auto &instance: dataset){
 
 			/*if(i >= 5)
@@ -1865,9 +1868,13 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 			if(probability100 < 100){
 				//int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
 				int p_num = p_inst[i];
-				if (p_num > probability100 && (i < dataset.size()-2 || gs_overlaps.size() > 0))
+				if (p_num > probability100 && (i < dataset.size()-2 || gs_overlaps.size() > 0)){
+					i++;
 					continue;
+				}
 			}
+
+			//std::cerr<<"c";
 
 
 			if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
