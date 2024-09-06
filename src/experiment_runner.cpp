@@ -248,6 +248,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 	std::vector<HamiltonianWrapper> gramian_wrappers;
 
 	if(new_way){
+
 		GeneratorParam param(this->q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
 		gramian_wrappers = generateFromEvalDecomposition(param);//generateQaryUniform(param);
 
@@ -296,7 +297,6 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 
 	//logw("Saving eigensace which is not needed and very costly");
 	//logw("!!!Random guess is now after the penalization!!!");
-
 
 	for(int i = 0; i < num_instances; ++i){
 
