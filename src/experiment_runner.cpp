@@ -248,6 +248,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 	std::vector<HamiltonianWrapper> gramian_wrappers;
 
 	if(new_way){
+
 		GeneratorParam param(this->q, n, m, true, 97, this->max_num_instances); //q, n, m, shuffle, seed, cutoff
 		gramian_wrappers = generateFromEvalDecomposition(param);//generateQaryUniform(param);
 
@@ -296,7 +297,6 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 
 	//logw("Saving eigensace which is not needed and very costly");
 	//logw("!!!Random guess is now after the penalization!!!");
-
 
 	for(int i = 0; i < num_instances; ++i){
 
@@ -1203,7 +1203,7 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 }
 
 inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<std::vector<AlphaMinimizationExperimentInstance>> train_dataset,
-		std::vector<double> angles, std::string meta_data, std::string* optimized_by, int iter_num, int* p_num){
+		std::vector<double> angles, std::string meta_data, std::string* optimized_by, int iter_num, int* p_num, int **p_inst){
 
 	*optimized_by = "strategy_random_alpha";
 
@@ -1238,9 +1238,16 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 	//int* p_num = (int *)calloc(train_dataset.size(), sizeof(int));;
 
 	for(auto &dim: train_dataset){
+
+		if(iter_num == 0){
+			p_inst[i] = (int *)calloc(dim.size(), sizeof(int));
+		}
+
 		i++;
 		if(iter_num % 50 == 0){
 			p_num[i-1] = rand() % 100 + 1;  //Generate random number 1 to 100
+			for(int j = 0; j < dim.size(); ++j)
+				p_inst[i-1][j] = rand() % 100 + 1;  //Generate random number 1 to 100
 			if(i==1)
 				std::cerr<<"new p dim";
 		}
@@ -1248,7 +1255,7 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 		if (p_num[i-1] > probability_dim && (alpha_calc_dataset_size >= 2 || i < train_dataset.size()-1))
 			continue;
 
-		double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability_instance);
+		double overlap = this->_cost_fn(dim, &angles[0], meta_data, probability_instance, p_inst[i-1]);
 		//std::cerr<<overlap<<std::endl;
 		nom += log2(overlap) * dim[0].m;
 		den += dim[0].m * dim[0].m;
@@ -1569,6 +1576,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	logi("Dataset generated");
 	int* p_num = (int *)calloc(train_dataset.size(), sizeof(int));
+	int **p_inst = (int **)calloc(train_dataset.size(), sizeof(int*));
 
 	for(int indexx = 0; indexx < 1; ++indexx){ //<2
 
@@ -1617,7 +1625,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
 					if(indexx == 0){ //CM-QAOA
-						return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num);
+						return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
 						//return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
 						
 						
@@ -1826,6 +1834,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	std::cout<<output.str()<<std::endl;
 	free(p_num);
+	free(p_inst);
 
 
 }
@@ -1854,7 +1863,8 @@ double AlphaMinimizationExperiment::_cost_fn(std::vector<AlphaMinimizationExperi
 
 
 			if(probability100 < 100){
-				int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
+				//int p_num = rand() % 100 + 1;  //Generate random number 1 to 100
+				int p_num = p_inst[i];
 				if (p_num > probability100 && (i < dataset.size()-2 || gs_overlaps.size() > 0))
 					continue;
 			}
