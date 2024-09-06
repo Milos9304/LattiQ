@@ -90,6 +90,10 @@ struct GeneratorParam{
 
 		this->cutoff = cutoff;
 
+		if(this->num_instances > cutoff && cutoff > 0){
+			this->num_instances = cutoff;
+		}
+
 	}
 
 		bool __diagonal;

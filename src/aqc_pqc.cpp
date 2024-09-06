@@ -32,7 +32,7 @@ void AqcPqcExperiment::run(){
 	const bool checkHessian = true;
 	const bool printGroundStateOverlap = false;
 	const bool print_eps = false;
-	const int eval_limit_step = 6000; //max iterations per step
+	const int eval_limit_step = 600; //max iterations per step
 
 
 	FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;
@@ -79,19 +79,28 @@ void AqcPqcExperiment::run(){
 	//this->mapOptions->penalty = 0;
 
 	std::vector<int> num_iters;
-	std::vector<double> final_overlap;
+	std::vector<double> final_overlaps;
+
+	//this->max_num_instances = 80;
 
 	for(int m = m_start; m <= m_end; ++m){
 
+		loge("m="+std::to_string(m));
+
 		//std::vector<Instance> dataset = _generate_dataset(3, m, true); //3 is arbitrary, true is for penalise
-		std::vector<Instance> dataset = _generate_dataset(1, 3, true);
+		//this->max_num_instances = 1;
+		//loge("Max num instances is 1 instead of 100");
+		std::vector<Instance> dataset = _generate_dataset(1, m, true);
 		loge("very small instance");
 
 		int i = 0;
 		for(auto &instance: dataset){
 
-			if(i > 0){
-				logw("aqcpqc.cpp breaking too soon");
+			logi("Instance " + std::to_string(i) + "/"+std::to_string(dataset.size()));
+			logi(std::to_string(instance.h.nbQubits) + " qubits");
+
+			if(i >= 80){
+				logw("aqcpqc.cpp breaking after 80 instances");
 				break;
 			}
 
@@ -128,11 +137,20 @@ void AqcPqcExperiment::run(){
 
 			h0.initializeSumMinusSigmaXHamiltonian();
 
+			FastVQA::AqcPqcAcceleratorResult result;
 			accelerator.initialize(&h0, &instance.h);
-			accelerator.run();
+			accelerator.run(&result);
+
+			std::cerr<<"Overlap = "<<result.final_state_overlap<<std::endl;
+			final_overlaps.push_back(result.final_state_overlap);
 
 			i++;
 		}
+
+		for(auto &o : final_overlaps){
+			std::cerr<<o<<","<<std::endl;
+		}
+
 
 		logw("Breaking after first m");
 		break;

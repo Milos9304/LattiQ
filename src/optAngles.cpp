@@ -63,13 +63,19 @@ const std::vector<AngleResultsExperiment::optAngle> AngleResultsExperiment::optA
 	optAngle(
 				3,
 				//CM
-				{1.37405229519096, 2.97982492443362, 
+				/*{1.37405229519096, 2.97982492443362,
 				0.120331074004508, 3.04451969902882, 0.964965837096694, 
 				-0.902157465495305},
 				-0.110263471008016,
 				-0.864217587631346,
 				-0.878780687575802,
-				"CM: optimized by strategy_alpha_trivial, MAXEVAL_REACHED, num_iters: 106788",
+				"CM: optimized by strategy_alpha_trivial, MAXEVAL_REACHED, num_iters: 106788",*/
+				{-2.73056439888557, 0.765343081755736, -0.136395377303467,
+				0.285642239137269, 1.38937578794491, -3.08357159721367},
+				0,
+				0,
+				0.881104059948901,
+				"CM: optimized by strategy_alpha_trivial, FTOL_REACHED, num_iters: ?",
 				//QAOA
 				{2.15716733995899, 2.15884232758313, 
 				2.25424333068428, 2.17236853814546, 0.763099959521827, 
