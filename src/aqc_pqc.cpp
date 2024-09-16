@@ -24,7 +24,7 @@ void AqcPqcExperiment::run(){
 	const int round_decimals = 5; //-1 undefined
 	const int opt_strategy = 0;	  //0=trivially, 1=rank_reduction
 	const int num_steps = 20;
-	const int ansatz_depth = 2;
+	const int ansatz_depth = 3;
 	const double xtol = 10e-5;
 	const double catol = 0.0002;
 	const bool classical_esolver_compare = false;
@@ -32,7 +32,7 @@ void AqcPqcExperiment::run(){
 	const bool checkHessian = true;
 	const bool printGroundStateOverlap = false;
 	const bool print_eps = false;
-	const int eval_limit_step = 600; //max iterations per step
+	const int eval_limit_step = 1200; //max iterations per step
 
 
 	FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;

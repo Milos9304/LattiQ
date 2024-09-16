@@ -138,7 +138,7 @@ int main(int ac, char** av){
 		alphaMinimExp.run(true);
 
 		return 0;
-	}else if(angle_results->is_set()){
+	}else if(angle_results->is_set() || angle_results_opt->is_set()){
 
 		const std::string database_file = "../experiments/database_eigengen.db";
 		if(database_info->is_set()){
