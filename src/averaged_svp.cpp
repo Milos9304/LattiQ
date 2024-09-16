@@ -38,6 +38,7 @@ int main(int ac, char** av){
 	auto m_start	     		= op.add<Value<int>>("", "mstart", "m_start", 4);
 	auto m_end		     		= op.add<Value<int>>("", "mend", "m_end", 20);
 	auto aqc_pqc	     		= op.add<Switch>("", "aqcpqc", "aqcpqc");
+	auto eval_quality     		= op.add<Switch>("", "eval", "Evaluate output quality");
 
 
 	op.parse(ac, av);
@@ -150,7 +151,7 @@ int main(int ac, char** av){
 
 
 		Database database(database_file, Database::DATABASE_EIGENGEN_DATASET);
-		AngleResultsExperiment angleResultsExp(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true);
+		AngleResultsExperiment angleResultsExp(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true, eval_quality->is_set());
 
 		if(angle_results_opt->is_set())
 			angleResultsExp.run_qaoa_with_optimizer();

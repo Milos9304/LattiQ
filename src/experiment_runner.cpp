@@ -208,7 +208,7 @@ CmQaoaExperiment::Cost CmQaoaExperiment::_cost_fn(CmQaoaExperiment::Instance*, b
 }*/
 
 
-AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset){
+AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset, bool eval_output){
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
@@ -225,6 +225,10 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_
 	this->seed = seed;
 
 	this->use_database_to_load_dataset = use_database_to_load_dataset;
+	this->evalOutput = eval_output;
+	if(this->evalOutput)
+		loge("k=5000");
+
 
 	//if(this->qaoaOptions->p != 2)
 	//	throw_runtime_error("Angleres is only for p=2!");
@@ -661,7 +665,7 @@ void AngleResultsExperiment::run(){
 
 	this->mapOptions->penalty = 0;
 
-	for(int index = 0; index < 1; ++index){
+	for(int index = 0; index < 2; ++index){
 		loge("Only CM");
 		if(index == 0){
 			std::cerr<<std::endl<<"  CM-QAOA"<<std::endl<<std::endl;
@@ -690,6 +694,7 @@ void AngleResultsExperiment::run(){
 		std::map<int, double> mean_map;
 		std::map<int, double> stdev_map;
 		std::map<int, double> num_sols_map;
+		std::map<int, double> approx_map;
 
 		const int colWidth = 20;
 
@@ -746,6 +751,10 @@ void AngleResultsExperiment::run(){
 			mean_map.emplace(m, mean);
 			stdev_map.emplace(m, stdev);
 			num_sols_map.emplace(m, num_sols);
+
+			if(this->evalOutput)
+				approx_map.emplace(m, cost.mean_approx_factor);
+
 			if(m > this->m_start)
 				python_output+=", ";
 			if(index == 0)
@@ -785,11 +794,20 @@ void AngleResultsExperiment::run(){
 		}
 		std::cout<<std::endl;
 
+		if(this->evalOutput){
+			std::cerr<<"approx_factors=[";
+			for(auto &app: approx_map){
+				std::cerr<<app.second<<",";
+			}std::cerr<<"]"<<std::endl;
+		}
+
 	}
 	python_output+="}";
 	alphas_output+="}";
 
 	std::cerr<<std::endl<<python_output<<std::endl<<alphas_output<<std::endl;
+
+
 
 }
 
@@ -887,7 +905,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	double mean_zero;
 	FastVQA::Qaoa qaoa_instance;
 
-	std::vector<double> gs_overlaps, zero_overlaps;
+	std::vector<double> gs_overlaps, zero_overlaps, approx_factors;
 
 	/*loge("Overriding angles");
 	bool print=false;//std::cerr<<angles[0] <<" " <<angles[1]<<"\n";
@@ -997,6 +1015,43 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		}*/
 		num_sols.push_back(instance.h.custom_solutions.size());
 		qreal improvement_ratio = ground_state_overlap;//zero_overlap;/* / instance.random_guess*/;
+
+
+		if(this->evalOutput){
+
+			int k = 5000;
+
+			double expectation = 0;
+
+			FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
+			assert(refEnergies[0].value == 0 && refEnergies[1].value > 0);
+
+			double p0 = buffer.stateVector->stateVec.real[0]*buffer.stateVector->stateVec.real[0]+buffer.stateVector->stateVec.imag[0]*buffer.stateVector->stateVec.imag[0];
+
+			double sv1_squared_len = refEnergies[1].value;
+
+
+			double sum_all_ps = 1-p0;
+
+			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; /*++j*/){
+
+				qreal new_minima = refEnergies[j].value;
+				double pi = 0;
+				while(refEnergies[j].value == new_minima){
+					long long int index = refEnergies[j].index;
+					pi += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+					//std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<" "<<pi<<std::endl;
+					++j;
+				}
+
+				sum_all_ps -= pi;
+				expectation += refEnergies[j-1].value * (pow(sum_all_ps+p0+pi, k)-pow(sum_all_ps, k)-pow(p0, k));
+
+				//std::cerr<<std::endl;
+			}
+			approx_factors.push_back(sqrt(expectation / sv1_squared_len));
+			//std::cerr<<std::setprecision(15)<<expectation<<"/"<<sv1_squared_len<<std::endl;throw;
+		}
 		//std::cerr<<improvement_ratio<<std::endl;
 		/*if(print){
 
@@ -1085,8 +1140,14 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 	//std::cerr<<mean<<"  "<<stdev<<std::endl;
 
+	Cost cost(mean, stdev, mean_zero, mean_num_of_sols);
+	if(this->evalOutput){
 
-	return Cost(mean, stdev, mean_zero, mean_num_of_sols);
+		double sum_approx = std::accumulate(approx_factors.begin(), approx_factors.end(), 0.0);
+		cost.mean_approx_factor = sum_approx / approx_factors.size();
+
+	}
+	return cost;
 
 }
 

@@ -45,6 +45,7 @@ public:
 			double stdev;
 			double mean_zero;
 			double mean_num_of_sols;
+			double mean_approx_factor;
 
 			Cost(){}
 
@@ -90,6 +91,7 @@ protected:
 	std::vector<Instance> _generate_dataset(int n, int m, bool penalise=false);
 	int seed=0;
 	bool use_database_to_load_dataset;
+	bool evalOutput;
 
 	std::pair<double, double> try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed);
 	Cost _cost_fn(std::vector<Instance>*, const double *angles, std::string meta_data, bool use_database=false, int seed=0);
@@ -363,7 +365,13 @@ MAXEVAL_REACHED
 
 	//const std::vector<double> angles{0.583336, 2.16313 ,2.24903 ,2.18185};
 
-	AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions*, MapOptions*, Database*, int seed, bool use_database_to_load_dataset);
+	AngleResultsExperiment(int loglevel,
+			int m_start,
+			int m_end,
+			FastVQA::QAOAOptions*, MapOptions*, Database*,
+			int seed,
+			bool use_database_to_load_dataset,
+			bool evalOutput);
 
 	void run_qaoa_with_optimizer();
 
