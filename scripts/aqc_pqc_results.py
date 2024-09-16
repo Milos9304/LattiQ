@@ -348,6 +348,8 @@ dat3=np.array([7.16326e-05,
 0.000599617,
 0.138355])
 
+dat4=np.array([3.96828e-08, 1.49051e-05])
+
 threshold=0.1
 print("m=3")
 print()
