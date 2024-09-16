@@ -707,8 +707,7 @@ void AngleResultsExperiment::run(){
 
 	this->mapOptions->penalty = 0;
 
-	for(int index = 0; index < 1; ++index){
-		loge("Only CM");
+	for(int index = 0; index < 2; ++index){
 		if(index == 0){
 			std::cerr<<std::endl<<"  CM-QAOA"<<std::endl<<std::endl;
 			python_output+="{\"CMQAOA\": [";
@@ -1225,8 +1224,8 @@ inline double AlphaMinimizationExperiment::strategy_random_alpha_c(std::vector<s
 	//std::vector<double> overlaps;
 
 
-	int probability_dim = 50;
-	int probability_instance = 70;
+	int probability_dim = 60;
+	int probability_instance = 80;
 
 	int i = 0;
 	double sum_yi=0;
@@ -1314,9 +1313,9 @@ inline double AlphaMinimizationExperiment::strategy_random_inv_diff(std::vector<
 	//	tails++; //This is tail
 
 
-	int probability_dim = 50;
+	int probability_dim = 75;
 
-	int probability_instance = 50;
+	int probability_instance = 100;//50;
 
 	double res = 0;
 	int num_dims = 0;
@@ -1387,7 +1386,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 	bool append_previous_angles = false; //initialize with prev angles padded with 2 zeros
 
 	this->qaoaOptions->ftol = 1e-12;
-	this->qaoaOptions->max_iters = 6000; //1000
+	this->qaoaOptions->max_iters = 2000; //6000
 
 	std::string meta_data;
 	std::stringstream output;
@@ -1578,7 +1577,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 	int* p_num = (int *)calloc(train_dataset.size(), sizeof(int));
 	int **p_inst = (int **)calloc(train_dataset.size(), sizeof(int*));
 
-	for(int indexx = 0; indexx < 1; ++indexx){ //<2
+	for(int indexx = 0; indexx < 2; ++indexx){ //<2
 
 		if(indexx == 0){
 					meta_data = "fixedCMQAOA";
@@ -1590,7 +1589,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				}
 
 
-				ProgressBar bar{
+				/*ProgressBar bar{
 					option::BarWidth{50},
 					option::MaxProgress{this->qaoaOptions->max_iters},
 					option::Start{"["},
@@ -1603,7 +1602,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					option::ShowRemainingTime{true},
 					option::ForegroundColor{Color::yellow},
 					option::FontStyles{std::vector<FontStyle>{FontStyle::bold}}
-				};
+					uncomment on two places below and del this line
+					};*/
 
 				unsigned int iteration_i = 0;
 
@@ -1612,7 +1612,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				
 				FastVQA::OptFunction f([&, this](const std::vector<double> &x, std::vector<double> &dx) {
 					iteration_i++;
-					bar.tick();
+					//bar.tick();
 					std::vector<double> angles(x);
 					//std::cerr<<this->_cost_fn(&this->train_set, &angles[0]).mean<<std::endl;
 
@@ -1631,7 +1631,10 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 						
 						//return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
 					}else if(indexx == 1) //QAOA
-						return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);//strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//strategy_inv_diff(train_dataset, angles, meta_data);
+						//return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
+						//return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);
+						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
+						//strategy_random_inv_diff(train_dataset, angles, meta_data, &optimized_by);
 					else{
 						throw_runtime_error("Not implemented conditional case");
 						return 0.;
@@ -1656,8 +1659,9 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 				FastVQA::OptResult best_result;
 
 				int max_i_rand_angles = (append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true) ? 1 : 100;
-
-				for(int i_rand_angles = 0; i_rand_angles < /*max_i_rand_angles*/1; i_rand_angles++){
+				
+				max_i_rand_angles = 1000;
+				for(int i_rand_angles = 0; i_rand_angles < max_i_rand_angles; i_rand_angles++){
 
 					initial_params.clear();
 
@@ -1697,14 +1701,12 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					}else{
 
-						loge("append_previous_angles = false");
-
 						std::mt19937 gen(i_rand_angles/*this->seed*/); //rd() instead of 0 - seed
 						std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
 						for(int i = 0; i < num_params/2; ++i){
 							double param1 = /*pi/4.;*/dis(gen);
 							double param2 = /*pi/8.;*/dis(gen);
-							std::cerr<<param1<<" "<<param2<<std::endl;
+							//std::cerr<<param1<<" "<<param2<<std::endl;
 							initial_params.push_back(param1);
 							initial_params.push_back(param2);
 						}
@@ -1712,31 +1714,17 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					/*DELETEME
 					 *
-					 *
-					 *
-					 *
-					 *
 					 * */
-					initial_params.clear();
-					/*initial_params.push_back(1.37405229519096);
-					initial_params.push_back(2.97982492443362);
-					initial_params.push_back(0.120331074004508);
-					initial_params.push_back(3.04451969902882);
-					initial_params.push_back(0.964965837096694);
-					initial_params.push_back(-0.902157465495305);
+					/*initial_params.clear();
+					initial_params.push_back(...);
 					*/
-					initial_params.push_back(0.122554609026554);
-					initial_params.push_back(-2.8571310975287);
-					initial_params.push_back(1.30884475955703);
-				        initial_params.push_back(0.678293734557697);
-				        initial_params.push_back(2.23375586290952);
-				        initial_params.push_back(0.427026918238707);
 					/*
 					 *
 					 * DELETEME
 					 *
 					 * */
 
+					std::cerr<<"Initial params: ";
 					for(auto &a:initial_params)
 						std::cerr<<a<<" ";
 					std::cerr<<std::endl;
@@ -1744,13 +1732,15 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
 					std::vector<double> upperBounds(initial_params.size(), 3.141592654);
 
-					bar.set_progress(0);
+					
+					//bar.set_progress(0);
 					logd("QAOA starting optimization", this->loglevel);
 					FastVQA::OptResult result = this->qaoaOptions->optimizer->optimize(f, initial_params, this->qaoaOptions->ftol, this->qaoaOptions->max_iters, lowerBounds, upperBounds);
 					logd("QAOA finishing optimization", this->loglevel);
 
-
-					std::cerr<<"min: "<<result.first.first<<std::endl;
+					std::cerr<<std::endl<<"min: "<<result.first.first<<std::endl;
+					//if(meta_data == "fixedQAOA")
+					//	std::cerr<<"min alpha c: "<< strategy_alpha_c(train_dataset, result.first.second, meta_data, &optimized_by)<<std::endl;
 					if(i_rand_angles == 0){
 						best_result = result;
 						std::cerr<<"new min: "<<result.first.first<<std::endl;
