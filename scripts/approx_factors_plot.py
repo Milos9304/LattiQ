@@ -22,6 +22,13 @@ print("popt2: ", popt2)
 print("pcov2: ", pcov2)
 
 
+print("x cm qaoa line_cm line_qaoa")
+
+for i in range(len(ms)):
+  
+    print(ms[i], a[i], a2[i], f(ms[i], popt[0], popt[1]), f(ms[i], popt2[0], popt2[1]))
+
+"""
 plt.plot(ms, a, label="CM_QAOA approx factor")
 plt.plot(ms, a2, label="QAOA approx factor")
 
@@ -36,3 +43,4 @@ plt.xlabel("lattice dimension")
 plt.ylabel("approximation factor")
 plt.legend()
 plt.show()
+"""
