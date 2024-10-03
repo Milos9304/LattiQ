@@ -10,6 +10,7 @@ with open('histogram_qaoa', 'r') as file:
 cmqaoa = list(map(float, cmqaoa))
 qaoa = list(map(float, qaoa))
 
+rnd=2**(-14)
 
 data=cmqaoa
 window = 100
@@ -33,5 +34,6 @@ plt.plot(qaoa)
 plt.plot(average_data)
 plt.plot(average_data2)
 
+plt.axhline(y=rnd, color='r', linestyle='-')
 
 plt.show()
