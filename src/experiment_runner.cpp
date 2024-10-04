@@ -897,7 +897,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 	std::vector<int> num_sols;
 
-	bool plot_histogram = true;
+	bool plot_histogram = false;
 	loge("Plot histogram="+std::to_string(plot_histogram));
 	double *histogram;
 	if(plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
