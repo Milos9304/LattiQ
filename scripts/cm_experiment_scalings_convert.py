@@ -2,7 +2,7 @@ import math
 
 training_until=10
 
-opt = True
+opt = False
 simple_alpha=False
 p_to_print = 3
 
@@ -178,8 +178,8 @@ for i in range(len(ms)):
         training2 = 0
     
         
-    print(ms[i], cm_overlap, ys["CMQAOA"][i][1], e_min, qaoa_overlap, ys["QAOA non_pen"][i][1], e2_min, 2**(line_cm[0]+ms[i]*line_cm[1]), 2**(line_qaoa[0]+ms[i]*line_qaoa[1]), training, training2, round(line_cm[1],3), round(line_qaoa[1],3))
-print(31, 0, 0,0, 0, 0, 0, 2**(line_cm[0]+31*line_cm[1]), 2**(line_qaoa[0]+31*line_qaoa[1]), 0, 0, round(line_cm[1],3), round(line_qaoa[1],3))
+    print(ms[i], cm_overlap, ys["CMQAOA"][i][1], e_min, qaoa_overlap, ys["QAOA non_pen"][i][1], e2_min, 2**(line_cm[0]+ms[i]*line_cm[1]), 2**(line_qaoa[0]+ms[i]*line_qaoa[1]), training, training2, -round(line_cm[1],3), -round(line_qaoa[1],3))
+print(31, 0, 0,0, 0, 0, 0, 2**(line_cm[0]+31*line_cm[1]), 2**(line_qaoa[0]+31*line_qaoa[1]), 0, 0, -round(line_cm[1],3), -round(line_qaoa[1],3))
 
 
 
