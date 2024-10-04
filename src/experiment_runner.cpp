@@ -797,7 +797,7 @@ void AngleResultsExperiment::run(){
 		if(this->evalOutput){
 			std::cerr<<"approx_factors=[";
 			for(auto &app: approx_map){
-				std::cerr<<app.second<<",";
+				std::cerr<<std::setprecision(15)<<app.second<<",";
 			}std::cerr<<"]"<<std::endl;
 		}
 
@@ -1058,13 +1058,14 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 
 		if(this->evalOutput){
-
+			
 			int k = 5000;
 
 			double expectation = 0;
 
 			FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
-			assert(refEnergies[0].value == 0 && refEnergies[1].value > 0);
+			
+			/*assert(refEnergies[0].value == 0 && refEnergies[1].value > 0);
 
 			double p0 = buffer.stateVector->stateVec.real[0]*buffer.stateVector->stateVec.real[0]+buffer.stateVector->stateVec.imag[0]*buffer.stateVector->stateVec.imag[0];
 
@@ -1073,7 +1074,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 			double sum_all_ps = 1-p0;
 
-			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; /*++j*/){
+			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ){
 
 				qreal new_minima = refEnergies[j].value;
 				double pi = 0;
@@ -1090,6 +1091,22 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 				//std::cerr<<std::endl;
 			}
 			approx_factors.push_back(sqrt(expectation / sv1_squared_len));
+			*/
+
+
+			double overlapp = 0;
+			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ++j){
+
+                                long long int index = refEnergies[j].index;
+                                if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2)){
+					overlapp += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+				}
+                                //std::cerr<<std::endl;
+                        }approx_factors.push_back(overlapp);
+
+
+
+
 			//std::cerr<<std::setprecision(15)<<expectation<<"/"<<sv1_squared_len<<std::endl;throw;
 		}
 		//std::cerr<<improvement_ratio<<std::endl;
@@ -1185,7 +1202,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 		double sum_approx = std::accumulate(approx_factors.begin(), approx_factors.end(), 0.0);
 		cost.mean_approx_factor = sum_approx / approx_factors.size();
-
+		//std::cerr<<"approx"<<cost.mean_approx_factor<<std::endl;
 	}
 
 	if(plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
