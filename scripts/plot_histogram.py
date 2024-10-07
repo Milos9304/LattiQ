@@ -28,11 +28,15 @@ for ind in range(len(data) - window + 1):
 print(sum(cmqaoa))
 print(sum(qaoa))
 
+print(len(cmqaoa))
+print(len(qaoa))
 
-plt.plot(cmqaoa)
-plt.plot(qaoa)
-plt.plot(average_data)
-plt.plot(average_data2)
+
+x = np.linspace(0, len(cmqaoa)-1, len(cmqaoa))
+plt.scatter(x,cmqaoa, color='blue', s=1, alpha=0.5)
+plt.scatter(x,qaoa, color='yellow', s=1) #alpha=0.4)
+plt.plot(average_data, color='black')
+plt.plot(average_data2, color='brown')
 
 plt.axhline(y=rnd, color='r', linestyle='-')
 

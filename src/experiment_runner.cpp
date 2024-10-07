@@ -1098,11 +1098,11 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 			int nsols=0;
 			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ++j){
 
-					long long int index = refEnergies[j].index;
-					if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2)){
-						overlapp += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
-						nsols++;
-					}
+				long long int index = refEnergies[j].index;
+				if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2)){
+					overlapp += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+					nsols++;
+				}
 
 			//std::cerr<<std::endl;
 			}approx_factors.push_back(overlapp);
