@@ -1,4 +1,5 @@
 import math
+import sys
 
 training_until=10
 
@@ -6,7 +7,8 @@ opt = False
 simple_alpha=False
 p_to_print = 3
 
-c = 4 
+#c = 3.5 
+c = float(sys.argv[1])
 
 def get_c_alpha(ll):
     
@@ -70,6 +72,15 @@ else:
         num_sols=list(map(float,
                           "1.20                2.38                2.45                2.50                2.54                2.52                2.44                2.42                2.88                3.00                3.22                3.92                4.76                5.42                6.22                7.22                8.76               10.82               13.66".split()))
 
+    elif c == 3.5:
+
+        ys={"CMQAOA": [0.15711592161748,0.0916857075373784,0.048937966474055,0.0249221058097739,0.0124983059409916,0.0074591117240877,0.00442425735550284,0.00277291899654686,0.00199639598648952,0.0009998625334712,0.000658095741548711,0.000363371371020249,0.000363135821806766,0.000256563465674521,0.000211537146656756,0.00016142775484282,0.000143819922346297,0.00016529631637365,0.000190895608567024],
+            "QAOA non_pen": [0.313422983136232,0.228914719169669,0.134558099760026,0.102014629404046,0.0644387757548967,0.0401680698500808,0.0312593885102511,0.011849091751187,0.0080135410423152,0.00814213912418708,0.00330712566539339,0.00218509981676415,0.00274233775509093,0.00165754576772629,0.00176362715463555,0.0015802895637172,0.00191069906636812,0.00206885218823845,0.00149191769161714]}
+
+        num_sols=list(map(float,
+                          "2.44                2.54                2.52                2.52                2.56                2.58                2.96                3.50                5.31                5.51                5.98                7.68               12.37               20.17               30.34               45.98               88.98              158.55              405.02".split()))
+
+
     elif c == 4:
         
         ys={"CMQAOA": [0.164268606956193,0.0925198524906305,0.0501075645208854,0.02577478069112,0.0136306461690166,0.0111675228587769,0.007739973702283,0.00487412828086428,0.00450098258044119,0.00236139790067184,0.00217134125174751,0.0017719465505197,0.0061542924355754,0.0153460245232322,0.0132026783827924,0.0182126206031537,0.0267283846265912,0.0399231603800648,0.0482039855809835],
@@ -86,6 +97,10 @@ else:
 cm_overlaps = []
 qaoa_overlaps = []
 
+rnd_gss = []
+grovers = []
+                        
+print("c="+str(c))
 print("x cm_overlap_sv qaoa_nonpen_overlap_sv alpha_line_cm alpha_line_qaoa fixed_used_in_training fixed_used_in_training2 alpha_cm alpha_qaoa")
 for i in range(len(ms)):
     cm_overlap=ys["CMQAOA"][i]
@@ -94,8 +109,17 @@ for i in range(len(ms)):
     cm_overlaps.append((cm_overlap, ms[i]))
     qaoa_overlaps.append((qaoa_overlap, ms[i]))
 
+    rnd_gss.append((num_sols[i]*2**(-ms[i]), ms[i]))
+    grovers.append((1./(math.ceil(math.pi/4)*math.sqrt((2**ms[i])/num_sols[i])), ms[i]))
+
 line_cm=get_c_alpha(cm_overlaps)
 line_qaoa=get_c_alpha(qaoa_overlaps)
+
+line_rnd=get_c_alpha(rnd_gss)
+line_grvs=get_c_alpha(grovers)
+
+print("rnd_alpha: ", round(line_rnd[1],3))
+print("grvs_alpha: ", round(line_grvs[1],3))
 
 for i in range(len(ms)):
     cm_overlap=ys["CMQAOA"][i]

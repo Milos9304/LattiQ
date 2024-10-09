@@ -1,10 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
-with open('histogram_cmqaoa', 'r') as file:
+if sys.argv[1] == "9":
+    app = "_p9"
+else:
+    app = ""    
+
+with open('histogram_cmqaoa'+app, 'r') as file:
     cmqaoa = file.readline().split()
     
-with open('histogram_qaoa', 'r') as file:
+with open('histogram_qaoa'+app, 'r') as file:
     qaoa = file.readline().split()
 
 cmqaoa = list(map(float, cmqaoa))
