@@ -208,7 +208,7 @@ CmQaoaExperiment::Cost CmQaoaExperiment::_cost_fn(CmQaoaExperiment::Instance*, b
 }*/
 
 
-AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset, bool eval_output){
+AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset, bool eval_output, bool plot_histogram){
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
@@ -229,6 +229,7 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_
 	if(this->evalOutput)
 		loge("k=5000");
 
+	this->plot_histogram = plot_histogram;
 
 	//if(this->qaoaOptions->p != 2)
 	//	throw_runtime_error("Angleres is only for p=2!");
@@ -896,11 +897,26 @@ std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_
 AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* dataset, const double *angles, std::string meta_data, bool use_database, int seed){
 
 	std::vector<int> num_sols;
+	int approx_approach = 1; //0 disabled, 1 approx factor, 2 approx SVP
 
-	bool plot_histogram = false;//true;
-	loge("Plot histogram="+std::to_string(plot_histogram));
+	if(this->evalOutput && approx_approach == 0)
+		throw_runtime_error("Incorrect setting");
+
+	std::ofstream apprFile;
+	if(this->evalOutput && approx_approach == 1){
+		if(meta_data == "QAOAnonpen"){
+			apprFile.open("appr_qaoa_"+std::to_string(((*dataset)[0]).h.nbQubits));
+		}else if(meta_data == "QAOApen"){
+			throw_runtime_error("Not defined");
+		}else{
+			apprFile.open("appr_cm_"+std::to_string(((*dataset)[0]).h.nbQubits));
+		}
+	}
+
+	//bool plot_histogram = false;
+	loge("Plot histogram="+std::to_string(this->plot_histogram));
 	double *histogram;
-	if(plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
+	if(this->plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
 		histogram = (double*) calloc(pow(2,14), sizeof(double));
 		for(unsigned long i = 0; i < pow(2,14); ++i)
 			histogram[i]=0;
@@ -1065,38 +1081,59 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 			FastVQA::RefEnergies refEnergies = qaoaOptions->accelerator->getEigenspace();//delete
 			
-			/*assert(refEnergies[0].value == 0 && refEnergies[1].value > 0);
+			if(approx_approach == 1){
 
-			double p0 = buffer.stateVector->stateVec.real[0]*buffer.stateVector->stateVec.real[0]+buffer.stateVector->stateVec.imag[0]*buffer.stateVector->stateVec.imag[0];
+				assert(refEnergies[0].value == 0 && refEnergies[1].value > 0);
 
-			double sv1_squared_len = refEnergies[1].value;
+				double p0 = buffer.stateVector->stateVec.real[0]*buffer.stateVector->stateVec.real[0]+buffer.stateVector->stateVec.imag[0]*buffer.stateVector->stateVec.imag[0];
 
+				double sv1_squared_len = refEnergies[1].value;
 
 			double sum_all_ps = 1-p0;
 
-			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ){
+				double sum_all_ps = 1-p0;
 
-				qreal new_minima = refEnergies[j].value;
-				double pi = 0;
-				while(refEnergies[j].value == new_minima){
-					long long int index = refEnergies[j].index;
-					pi += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
-					//std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<" "<<pi<<std::endl;
-					++j;
+				for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ){
+
+					qreal new_minima = refEnergies[j].value;
+					double pi = 0;
+					while(refEnergies[j].value == new_minima){
+						long long int index = refEnergies[j].index;
+						pi += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+						//std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<" "<<pi<<std::endl;
+						++j;
+					}
+
+					sum_all_ps -= pi;
+					expectation += refEnergies[j-1].value * (pow(sum_all_ps+p0+pi, k)-pow(sum_all_ps, k)-pow(p0, k));
+
+					//std::cerr<<std::endl;
 				}
 
-				sum_all_ps -= pi;
-				expectation += refEnergies[j-1].value * (pow(sum_all_ps+p0+pi, k)-pow(sum_all_ps, k)-pow(p0, k));
+				apprFile << sqrt(expectation / sv1_squared_len) << " ";
+
+				approx_factors.push_back(sqrt(expectation / sv1_squared_len));
+
+			}else if(approx_approach == 2){
+
+				double overlapp = 0;
+				int nsols=0;
+				for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ++j){
+
+					long long int index = refEnergies[j].index;
+					if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2)){
+						overlapp += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
+						nsols++;
+					}
 
 				//std::cerr<<std::endl;
-			}
-			approx_factors.push_back(sqrt(expectation / sv1_squared_len));
-			*/
+				}approx_factors.push_back(overlapp);
 
+				num_sols.pop_back();
+				num_sols.push_back(nsols);
 
-			double overlapp = 0;
-			int nsols=0;
-			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ++j){
+			}else
+				throw_runtime_error("Invalid setting");
 
 				long long int index = refEnergies[j].index;
 				if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2.5)){
@@ -1165,6 +1202,29 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		zero_overlaps.push_back(zero_overlap/* / 	(qreal)(1./pow(2, instance.h.nbQubits)) * instance.zero_solutions.size()*/);
 
 		//std::cerr<<ground_state_overlap<<" "<<instance.random_guess<<"\n";
+
+		if(this->plot_histogram){
+			//loge("Plotting histogram, therefore breaking after 1 instance");
+			//break;
+			std::ofstream myfile;
+			std::string filename = "histograms/hist_";
+			if(meta_data == "QAOAnonpen"){
+				filename+="qaoa";
+			}else{
+				filename+="cmqaoa";
+			}
+			filename+="_"+std::to_string(i);
+			myfile.open (filename);
+			//myfile << "Writing this to a file.\n";
+			//myfile.close();
+			for(unsigned long jj = 0; jj < pow(2,14); ++jj){
+
+				//histogram[i]/=(*dataset).size();
+
+				myfile<<histogram[jj]<<" ";
+			}myfile.close();//std::cerr<<std::endl;
+		}
+
 		i++;
 
 		this->qaoaOptions->accelerator->options.createQuregAtEachInilization = false;
@@ -1209,13 +1269,22 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		double sum_approx = std::accumulate(approx_factors.begin(), approx_factors.end(), 0.0);
 		cost.mean_approx_factor = sum_approx / approx_factors.size();
 		//std::cerr<<"approx"<<cost.mean_approx_factor<<std::endl;
+
+		if(approx_approach == 1)
+			apprFile.close();
+
+
 	}
 
-	if(plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
+	if(this->plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
+		/*loge("//histogram[i]/=(*dataset).size(); commented out");
+
 		for(unsigned long i = 0; i < pow(2,14); ++i){
-			histogram[i]/=(*dataset).size();
+
+			//histogram[i]/=(*dataset).size();
+
 			std::cerr<<histogram[i]<<" ";
-		}std::cerr<<std::endl;
+		}std::cerr<<std::endl;*/
 		free(histogram);
 	}
 
@@ -1281,7 +1350,7 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 		b=(alpha_calc_dataset_size*sum_xi_yi-sum_xi*sum_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
 		//std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
 
-		double alpha = -b;
+		double alpha = -b;s
 		//final_ab.first = a;
 		//final_ab.second = a;
 
@@ -1484,12 +1553,12 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	int q = 97;
 	int m_start = 4;
-	int m_end = 8; //11
+	int m_end = 10; //11
 	//loge("m_end changed from 10 to 11");
 
 	bool new_way=true;
 
-	int max_num_instances = 10;//100 used in paper experiments
+	int max_num_instances = 100;//1000;
 	double test_ratio = 0;//.2;
 
 	int num_params = this->p*2;
@@ -1713,8 +1782,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
 					if(indexx == 0){ //CM-QAOA
-						//return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
-						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
+						return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
+						//return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
 						
 						
 						//return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);

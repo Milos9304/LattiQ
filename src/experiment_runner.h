@@ -57,6 +57,7 @@ public:
 			}
 		};
 
+	bool plot_histogram = false;
 
 	~AngleExperimentBase(){
 		this->logfile.close();
@@ -371,7 +372,8 @@ MAXEVAL_REACHED
 			FastVQA::QAOAOptions*, MapOptions*, Database*,
 			int seed,
 			bool use_database_to_load_dataset,
-			bool evalOutput);
+			bool evalOutput,
+			bool plot_histogram);
 
 	void run_qaoa_with_optimizer();
 
