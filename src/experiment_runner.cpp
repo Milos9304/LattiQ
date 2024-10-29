@@ -1089,8 +1089,6 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 				double sv1_squared_len = refEnergies[1].value;
 
-			double sum_all_ps = 1-p0;
-
 				double sum_all_ps = 1-p0;
 
 				for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ){
@@ -1135,17 +1133,11 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 			}else
 				throw_runtime_error("Invalid setting");
 
-				long long int index = refEnergies[j].index;
-				if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2.5)){
-					overlapp += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
-					nsols++;
-				}
-
 			//std::cerr<<std::endl;
-			}approx_factors.push_back(overlapp);
+			//approx_factors.push_back(overlapp);
 
-			num_sols.pop_back();
-			num_sols.push_back(nsols);
+			//num_sols.pop_back();
+			//num_sols.push_back(nsols);
 
 
 
@@ -1350,7 +1342,7 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 		b=(alpha_calc_dataset_size*sum_xi_yi-sum_xi*sum_yi)/(alpha_calc_dataset_size*sum_xi2-sum_xi*sum_xi);
 		//std::cerr<<"2^"<<a<<"+n*"<<b<<std::endl;
 
-		double alpha = -b;s
+		double alpha = -b;
 		//final_ab.first = a;
 		//final_ab.second = a;
 
