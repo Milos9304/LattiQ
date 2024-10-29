@@ -897,7 +897,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 	std::vector<int> num_sols;
 
-	bool plot_histogram = false;
+	bool plot_histogram = false;//true;
 	loge("Plot histogram="+std::to_string(plot_histogram));
 	double *histogram;
 	if(plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
@@ -1099,7 +1099,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 			for(long long int j = 1; j < buffer.stateVector->numAmpsTotal; ++j){
 
 				long long int index = refEnergies[j].index;
-				if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2)){
+				if(refEnergies[j].value <= refEnergies[1].value * pow(instance.h.nbQubits, 2.5)){
 					overlapp += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 					nsols++;
 				}
@@ -1484,12 +1484,12 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 	int q = 97;
 	int m_start = 4;
-	int m_end = 10; //11
+	int m_end = 8; //11
 	//loge("m_end changed from 10 to 11");
 
 	bool new_way=true;
 
-	int max_num_instances = 100;//1000;
+	int max_num_instances = 10;//100 used in paper experiments
 	double test_ratio = 0;//.2;
 
 	int num_params = this->p*2;
@@ -1713,8 +1713,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
 					if(indexx == 0){ //CM-QAOA
-						return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
-						//return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
+						//return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
+						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
 						
 						
 						//return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
