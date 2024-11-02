@@ -28,6 +28,7 @@
 
 const double pi = 3.141592654;
 
+
 std::string nlopt_res_to_str(int result){
   switch(result)
   {
@@ -1311,6 +1312,7 @@ inline double AlphaMinimizationExperiment::strategy_alpha_c(std::vector<std::vec
 		//final_ab.first = a;
 		//final_ab.second = a;
 
+		std::cerr<<"2^n*"<<alpha<<std::endl;
 		return alpha;
 
 
@@ -1774,8 +1776,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 					//return strategy_random_inv_diff(train_dataset, angles, meta_data);
 					if(indexx == 0){ //CM-QAOA
-						return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
-						//return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
+						//return strategy_random_alpha_c(train_dataset, angles, meta_data, &optimized_by, iteration_i-1, p_num, p_inst);
+						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);
 						
 						
 						//return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
@@ -1804,61 +1806,79 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 
 				FastVQA::OptResult best_result;
 
-				int max_i_rand_angles = (append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true) ? 1 : 100;
-				max_i_rand_angles = 1000;
 
-				for(int i_rand_angles = 0; i_rand_angles < max_i_rand_angles; i_rand_angles++){
+					int max_i_rand_angles = (append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true) ? 1 : 100;
+					max_i_rand_angles = 1/*000*/;
 
-					initial_params.clear();
-
-					logi("Random angles "+std::to_string(i_rand_angles)+"/"+std::to_string(max_i_rand_angles));
-
-					if(append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true){
-
-						loge("Append previous angles");
-
-						if(indexx == 0){
-							for(int i = 0; i < num_params/2-1; ++i){
-								double param1 = AngleResultsExperiment::optAngles[p-1].cm_angles[2*i];
-								double param2 = AngleResultsExperiment::optAngles[p-1].cm_angles[2*i+1];
-								std::cerr<<param1<<" "<<param2<<std::endl;
-								initial_params.push_back(param1);
-								initial_params.push_back(param2);
-							}
-							initial_params.push_back(0);
-							initial_params.push_back(0);
-							std::cerr<<0<<" "<<0<<std::endl;
-
-						}else if(indexx == 1){
-							for(int i = 0; i < num_params/2-1; ++i){
-								double param1 = AngleResultsExperiment::optAngles[p-1].qaoa_angles[2*i];
-								double param2 = AngleResultsExperiment::optAngles[p-1].qaoa_angles[2*i+1];
-								std::cerr<<param1<<" "<<param2<<std::endl;
-								initial_params.push_back(param1);
-								initial_params.push_back(param2);
-							}
-							initial_params.push_back(0);
-							initial_params.push_back(0);
-							std::cerr<<0<<" "<<0<<std::endl;
-						}else{
-							throw_runtime_error("Unimplemented condition case");
-						}
-
-
-					}else{
-
-						loge("append_previous_angles = false");
-
-						std::mt19937 gen(i_rand_angles/*this->seed*/); //rd() instead of 0 - seed
-						std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
-						for(int i = 0; i < num_params/2; ++i){
-							double param1 = /*pi/4.;*/dis(gen);
-							double param2 = /*pi/8.;*/dis(gen);
-							std::cerr<<param1<<" "<<param2<<std::endl;
-							initial_params.push_back(param1);
-							initial_params.push_back(param2);
-						}
+					if(this->qaoaOptions->optimizer->add_nondecreasing_constraint){
+						max_i_rand_angles = 1;
 					}
+
+					for(int i_rand_angles = 0; i_rand_angles < max_i_rand_angles; i_rand_angles++){
+
+						initial_params.clear();
+
+						logi("Random angles "+std::to_string(i_rand_angles)+"/"+std::to_string(max_i_rand_angles));
+
+						if(append_previous_angles && AngleResultsExperiment::optAngles[p-1].initialized == true){
+
+							loge("Append previous angles");
+
+							if(indexx == 0){
+								for(int i = 0; i < num_params/2-1; ++i){
+									double param1 = AngleResultsExperiment::optAngles[p-1].cm_angles[2*i];
+									double param2 = AngleResultsExperiment::optAngles[p-1].cm_angles[2*i+1];
+									std::cerr<<param1<<" "<<param2<<std::endl;
+									initial_params.push_back(param1);
+									initial_params.push_back(param2);
+								}
+								initial_params.push_back(0);
+								initial_params.push_back(0);
+								std::cerr<<0<<" "<<0<<std::endl;
+
+							}else if(indexx == 1){
+								for(int i = 0; i < num_params/2-1; ++i){
+									double param1 = AngleResultsExperiment::optAngles[p-1].qaoa_angles[2*i];
+									double param2 = AngleResultsExperiment::optAngles[p-1].qaoa_angles[2*i+1];
+									std::cerr<<param1<<" "<<param2<<std::endl;
+									initial_params.push_back(param1);
+									initial_params.push_back(param2);
+								}
+								initial_params.push_back(0);
+								initial_params.push_back(0);
+								std::cerr<<0<<" "<<0<<std::endl;
+							}else{
+								throw_runtime_error("Unimplemented condition case");
+							}
+
+
+						}else if(this->qaoaOptions->optimizer->add_nondecreasing_constraint){
+							for(int i = 0; i < num_params/2; ++i){
+
+								double step = pi/(2+num_params/2);
+								double param1 = step*(i+1);
+								double param2 = pi-step*(i+1);
+								std::cerr<<param1<<" "<<param2<<std::endl;
+								initial_params.push_back(param1);
+								initial_params.push_back(param2);
+
+							}
+						}else{
+
+							loge("append_previous_angles = false");
+
+							std::mt19937 gen(i_rand_angles/*this->seed*/); //rd() instead of 0 - seed
+							std::uniform_real_distribution<> dis(-3.141592654, 3.141592654);
+							for(int i = 0; i < num_params/2; ++i){
+								double param1 = /*pi/4.;*/dis(gen);
+								double param2 = /*pi/8.;*/dis(gen);
+								std::cerr<<param1<<" "<<param2<<std::endl;
+								initial_params.push_back(param1);
+								initial_params.push_back(param2);
+							}
+						}
+
+
 
 					/*DELETEME
 					 *
@@ -1874,10 +1894,6 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					 * DELETEME
 					 *
 					 * */
-
-					for(auto &a:initial_params)
-						std::cerr<<a<<" ";
-					std::cerr<<std::endl;
 
 					std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
 					std::vector<double> upperBounds(initial_params.size(), 3.141592654);

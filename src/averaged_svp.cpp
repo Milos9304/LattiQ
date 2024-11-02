@@ -40,6 +40,7 @@ int main(int ac, char** av){
 	auto aqc_pqc	     		= op.add<Switch>("", "aqcpqc", "aqcpqc");
 	auto eval_quality     		= op.add<Switch>("", "eval", "Evaluate output quality");
 	auto histogram	     		= op.add<Switch>("", "hist", "scripts/histogram experiment");
+	auto nondecrconstraint		= op.add<Switch>("", "nondecr", "non-decreasing constraint in alpha minimization");
 
 
 	op.parse(ac, av);
@@ -76,6 +77,9 @@ int main(int ac, char** av){
 	acceleratorOptions.log_level = /*performance_calc->is_set() ? 3 :*/ log_level->value();
 
 	FastVQA::NLOptimizer optimizer;
+	if(nondecrconstraint->is_set()){
+		optimizer.add_nondecreasing_constraint = true;
+	}
 
 	FastVQA::Accelerator accelerator(acceleratorOptions);
 

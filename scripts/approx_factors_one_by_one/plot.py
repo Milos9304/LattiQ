@@ -42,13 +42,13 @@ cm_med=list(map(lambda x: x[1], sorted(cm_median.items())))
 qaoa_med=list(map(lambda x: x[1], sorted(qaoa_median.items())))
 
 
-plt.plot(dims,cm_avg,color='blue')
-plt.plot(dims,qaoa_avg,color='red')
+plt.plot(dims,cm_avg,color='blue', label='cm average')
+plt.plot(dims,qaoa_avg,color='red', label='qaoa average')
 
-plt.plot(dims,cm_med,color='blue',linestyle='dashed')
-plt.plot(dims,qaoa_med,color='red',linestyle='dashed')
+plt.plot(dims,cm_med,color='blue',linestyle='dashed', label='cm median')
+plt.plot(dims,qaoa_med,color='red',linestyle='dashed', label='qaoa median')
 
 
-
+plt.legend()
 plt.show()
 
