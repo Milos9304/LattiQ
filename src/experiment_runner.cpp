@@ -1782,7 +1782,8 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 						
 						//return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);						//return strategy_inv_diff(train_dataset, angles, meta_data);
 					}else if(indexx == 1) //QAOA
-						return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);//strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//strategy_inv_diff(train_dataset, angles, meta_data);
+						//DEFAULT HERE return strategy_inv_diff(train_dataset, angles, meta_data, &optimized_by);
+						return strategy_alpha_c(train_dataset, angles, meta_data, &optimized_by);						//strategy_inv_diff(train_dataset, angles, meta_data);
 					else{
 						throw_runtime_error("Not implemented conditional case");
 						return 0.;
@@ -1895,7 +1896,7 @@ void AlphaMinimizationExperiment::run(bool use_database_to_load_dataset){
 					 *
 					 * */
 
-					std::vector<double> lowerBounds(initial_params.size(), -3.141592654);
+					std::vector<double> lowerBounds(initial_params.size(), /*-3.141592654*/0);loge("Changed LB to 0");
 					std::vector<double> upperBounds(initial_params.size(), 3.141592654);
 
 					//bar.set_progress(0);
