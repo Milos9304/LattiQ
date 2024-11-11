@@ -28,6 +28,42 @@ for i in range(len(ms)):
   
     print(ms[i], a[i], a2[i], f(ms[i], popt[0], popt[1]), f(ms[i], popt2[0], popt2[1]))
 
+# Now I try to fix the common constant
+
+len_a=len(a)
+len_a2=len(a2)
+
+ms.extend(ms)
+
+print(ms)
+
+def f_com(x, k, b, c):
+    """cost=0.
+    for ii in x:
+        if ii > 100:
+            i = x - 100
+        else:
+            i = x
+        cost += a*(i**b)+a*(i**c)
+    return cost"""
+    res = k*(x[:int(len(x)/2)]**b)
+    return np.append(res, k*(x[int(len(x)/2):]**c))
+
+
+a.extend(a2)
+
+popt_com, pcov_com = curve_fit(f_com, ms, a, maxfev=30000)
+
+print("popt_com: ", popt_com)
+print("pcov_com: ", pcov_com)
+print()
+print("x cm qaoa line_cm line_qaoa")
+
+for i in range(int(len(ms)/2)):
+
+    print(ms[i], a[i], a2[i], popt_com[0]*(ms[i]**popt_com[1]), popt_com[0]*(ms[i]**popt_com[2]))
+#
+
 """
 plt.plot(ms, a, label="CM_QAOA approx factor")
 plt.plot(ms, a2, label="QAOA approx factor")
