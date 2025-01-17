@@ -115,7 +115,7 @@ public:
 
 	}
 
-	void run();
+	void run(FastVQA::AqcPqcAcceleratorOptions* options, int num_instances=-1);
 
 };
 

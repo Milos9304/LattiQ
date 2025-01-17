@@ -38,6 +38,9 @@ int main(int ac, char** av){
 	auto m_start	     		= op.add<Value<int>>("", "mstart", "m_start", 4);
 	auto m_end		     		= op.add<Value<int>>("", "mend", "m_end", 20);
 	auto aqc_pqc	     		= op.add<Switch>("", "aqcpqc", "aqcpqc");
+	auto aqc_pqc_steps     		= op.add<Value<int>>("", "steps", "aqcpqc steps", 20);
+	auto aqc_pqc_depth     		= op.add<Value<int>>("", "aqcdepth", "aqcpqc depth", 1);
+	auto aqc_pqc_numInstances	= op.add<Value<int>>("", "inst", "aqcpqc num instances", 80);
 	auto eval_quality     		= op.add<Switch>("", "eval", "Evaluate output quality");
 	auto histogram	     		= op.add<Switch>("", "hist", "scripts/histogram experiment");
 	auto nondecrconstraint		= op.add<Switch>("", "nondecr", "non-decreasing constraint in alpha minimization");
@@ -172,9 +175,43 @@ int main(int ac, char** av){
 			return 0;
 		}
 
+		const int loglevel = 1;
+			const int round_decimals = 5; //-1 undefined
+			const int opt_strategy = 0;	  //0=trivially, 1=rank_reduction
+			const int num_steps = aqc_pqc_steps->value();
+			const int ansatz_depth = aqc_pqc_depth->value();
+			const double xtol = 10e-5;
+			const double catol = 0.0002;
+			const bool classical_esolver_compare = false;
+			const bool outputLogToFile = false;
+			const bool checkHessian = true;
+			const bool printGroundStateOverlap = false;
+			const bool print_eps = false;
+			const int eval_limit_step = 1200; //max iterations per step
+
+		FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;
+
+		acceleratorOptions.log_level = loglevel;
+		acceleratorOptions.logFileName = "aqc_pqc_log.txt";
+		acceleratorOptions.roundDecimalPlaces = round_decimals;
+		acceleratorOptions.optStrategy = opt_strategy;
+		acceleratorOptions.accelerator_type = "quest";
+		acceleratorOptions.nbSteps = num_steps;
+		acceleratorOptions.ansatz_name = "Ry_Cz_nn_Ry";//"Ry_CNOT_nn_Rz_CNOT_Rz"
+		acceleratorOptions.ansatz_depth = ansatz_depth;
+		acceleratorOptions.xtol = xtol;
+		acceleratorOptions.catol = catol;
+		acceleratorOptions.compareWithClassicalEigenSolver = classical_esolver_compare;
+		acceleratorOptions.outputLogToFile = outputLogToFile;
+		acceleratorOptions.checkHessian = checkHessian;
+		acceleratorOptions.printGroundStateOverlap = printGroundStateOverlap;
+		acceleratorOptions.printEpsilons = print_eps;
+		acceleratorOptions.eval_limit_step = eval_limit_step;
+		acceleratorOptions.initialGroundState = FastVQA::InitialGroundState::PlusState;
+
 		Database database(database_file, Database::DATABASE_EIGENGEN_AQCPQC_DATASET);
 		AqcPqcExperiment aqcPqcExperiment(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true);
-		aqcPqcExperiment.run();
+		aqcPqcExperiment.run(&acceleratorOptions, aqc_pqc_numInstances->value());
 
 		return 0;
 	}else if(g1->is_set()){

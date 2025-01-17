@@ -1,7 +1,7 @@
 #include "experiment_runner.h"
 #include <algorithm>
 
-void AqcPqcExperiment::run(){
+void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_instances){
 
 	/*
 	 * DEFAULTS
@@ -20,22 +20,10 @@ void AqcPqcExperiment::run(){
 	const bool print_eps = false;
 	const int eval_limit_step = 600; //max iterations per step*/
 
-	const int loglevel = 1;
-	const int round_decimals = 5; //-1 undefined
-	const int opt_strategy = 0;	  //0=trivially, 1=rank_reduction
-	const int num_steps = 20;
-	const int ansatz_depth = 3;
-	const double xtol = 10e-5;
-	const double catol = 0.0002;
-	const bool classical_esolver_compare = false;
-	const bool outputLogToFile = false;
-	const bool checkHessian = true;
-	const bool printGroundStateOverlap = false;
-	const bool print_eps = false;
-	const int eval_limit_step = 1200; //max iterations per step
 
 
-	FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;
+
+	FastVQA::AqcPqcAcceleratorOptions acceleratorOptions = *options;
 
 	/*
 	 * DEFAULTS
@@ -58,30 +46,14 @@ void AqcPqcExperiment::run(){
 	acceleratorOptions.eval_limit_step = eval_limit_step;
 	acceleratorOptions.initialGroundState = FastVQA::InitialGroundState::PlusState;*/
 
-	acceleratorOptions.log_level = loglevel;
-	acceleratorOptions.logFileName = "aqc_pqc_log.txt";
-	acceleratorOptions.roundDecimalPlaces = round_decimals;
-	acceleratorOptions.optStrategy = opt_strategy;
-	acceleratorOptions.accelerator_type = "quest";
-	acceleratorOptions.nbSteps = num_steps;
-	acceleratorOptions.ansatz_name = "Ry_Cz_nn_Ry";//"Ry_CNOT_nn_Rz_CNOT_Rz"
-	acceleratorOptions.ansatz_depth = ansatz_depth;
-	acceleratorOptions.xtol = xtol;
-	acceleratorOptions.catol = catol;
-	acceleratorOptions.compareWithClassicalEigenSolver = classical_esolver_compare;
-	acceleratorOptions.outputLogToFile = outputLogToFile;
-	acceleratorOptions.checkHessian = checkHessian;
-	acceleratorOptions.printGroundStateOverlap = printGroundStateOverlap;
-	acceleratorOptions.printEpsilons = print_eps;
-	acceleratorOptions.eval_limit_step = eval_limit_step;
-	acceleratorOptions.initialGroundState = FastVQA::InitialGroundState::PlusState;
+
 
 	//this->mapOptions->penalty = 0;
 
 	std::vector<int> num_iters;
 	std::vector<double> final_overlaps;
 
-	//this->max_num_instances = 80;
+	this->max_num_instances = 80;
 
 	for(int m = m_start; m <= m_end; ++m){
 
@@ -96,11 +68,16 @@ void AqcPqcExperiment::run(){
 		int i = 0;
 		for(auto &instance: dataset){
 
-			logi("Instance " + std::to_string(i) + "/"+std::to_string(dataset.size()));
+			if(num_instances == -1)
+				logi("Instance " + std::to_string(i) + "/"+std::to_string(dataset.size()));
+			else
+				logi("Instance " + std::to_string(i) + "/"+std::to_string(num_instances));
+
+
 			logi(std::to_string(instance.h.nbQubits) + " qubits");
 
-			if(i >= 80){
-				logw("aqcpqc.cpp breaking after 80 instances");
+			if(i >= /*80*/num_instances && num_instances > 0){
+				logw("aqcpqc.cpp breaking after "+std::to_string(num_instances)+"instances");
 				break;
 			}
 
@@ -147,9 +124,10 @@ void AqcPqcExperiment::run(){
 			i++;
 		}
 
+		std::ofstream myfile("dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
 		for(auto &o : final_overlaps){
-			std::cerr<<o<<","<<std::endl;
-		}
+			myfile<<o/*<<","*/<<std::endl;
+		}myfile.close();
 
 
 		logw("Breaking after first m");
