@@ -27,6 +27,7 @@ int main(int ac, char** av){
 	auto param_experiment 		= op.add<Value<int>>("", "paramexp", "experiment with n different random initial parameters (0 for disabled)", 0);
 	auto angle_results	  		= op.add<Switch>("", "angleres", "results of constant angles experiment");
 	auto angle_results_opt 		= op.add<Switch>("", "angleresopt", "results of opt experiment");
+	auto num_starts     		= op.add<Value<int>>("", "starts", "angleresopt num starts", 5000);
 	auto test_variable_subst 	= op.add<Switch>("", "testsubst", "test variable substitution");
 	auto performance_calc   	= op.add<Switch>("", "performance", "calculate performance");
 	//auto cmqaoa					= op.add<Switch>("", "cm", "run cmqaoa experiment");
@@ -93,7 +94,7 @@ int main(int ac, char** av){
 	qaoaOptions.accelerator = &accelerator;
 	qaoaOptions.nbSamples_calcVarAssignment=1000;
 	qaoaOptions.p = qaoadepth->value();
-	qaoaOptions.ftol = 10e-12;
+	qaoaOptions.ftol = 10e-1;
 	long long int max_iters = 0;
 	//DiagonalHamiltonian h;
 	//calculateAverage(n, &h);
@@ -159,10 +160,10 @@ int main(int ac, char** av){
 
 
 		Database database(database_file, Database::DATABASE_EIGENGEN_DATASET);
-		AngleResultsExperiment angleResultsExp(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true, eval_quality->is_set(), histogram->is_set());
+		AngleResultsExperiment angleResultsExp(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true, eval_quality->is_set(), histogram->is_set(), num_starts->value());
 
 		if(angle_results_opt->is_set())
-			angleResultsExp.run_qaoa_with_optimizer();
+			angleResultsExp.run_qaoa_with_optimizer(penalty->value() == 0 ? 1 : 2);
 		else
 			angleResultsExp.run();
 

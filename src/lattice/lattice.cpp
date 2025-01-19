@@ -103,7 +103,6 @@ FastVQA::PauliHamiltonian Lattice::getHamiltonian(MapOptions* options){
 		}
 		result.custom_solutions.push_back(s);
 	}
-
 	return result;
 }
 
@@ -270,12 +269,6 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 			bin_initialized = true;
 		}
 
-
-		if(!solutions_calculated){
-			calculate_solutions(options->penalty == 0 ? true : false, print);
-			solutions_calculated = true;
-		}
-
 		if(!pen_initialized){
 
 			if(gramian){
@@ -294,6 +287,11 @@ void Lattice::calcHamiltonian(MapOptions* options, bool print){
 
 			penalize_expr(options->penalty, /*options->pen_mode, */print);
 			pen_initialized = true;
+		}
+
+		if(!solutions_calculated){
+			calculate_solutions(options->penalty == 0 ? true : false, print);
+			solutions_calculated = true;
 		}
 
 		if(!qubo_generated){
@@ -471,9 +469,13 @@ void Lattice::init_expr_bin(MapOptions::bin_mapping mapping, bool print){
 void Lattice::_bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolMap, int i, bool allow_for_zero_ground_state){
 
 	if (i == n) {
-		mpq_class result = expression_bin->evaluate_bin_expr(varBoolMap);
+		mpq_class result;
+		if(allow_for_zero_ground_state)
+			result = expression_bin->evaluate_bin_expr(varBoolMap);
+		else
+			result = expression_penalized->evaluate_bin_expr(varBoolMap);
 
-		/*std::cerr<<result<<" ";
+		/*std::cerr<<"del: "<<result<<"   ";
 		for (const auto & [key, value] : *varBoolMap){
 			std::cout<<key->name<<"="<<value<<" ";
 		}std::cout<<std::endl<<std::endl;*/
@@ -505,7 +507,11 @@ void Lattice::_bruteForceSolutions(int n, std::map<FastVQA::Var*, int> *varBoolM
 
 void Lattice::calculate_solutions(bool allow_for_zero_ground_state, bool print){
 
-	std::vector<FastVQA::Var*> variables = expression_bin->getVariables();
+	std::vector<FastVQA::Var*> variables;
+	if(allow_for_zero_ground_state)
+		variables = expression_bin->getVariables();
+	else
+		variables = expression_penalized->getVariables();
 	if(variables[0]->id != -1){
 		loge("Error! id not the first val");
 		return;

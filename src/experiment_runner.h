@@ -38,7 +38,7 @@ public:
 	int m_start; /*9*/;
 	int m_end;// = 20;//10;///20; //10;
 
-	int max_num_instances = 100;//3000;
+	int max_num_instances = 10;//3000;
 
 	struct Cost{
 			double mean;
@@ -46,6 +46,7 @@ public:
 			double mean_zero;
 			double mean_num_of_sols;
 			double mean_approx_factor;
+			double num_iters;
 
 			Cost(){}
 
@@ -94,7 +95,9 @@ protected:
 	bool use_database_to_load_dataset;
 	bool evalOutput;
 
-	std::pair<double, double> try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed);
+	int num_starts;
+
+	std::tuple<double, double, int> try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed);
 	Cost _cost_fn(std::vector<Instance>*, const double *angles, std::string meta_data, bool use_database=false, int seed=0);
 };
 
@@ -373,9 +376,10 @@ MAXEVAL_REACHED
 			int seed,
 			bool use_database_to_load_dataset,
 			bool evalOutput,
-			bool plot_histogram);
+			bool plot_histogram,
+			int num_starts);
 
-	void run_qaoa_with_optimizer();
+	void run_qaoa_with_optimizer(int index);
 
 	void run();
 

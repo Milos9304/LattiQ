@@ -209,7 +209,7 @@ CmQaoaExperiment::Cost CmQaoaExperiment::_cost_fn(CmQaoaExperiment::Instance*, b
 }*/
 
 
-AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset, bool eval_output, bool plot_histogram){
+AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset, bool eval_output, bool plot_histogram, int num_starts){
 
 	this->loglevel = loglevel;
 	this->qaoaOptions = qaoaOptions;
@@ -231,6 +231,8 @@ AngleResultsExperiment::AngleResultsExperiment(int loglevel, int m_start, int m_
 		loge("k=5000");
 
 	this->plot_histogram = plot_histogram;
+
+	this->num_starts = num_starts;
 
 	//if(this->qaoaOptions->p != 2)
 	//	throw_runtime_error("Angleres is only for p=2!");
@@ -312,7 +314,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 
 
 		if(penalise){
-			std::cerr<<"setting penalty="<<l.getSquaredLengthOfFirstBasisVector();
+			//std::cerr<<"setting penalty="<<l.getSquaredLengthOfFirstBasisVector();
 			mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
 		}else{
 			mapOptions->penalty = 0;
@@ -383,7 +385,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 						std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<std::endl;
 					else
 						throw;*/
-			//std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<std::endl;
+			//std::cerr<<"del:"<<refEnergies[j].index<<" "<<refEnergies[j].value<<std::endl;
 
 			if(refEnergies[j].value == min)
 				instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
@@ -402,26 +404,31 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		for(auto &sol : instance.sv_solutions){
 			if(sol.value != sv1Squared)
 				throw_runtime_error("solutions with different values!");
-		//	logw(s(sol.index)+" "+s(sol.value));
+			//logw(s(sol.index)+" "+s(sol.value));
 		}
 
 		//t_end = std::chrono::high_resolution_clock::now();
 		//elapsed_time_ms = std::chrono::duration<double, std::milli>(t_end-t_start).count();
 		//logfile << "del include4, " << elapsed_time_ms <<std::endl<<std::flush;
 
-		instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
-		if(instance.zero_solutions.size() > 1){
-			loge("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
-			loge("Solutions marked as zero (index value):");
-			for(auto &sol : instance.zero_solutions){
-				loge("("+s(sol.index)+" "+s(sol.value)+")");
+		if(!penalise){
+			instance.zero_solutions = qaoaOptions->accelerator->getSolutions();
+
+			if(instance.zero_solutions.size() > 1){
+				loge("CmQaoaExperiment: Unimplemented, more than 1 solution marked");
+				loge("Solutions marked as zero (index value):");
+				for(auto &sol : instance.zero_solutions){
+					loge("("+s(sol.index)+" "+s(sol.value)+")");
+				}
+			}
+
+			for(auto &sol: instance.zero_solutions){
+				if(sol.value != 0){
+					logw("CmQaoaExperiment: Something else ("+std::to_string(sol.value)+") than 0 state marked as a zero solution");
+				}
 			}
 		}
 
-		for(auto &sol: instance.zero_solutions){
-			if(sol.value != 0)
-				throw_runtime_error("CmQaoaExperiment: Something else than 0 state marked as a solution");
-		}
 		//long long int zero_index = instance.zero_solutions[0].index;
 
 		/*qreal min_energy = instance.solutions[0].value;
@@ -476,7 +483,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 	return dataset;
 }
 
-void AngleResultsExperiment::run_qaoa_with_optimizer(){
+void AngleResultsExperiment::run_qaoa_with_optimizer(int index){
 
 	bool penalise;
 
@@ -498,7 +505,7 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 
 	this->mapOptions->penalty = 0;
 
-	for(int index = 0; index < 2; ++index){
+	//for(int index = 1; index <= 2; ++index){
 
 		if(index == 0){
 			std::cerr<<std::endl<<"optCM-QAOA"<<std::endl;
@@ -508,14 +515,14 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 			meta_data="optCMQAOA";
 			penalise=false;
 		}else if(index == 1){
-			std::cerr<<std::endl<<"optQAOA penalty=0"<<std::endl;
+			std::cerr<<std::endl<<"optQAOAnonPen"<<std::endl;
 			python_output+=", \"QAOA non_pen\": [";
 			//alphas_output+=", \"QAOA non_pen\": ";
 			z_alphas_output+=", \"QAOA non_pen\": ";
 			meta_data="optQAOAnonpen";
 			penalise=false;
 		}else{
-			std::cerr<<std::endl<<"optQAOA penalised"<<std::endl;
+			std::cerr<<std::endl<<"optQAOApen"<<std::endl;
 			python_output+=", \"QAOA penalised\": [";
 			//alphas_output+=", \"QAOA penalised\": ";
 			z_alphas_output+=", \"QAOA penalised\": ";
@@ -571,12 +578,13 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 			else if(index == 1)
 				cost = this->_cost_fn(&dataset, {}, meta_data, /*true*/false, this->seed);
 			else
-				throw_runtime_error("Not implemented");
+				cost = this->_cost_fn(&dataset, {}, meta_data, /*true*/false, this->seed);
 
 			double mean = cost.mean;
 			double stdev = cost.stdev;
 			double mean_zero = cost.mean_zero;
 			double num_sols = cost.mean_num_of_sols;
+			double num_iters = cost.num_iters;
 
 			double overlap = mean;
 			/*nom += log2(overlap) * m;
@@ -605,9 +613,9 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 			if(index == 0)
 				python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(stdev)+")";
 			else
-				python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(mean_zero)+", "+to_string_with_precision(stdev)+")";
+				python_output+="("+to_string_with_precision(mean)+", "+to_string_with_precision(mean_zero)+", "+to_string_with_precision(stdev)+", "+to_string_with_precision(num_iters)+")";
 			std::stringstream ss;
-			ss << m <<":   " << std::fixed << std::setprecision(15) << mean << "/" << stdev << "/" << zero_overlap << std::endl;
+			ss << m <<":   " << std::fixed << std::setprecision(15) << mean << "/" << stdev << "/" << zero_overlap <<"/" << num_iters << std::endl;
 			logi(ss.str());		}
 
 		//double  alpha = -nom/den;
@@ -627,7 +635,7 @@ void AngleResultsExperiment::run_qaoa_with_optimizer(){
 		python_output+="]";
 		std::cout<<std::endl;
 
-	}
+	//}
 
 	python_output+="}";
 	//alphas_output+="}";
@@ -766,7 +774,7 @@ void AngleResultsExperiment::run(){
 
 			std::stringstream ss;
 			ss << m <<":   " << std::fixed << std::setprecision(15) << mean << "/" << stdev << "/" << zero_overlap << std::endl;
-			logi(ss.str());
+			std::cerr<<ss.str();
 
 		}
 
@@ -813,9 +821,9 @@ void AngleResultsExperiment::run(){
 
 }
 
-std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed){
+std::tuple<double, double, int> AngleExperimentBase::try_many_starts(std::string meta_data, Instance* instance, FastVQA::Qaoa* qaoa_instance, int seed){
 
-	const int num_starts = /*5000*/5000;//(instance->h.nbQubits * (163) - (633));/*20*/;
+	const int num_starts = /*5000*/this->num_starts;//(instance->h.nbQubits * (163) - (633));/*20*/;
 
 
 	FastVQA::ExperimentBuffer buffer;
@@ -828,7 +836,7 @@ std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_
 
 	std::vector<double> best_params;
 
-	double max_ground_state_overlap=0, zero_overlap_global=0;
+	double max_ground_state_overlap=0, zero_overlap_global=0, num_iters=0;
 
 	int i;
 	for(i = 0; i < num_starts/*max_ground_state_overlap < 0.16*/; ++i){
@@ -848,10 +856,10 @@ std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_
 		double ground_state_overlap = 0, zero_overlap = 0;
 		if(meta_data == "optCMQAOA"){
 			qaoa_instance->run_cm_qaoa(&buffer, &instance->h, this->qaoaOptions, instance->zero_solutions[0].index);
-		}else if(meta_data == "optQAOAnonpen"){
+		}else if(meta_data == "optQAOAnonpen" || meta_data == "optQAOApen"){
 			qaoa_instance->run_qaoa(&buffer, &instance->h, this->qaoaOptions);
-		}
 
+		}
 		for(auto &sol: instance->sv_solutions){
 			long long int index   = sol.index;
 			//std::cerr<<"y"<<sol.index<<" "<<sol.value<<std::endl;
@@ -872,6 +880,8 @@ std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_
 			zero_overlap_global = zero_overlap;
 			best_params = this->qaoaOptions->initial_params;
 
+			num_iters=buffer.num_iters;
+
 			//logfile << ground_state_overlap << " after #=" << i << std::endl << std::flush;
 
 		}
@@ -890,15 +900,13 @@ std::pair<double, double> AngleExperimentBase::try_many_starts(std::string meta_
 	}
 	angleAnalysisLog << "],"<<std::flush;*/
 
-
-	return std::pair<double, double>(max_ground_state_overlap, zero_overlap_global);
+	return std::tuple<double, double, int>(max_ground_state_overlap, zero_overlap_global, num_iters);
 
 }
 
 AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* dataset, const double *angles, std::string meta_data, bool use_database, int seed){
-
 	std::vector<int> num_sols;
-	int approx_approach = 1; //0 disabled, 1 approx factor, 2 approx SVP
+	int approx_approach = 0; //0 disabled, 1 approx factor, 2 approx SVP
 
 	if(this->evalOutput && approx_approach == 0)
 		throw_runtime_error("Incorrect setting");
@@ -915,7 +923,8 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	}
 
 	//bool plot_histogram = false;
-	loge("Plot histogram="+std::to_string(this->plot_histogram));
+	if(this->plot_histogram)
+		logd("Plot histogram="+std::to_string(this->plot_histogram));
 	double *histogram;
 	if(this->plot_histogram && ((*dataset)[0]).h.nbQubits == 14){
 		histogram = (double*) calloc(pow(2,14), sizeof(double));
@@ -930,7 +939,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	double mean_zero;
 	FastVQA::Qaoa qaoa_instance;
 
-	std::vector<double> gs_overlaps, zero_overlaps, approx_factors;
+	std::vector<double> gs_overlaps, zero_overlaps, approx_factors, num_iters_list;
 
 	/*loge("Overriding angles");
 	bool print=false;//std::cerr<<angles[0] <<" " <<angles[1]<<"\n";
@@ -941,14 +950,21 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 	//this->logfile << "Angles 1/"
 
+	std::stringstream sss;
+	sss << "m="<<((*dataset)[0].h.nbQubits+2)/2<<" qs="<<(*dataset)[0].h.nbQubits;
+	logw(sss.str());
+
 	for(auto &instance: (*dataset)){
 
-		if((meta_data == "optQAOAnonpen" || meta_data == "optCMQAOA") && i >= 5){
-			loge("Breaking after 5 instances");
+		if((meta_data == "optQAOAnonpen" || meta_data == "optCMQAOA" || meta_data == "optQAOApen") && i >= max_num_instances){
+			loge("Breaking after "+std::to_string(max_num_instances)+" instances");
 			break;
 		}
 
 		logfile << "i=" << i << std::endl << std::flush;
+		//sss.clear();
+		//std::cout << i << "/" << std::min(max_num_instances, (int)(*dataset).size()-1) << std::endl;
+		//logi(sss.str());
 
 		if(instance.h.nbQubits != this->qaoaOptions->accelerator->getNumQubitsInQureg()){
 			this->qaoaOptions->accelerator->options.createQuregAtEachInilization = true;
@@ -961,7 +977,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 		FastVQA::ExperimentBuffer buffer;
 		buffer.storeQuregPtr = true;
 
-		double ground_state_overlap = 0, zero_overlap = 0;
+		double ground_state_overlap = 0, zero_overlap = 0, num_iters = 0;
 		if(use_database){throw;
 			Database::DatasetRow output_row;
 			this->database->getOrCalculate_qary_with_fixed_angles(&buffer, angles, 6, &instance.h, &output_row, this->qaoaOptions, &qaoa_instance);
@@ -991,18 +1007,24 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 						//buffer->initial_params.push_back(std::pair<std::string, double>("beta_"+std::to_string(i),param2));
 					}
 				}*/
-				std::pair<double, double> res = this->try_many_starts(meta_data, &instance, &qaoa_instance, seed);
-				ground_state_overlap = res.first;
-				zero_overlap = res.second;
+				std::tuple<double, double, int> res = this->try_many_starts(meta_data, &instance, &qaoa_instance, seed);
+				ground_state_overlap = std::get<0>(res);
+				zero_overlap = std::get<1>(res);
+				num_iters = std::get<2>(res);
 
 				qaoa_instance.run_cm_qaoa(&buffer, &instance.h, this->qaoaOptions, instance.zero_solutions[0].index);
 			}else if(meta_data == "optQAOAnonpen"){
-				std::pair<double, double> res = this->try_many_starts(meta_data, &instance, &qaoa_instance, seed);
-				ground_state_overlap = res.first;
-				zero_overlap = res.second;
+				std::tuple<double, double, int> res = this->try_many_starts(meta_data, &instance, &qaoa_instance, seed);
+				ground_state_overlap = std::get<0>(res);
+				zero_overlap = std::get<1>(res);
+				num_iters = std::get<2>(res);
+
 				//qaoa_instance.run_qaoa(&buffer, &instance.h, this->qaoaOptions);
 			}else if(meta_data == "optQAOApen"){
-				throw_runtime_error("unimplemented");
+				std::tuple<double, double, int> res = this->try_many_starts(meta_data, &instance, &qaoa_instance, seed);
+				ground_state_overlap = std::get<0>(res);
+				zero_overlap = std::get<1>(res);
+				num_iters = std::get<2>(res);
 			}
 			//else CM_QAOA
 			else
@@ -1013,19 +1035,19 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 				std::cerr<<f<<" ";
 			}std::cerr<<std::endl;*/
 
-
 				/*for(int jj = 0; jj < 16; ++jj){
 					long long int index   = jj;
 					std::cerr<<jj<<" "<<buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index]<<std::endl;
 				}
 				std::cerr<<std::endl;*/
-			if(meta_data != "optCMQAOA" && meta_data != "optQAOAnonpen"){
+			if(meta_data != "optCMQAOA" && meta_data != "optQAOAnonpen" && meta_data != "optQAOApen" ){
 				for(auto &sol: instance.sv_solutions){
 					long long int index   = sol.index;
 					//std::cerr<<"y"<<sol.index<<" "<<sol.value<<std::endl;
 					ground_state_overlap += buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index];
 				}
 
+				zero_overlap=0;
 				for(auto &sol: instance.zero_solutions){
 					long long int index   = sol.index;
 					//std::cerr<<"x"<<sol.index<<" "<<buffer.stateVector->stateVec.real[index]*buffer.stateVector->stateVec.real[index]+buffer.stateVector->stateVec.imag[index]*buffer.stateVector->stateVec.imag[index]<<std::endl;
@@ -1193,6 +1215,7 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 
 		gs_overlaps.push_back(improvement_ratio);
 		zero_overlaps.push_back(zero_overlap/* / 	(qreal)(1./pow(2, instance.h.nbQubits)) * instance.zero_solutions.size()*/);
+		num_iters_list.push_back(num_iters);
 
 		//std::cerr<<ground_state_overlap<<" "<<instance.random_guess<<"\n";
 
@@ -1254,9 +1277,13 @@ AngleExperimentBase::Cost AngleExperimentBase::_cost_fn(std::vector<Instance>* d
 	double sum_mean_num_of_sols = std::accumulate(num_sols.begin(), num_sols.end(), 0.0);
 	double mean_num_of_sols = sum_mean_num_of_sols / num_sols.size();
 
+	double sum_i = std::accumulate(num_iters_list.begin(), num_iters_list.end(), 0.0);
+	double mean_iters = sum_i / num_iters_list.size();
+
 	//std::cerr<<mean<<"  "<<stdev<<std::endl;
 
 	Cost cost(mean, stdev, mean_zero, mean_num_of_sols);
+	cost.num_iters = mean_iters;
 	if(this->evalOutput){
 
 		double sum_approx = std::accumulate(approx_factors.begin(), approx_factors.end(), 0.0);
