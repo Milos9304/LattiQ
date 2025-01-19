@@ -94,7 +94,7 @@ int main(int ac, char** av){
 	qaoaOptions.accelerator = &accelerator;
 	qaoaOptions.nbSamples_calcVarAssignment=1000;
 	qaoaOptions.p = qaoadepth->value();
-	qaoaOptions.ftol = 10e-1;
+	qaoaOptions.ftol = 10e-12;
 	long long int max_iters = 0;
 	//DiagonalHamiltonian h;
 	//calculateAverage(n, &h);
