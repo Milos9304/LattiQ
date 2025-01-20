@@ -51,7 +51,7 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 	//this->mapOptions->penalty = 0;
 
 	std::vector<int> num_iters;
-	std::vector<double> final_overlaps;
+	std::vector<double> final_overlaps, first_excited_overlaps;
 
 	this->max_num_instances = 80;
 
@@ -62,7 +62,7 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 		//std::vector<Instance> dataset = _generate_dataset(3, m, true); //3 is arbitrary, true is for penalise
 		//this->max_num_instances = 1;
 		//loge("Max num instances is 1 instead of 100");
-		std::vector<Instance> dataset = _generate_dataset(1, m, true);
+		std::vector<Instance> dataset = _generate_dataset(1, m, this->aqcpqc_penalised);
 		loge("very small instance");
 
 		int i = 0;
@@ -85,7 +85,18 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 			for(auto &sol: instance.sv_solutions){
 				solutions.push_back(sol.index);
 			}
-			acceleratorOptions.solutions = solutions;
+			if(this->aqcpqc_penalised){
+				acceleratorOptions.solutions = solutions;
+			}
+			else{
+				std::vector<long long int> zero_solutions;
+				for(auto &sol: instance.zero_solutions){
+					zero_solutions.push_back(sol.index);
+				}
+
+				acceleratorOptions.solutions = zero_solutions;
+				acceleratorOptions.first_excited_states = solutions;
+			}
 
 			FastVQA::AqcPqcAccelerator accelerator(acceleratorOptions);
 
@@ -93,9 +104,10 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 			for(const auto &sol: solutions){
 				std::cerr<<"solution index="<<sol<<" with value="<<instance.sv1Squared<<std::endl;
 			}
+
 			logw("SV1Squared: " + std::to_string(instance.sv1Squared));
 			for(const auto &sol: instance.zero_solutions){
-				std::cerr<<sol.value<<" "<<sol.index<<std::endl;
+				std::cerr<<"zero:"<<sol.value<<" "<<sol.index<<std::endl;
 			}*/
 
 			FastVQA::PauliHamiltonian h0(instance.h.nbQubits);
@@ -118,16 +130,36 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 			accelerator.initialize(&h0, &instance.h);
 			accelerator.run(&result);
 
-			std::cerr<<"Overlap = "<<result.final_state_overlap<<std::endl;
-			final_overlaps.push_back(result.final_state_overlap);
+			if(this->aqcpqc_penalised){
+				std::cerr<<"Overlap = "<<result.final_state_overlap<<std::endl;
+				final_overlaps.push_back(result.final_state_overlap);
+			}
+			else{
+				std::cerr<<"Zero overlap = "<<result.final_state_overlap<<std::endl;
+				std::cerr<<"SV overlap = "<<result.first_exc_state_overlap<<std::endl;
+				final_overlaps.push_back(result.final_state_overlap);
+				first_excited_overlaps.push_back(result.first_exc_state_overlap);
+			}
 
 			i++;
 		}
 
-		std::ofstream myfile("dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
-		for(auto &o : final_overlaps){
-			myfile<<o/*<<","*/<<std::endl;
-		}myfile.close();
+		if(this->aqcpqc_penalised){
+			std::ofstream myfile("dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
+			for(auto &o : final_overlaps){
+				myfile<<o/*<<","*/<<std::endl;
+			}myfile.close();
+		}else{
+			std::ofstream myfile("zero_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
+			for(auto &o : final_overlaps){
+				myfile<<o/*<<","*/<<std::endl;
+			}myfile.close();
+
+			std::ofstream myfile2("sv_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
+			for(auto &o : first_excited_overlaps){
+				myfile2<<o/*<<","*/<<std::endl;
+			}myfile2.close();
+		}
 
 
 		logw("Breaking after first m");

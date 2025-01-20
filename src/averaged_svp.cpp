@@ -212,6 +212,7 @@ int main(int ac, char** av){
 
 		Database database(database_file, Database::DATABASE_EIGENGEN_AQCPQC_DATASET);
 		AqcPqcExperiment aqcPqcExperiment(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), true);
+		aqcPqcExperiment.aqcpqc_penalised = penalty->value() > 0 ? true : false;
 		aqcPqcExperiment.run(&acceleratorOptions, aqc_pqc_numInstances->value());
 
 		return 0;
