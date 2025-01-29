@@ -53,7 +53,7 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 	std::vector<int> num_iters;
 	std::vector<double> final_overlaps, first_excited_overlaps;
 
-	this->max_num_instances = 80;
+	this->max_num_instances = num_instances;//80;
 
 	for(int m = m_start; m <= m_end; ++m){
 
@@ -63,23 +63,22 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 		//this->max_num_instances = 1;
 		//loge("Max num instances is 1 instead of 100");
 		std::vector<Instance> dataset = _generate_dataset(1, m, this->aqcpqc_penalised);
-		loge("very small instance");
 
 		int i = 0;
 		for(auto &instance: dataset){
 
-			if(num_instances == -1)
-				logi("Instance " + std::to_string(i) + "/"+std::to_string(dataset.size()));
-			else
-				logi("Instance " + std::to_string(i) + "/"+std::to_string(num_instances));
-
-
-			logi(std::to_string(instance.h.nbQubits) + " qubits");
-
-			if(i >= /*80*/num_instances && num_instances > 0){
+			if(i > /*80*/num_instances && num_instances > 0){
 				logw("aqcpqc.cpp breaking after "+std::to_string(num_instances)+"instances");
 				break;
 			}
+
+			if(num_instances == -1)
+				logi("Instance " + std::to_string(i+1) + "/"+std::to_string(dataset.size()));
+			else
+				logi("Instance " + std::to_string(i+1) + "/"+std::to_string(num_instances));
+
+
+			logi(std::to_string(instance.h.nbQubits) + " qubits");
 
 			std::vector<long long int> solutions;
 			for(auto &sol: instance.sv_solutions){

@@ -177,18 +177,18 @@ int main(int ac, char** av){
 		}
 
 		const int loglevel = 1;
-			const int round_decimals = 5; //-1 undefined
+			const int round_decimals = -1;//5; //-1 undefined
 			const int opt_strategy = 0;	  //0=trivially, 1=rank_reduction
 			const int num_steps = aqc_pqc_steps->value();
 			const int ansatz_depth = aqc_pqc_depth->value();
-			const double xtol = 10e-5;
+			const double xtol = 10e-12; //10e-5;
 			const double catol = 0.0002;
 			const bool classical_esolver_compare = false;
 			const bool outputLogToFile = false;
 			const bool checkHessian = true;
 			const bool printGroundStateOverlap = false;
 			const bool print_eps = false;
-			const int eval_limit_step = 1200; //max iterations per step
+			const int eval_limit_step = 5000;//1200; //max iterations per step
 
 		FastVQA::AqcPqcAcceleratorOptions acceleratorOptions;
 
@@ -198,7 +198,7 @@ int main(int ac, char** av){
 		acceleratorOptions.optStrategy = opt_strategy;
 		acceleratorOptions.accelerator_type = "quest";
 		acceleratorOptions.nbSteps = num_steps;
-		acceleratorOptions.ansatz_name = "Ry_Cz_nn_Ry";//"Ry_CNOT_nn_Rz_CNOT_Rz"
+		acceleratorOptions.ansatz_name = "Ry_Cz_nn_Ry";//"Ry_CNOT_nn_Rz_CNOT_Rz";
 		acceleratorOptions.ansatz_depth = ansatz_depth;
 		acceleratorOptions.xtol = xtol;
 		acceleratorOptions.catol = catol;

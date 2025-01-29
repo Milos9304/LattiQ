@@ -162,8 +162,10 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 			}
 		}
 
-		if(all_zero)
+		if(all_zero){
+			i-=1;
 			continue;
+		}
 
 		//if(non_zero_indices.size() == 0)
 		//	continue;

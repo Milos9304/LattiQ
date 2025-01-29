@@ -312,7 +312,6 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 
 		Lattice l(gramian_wrappers[i].hamiltonian, gramian_wrappers[i].name);
 
-
 		if(penalise){
 			//std::cerr<<"setting penalty="<<l.getSquaredLengthOfFirstBasisVector();
 			mapOptions->penalty = l.getSquaredLengthOfFirstBasisVector(); //penalty set to length of first vector squared
@@ -385,7 +384,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 						std::cerr<<refEnergies[j].index<<" "<<refEnergies[j].value<<std::endl;
 					else
 						throw;*/
-			//std::cerr<<"del:"<<refEnergies[j].index<<" "<<refEnergies[j].value<<std::endl;
+			std::cerr<<"del. index: "<<refEnergies[j].index<<" val: "<<refEnergies[j].value<<std::endl;
 
 			if(refEnergies[j].value == min)
 				instance.sv_solutions.push_back(FastVQA::RefEnergy(min, refEnergies[j].index, false));
@@ -454,7 +453,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 		instance.m = m;
 		instance.n = n;
 
-		/*if(i==0 || i == 1){
+		//if(i==0 || i == 1){
 
 			std::cerr<<"solutions\n";
 			for(const auto &sol: instance.sv_solutions){
@@ -465,7 +464,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 				std::cerr<<sol.value<<" "<<sol.index<<std::endl;
 			}
 			std::cerr<<"SS: "<<instance.sv1Squared<<std::endl;
-		}*/
+		//}
 
 		dataset.push_back(instance);
 		//t_end = std::chrono::high_resolution_clock::now();
@@ -826,6 +825,12 @@ std::tuple<double, double, int> AngleExperimentBase::try_many_starts(std::string
 	const int num_starts = /*5000*/this->num_starts;//(instance->h.nbQubits * (163) - (633));/*20*/;
 
 
+	bool choose_best=false; //if true, choose best. if not, calculate mean
+	//if(!choose_best){
+	//	logw("Calculating means, not best one!");
+	//}
+
+
 	FastVQA::ExperimentBuffer buffer;
 	buffer.storeQuregPtr = true;
 	if(!seeded){
@@ -836,7 +841,8 @@ std::tuple<double, double, int> AngleExperimentBase::try_many_starts(std::string
 
 	std::vector<double> best_params;
 
-	double max_ground_state_overlap=0, zero_overlap_global=0, num_iters=0;
+	double res_ground_state_overlap=0, zero_overlap_global=0, num_iters=0;
+	std::vector<double> gs_overlaps, zero_overpals, list_num_iters;
 
 	int i;
 	for(i = 0; i < num_starts/*max_ground_state_overlap < 0.16*/; ++i){
@@ -874,16 +880,22 @@ std::tuple<double, double, int> AngleExperimentBase::try_many_starts(std::string
 
 		//logfile << ground_state_overlap << std::endl << std::flush;
 
+		if(choose_best){
+			if(res_ground_state_overlap < ground_state_overlap){
+				res_ground_state_overlap = ground_state_overlap;
+				zero_overlap_global = zero_overlap;
+				best_params = this->qaoaOptions->initial_params;
 
-		if(max_ground_state_overlap < ground_state_overlap){
-			max_ground_state_overlap = ground_state_overlap;
-			zero_overlap_global = zero_overlap;
-			best_params = this->qaoaOptions->initial_params;
+				num_iters=buffer.num_iters;
 
-			num_iters=buffer.num_iters;
+				//logfile << ground_state_overlap << " after #=" << i << std::endl << std::flush;
 
-			//logfile << ground_state_overlap << " after #=" << i << std::endl << std::flush;
+			}
+		}else{ //take mean
 
+			gs_overlaps.push_back(ground_state_overlap);
+			zero_overpals.push_back(zero_overlap);
+			list_num_iters.push_back(buffer.num_iters);
 		}
 
 	}
@@ -900,7 +912,18 @@ std::tuple<double, double, int> AngleExperimentBase::try_many_starts(std::string
 	}
 	angleAnalysisLog << "],"<<std::flush;*/
 
-	return std::tuple<double, double, int>(max_ground_state_overlap, zero_overlap_global, num_iters);
+	if(!choose_best){
+		double sum = std::accumulate(gs_overlaps.begin(), gs_overlaps.end(), 0.0);
+		res_ground_state_overlap = sum / gs_overlaps.size();
+
+		sum = std::accumulate(zero_overpals.begin(), zero_overpals.end(), 0.0);
+		zero_overlap_global = sum / zero_overpals.size();
+
+		sum = std::accumulate(list_num_iters.begin(), list_num_iters.end(), 0.0);
+		num_iters = sum / list_num_iters.size();
+	}
+
+	return std::tuple<double, double, int>(res_ground_state_overlap, zero_overlap_global, num_iters);
 
 }
 
