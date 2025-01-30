@@ -65,6 +65,25 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 		std::vector<Instance> dataset = _generate_dataset(1, m, this->aqcpqc_penalised);
 
 		int i = 0;
+
+                if(this->aqcpqc_penalised){
+                           std::ofstream myfile("dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps), std::ios::app);
+                           for(auto &o : final_overlaps){
+                                   myfile<<o/*<<","*/<<std::endl;
+                           }myfile.close();
+                }else{
+                        std::ofstream myfile("zero_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps), std::ios::app);
+                        for(auto &o : final_overlaps){
+                               myfile<<o/*<<","*/<<std::endl;
+                	}
+                	myfile.close();
+
+                	std::ofstream myfile2("sv_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps), std::ios::app);
+                	for(auto &o : first_excited_overlaps){
+                        	myfile2<<o/*<<","*/<<std::endl;
+                	}myfile2.close();
+		}
+
 		for(auto &instance: dataset){
 
 			if(i > /*80*/num_instances && num_instances > 0){
@@ -140,24 +159,26 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 				first_excited_overlaps.push_back(result.first_exc_state_overlap);
 			}
 
+			if(this->aqcpqc_penalised){
+                        	std::ofstream myfile("dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps), std::ios::app);
+                        	for(auto &o : final_overlaps){
+                	                myfile<<o/*<<","*/<<std::endl;
+        	                }myfile.close();
+	                }else{
+                        	std::ofstream myfile("zero_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps), std::ios::app);
+                        	for(auto &o : final_overlaps){
+                                	myfile<<o/*<<","*/<<std::endl;
+                        	}
+				myfile.close();
+
+                        	std::ofstream myfile2("sv_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps), std::ios::app);
+                        	for(auto &o : first_excited_overlaps){
+                                	myfile2<<o/*<<","*/<<std::endl;
+                        	}myfile2.close();
+                	}
+
 			i++;
-		}
-
-		if(this->aqcpqc_penalised){
-			std::ofstream myfile("dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
-			for(auto &o : final_overlaps){
-				myfile<<o/*<<","*/<<std::endl;
-			}myfile.close();
-		}else{
-			std::ofstream myfile("zero_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
-			for(auto &o : final_overlaps){
-				myfile<<o/*<<","*/<<std::endl;
-			}myfile.close();
-
-			std::ofstream myfile2("sv_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps));
-			for(auto &o : first_excited_overlaps){
-				myfile2<<o/*<<","*/<<std::endl;
-			}myfile2.close();
+		
 		}
 
 

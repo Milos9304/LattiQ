@@ -59,7 +59,7 @@ def calculate_average_for_files(directory, which, dim):
         if numbers:
             average = sum(numbers) / len(numbers)
             num_instances = len(numbers)
-            print(num_instances)
+            #print(num_instances)
             #print(f"Average for {file}: {average:.2f}")
             print(file.split('=')[-1], average)
             if which == 'sv':
@@ -78,10 +78,15 @@ if __name__ == "__main__":
     calculate_average_for_files(directory, 'zero', dim)
     print('sv')
     calculate_average_for_files(directory, 'sv', dim)
-    """
+    
+    print(xs)
     plt.plot(xs, y_sv, color='red')
     plt.plot(xs, y_zer, color='blue')
-    plt.legend(["SV", "ZERO"])"""
+    plt.legend(["SV", "ZERO"])
+
+    plt.show()
+    kok
+
     print(svs)
     num_instances=sum(1 for s in svs if s)
     print("Num instances:", num_instances)

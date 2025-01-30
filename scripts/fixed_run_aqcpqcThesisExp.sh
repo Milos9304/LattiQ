@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #for i in {2..20}; do
-#    ./averagedSvp -q 1 --aqcpqc --mstart 4 --mend 4 --steps "$i" --aqcpqcdepth 1 --inst 10 
+#    ../bin/averagedSvp -q 1 --aqcpqc --mstart 3 --mend 3 --steps "$i" --aqcdepth 2 --inst 10 -l 0
 #done
 
-for i in {2..20}; do
-    ../bin/averagedSvp -q 1 --aqcpqc --mstart 3 --mend 3 --steps "$i" --aqcdepth 1 --inst 10 -l 0
+for i in {21..30}; do
+    ../bin/averagedSvp -q 1 --aqcpqc --mstart 3 --mend 3 --steps "$i" --aqcdepth 2 --inst 10 -l 0
 done
