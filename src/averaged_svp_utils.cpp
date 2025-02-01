@@ -134,7 +134,7 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 	int m = param.m;
 
 	//std::cerr<<"m: "<<m<<std::endl;
-
+	
 	auto gen = std::mt19937(param.seed);
 	auto dist = std::uniform_int_distribution<int>(0, param.sol_elem_bound);
 	auto dist2 = std::uniform_int_distribution<int>(3, sv_len_max);
@@ -192,9 +192,12 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> e_vals(m,m);
 		e_vals.setZero();
 		e_vals(0,0) = sv_len/sol.norm();
+		loge("FIX: Very Simplified Instance Generation");
 		for(int k = 1; k < m; ++k){
-			if(k < 3)
-				e_vals(k,k) = (sv_len * pow(10, k));
+			if(k < 3){
+				//e_vals(k,k) = (sv_len * pow(10, k)); //ORIGINAL
+				e_vals(k,k) = (sv_len * (k+1));	       //VERY SIMPLIFIED
+			}
 			else
 				e_vals(k,k) = (sv_len * pow(10, 2) * k);
 		}
@@ -222,12 +225,11 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 
 		auto G=Bint.transpose()*Bint;
 
-		/*if(i==8){
-
-			std::cerr<<B<<"B="<<B<<std::endl;
-			std::cerr<<"Bint="<<Bint<<std::endl;
-			std::cerr<<"G="<<G<<std::endl;
-		}*/
+		///if(i==8){
+			//std::cerr<<B<<"B="<<B<<std::endl;
+			//std::cerr<<"Bint="<<Bint<<std::endl;
+			//std::cerr<<"G="<<G<<std::endl;
+		///}
 		HamiltonianWrapper HW = HamiltonianWrapper(G,"");
 		res.push_back(HW);
 

@@ -342,7 +342,7 @@ std::vector<AngleExperimentBase::Instance> AngleExperimentBase::_generate_datase
 			loge("Instances with different number of qubits found");
 
 		if(this->use_database_to_load_dataset){
-
+			loge("Database!!!");
 			FastVQA::Accelerator::DiagonalOpDuplicate diagonalOpDuplicate;
 			std::vector<long double> real;
 			bool found = this->database->getDataset(nbQubits, i, this->mapOptions->num_qbits_per_x, mapOptions->penalty, &real);

@@ -176,7 +176,7 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
 
                         	std::ofstream myfile2("sv_dim="+std::to_string(m)+"_steps="+std::to_string(options->nbSteps), std::ios::app);
             //            	for(auto &o : first_excited_overlaps){
-                                	myfile2<<final_overlaps[final_overlaps.size()-1]/*<<","*/<<std::endl;
+                                	myfile2<<first_excited_overlaps[first_excited_overlaps.size()-1]/*<<","*/<<std::endl;
                         	//}
                             myfile2.close();
                 	}
