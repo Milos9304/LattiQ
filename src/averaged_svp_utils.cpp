@@ -198,8 +198,10 @@ InstanceGenerator generateFromEvalDecomposition = [](GeneratorParam param){
 				//e_vals(k,k) = (sv_len * pow(10, k)); //ORIGINAL
 				e_vals(k,k) = (sv_len * (k+1));	       //VERY SIMPLIFIED
 			}
-			else
-				e_vals(k,k) = (sv_len * pow(10, 2) * k);
+			else{
+				//e_vals(k,k) = (sv_len * pow(10, 2) * k);
+                e_vals(k,k) = (sv_len * (k+1));        //VERY SIMPLIFIED
+            }
 		}
 		Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> basis_inverse = orthonormal_basis.inverse();
 
