@@ -86,7 +86,15 @@ void AqcPqcExperiment::run(FastVQA::AqcPqcAcceleratorOptions* options, int num_i
             myfile2.close();
 		}
 
+		int to_skip=this->skip;
 		for(auto &instance: dataset){
+
+			if(to_skip>0){
+				to_skip--;
+				i++;
+				logw("Skipping instance "+std::to_string(i));
+				continue;
+			}
 
 			if(i > /*80*/num_instances && num_instances > 0){
 				logw("aqcpqc.cpp breaking after "+std::to_string(num_instances)+"instances");
