@@ -81,13 +81,13 @@ if __name__ == "__main__":
     print('sv')
     calculate_average_for_files(directory, 'sv', dim)
     
-    """print(xs)
+    print(xs)
     plt.plot(xs, y_sv, color='red')
     plt.plot(xs, y_zer, color='blue')
     plt.legend(["SV", "ZERO"])
 
     plt.show()
-    kok"""
+    kok
     
     print(svs)
     num_instances=sum(1 for s in svs if s)
