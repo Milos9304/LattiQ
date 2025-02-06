@@ -42,6 +42,7 @@ int main(int ac, char** av){
 	auto aqc_pqc_steps     		= op.add<Value<int>>("", "steps", "aqcpqc steps", 20);
 	auto aqc_pqc_depth     		= op.add<Value<int>>("", "aqcdepth", "aqcpqc depth", 1);
 	auto aqc_pqc_numInstances	= op.add<Value<int>>("", "inst", "aqcpqc num instances", 80);
+	auto aqc_pqc_skip			= op.add<Value<int>>("", "skip", "aqcpqc num instances to skip at the beginning", 0);
 	auto eval_quality     		= op.add<Switch>("", "eval", "Evaluate output quality");
 	auto histogram	     		= op.add<Switch>("", "hist", "scripts/histogram experiment");
 	auto nondecrconstraint		= op.add<Switch>("", "nondecr", "non-decreasing constraint in alpha minimization");
@@ -214,6 +215,7 @@ int main(int ac, char** av){
 		AqcPqcExperiment aqcPqcExperiment(loglevel, m_start->value(), m_end->value(), &qaoaOptions, &mapOptions, &database, seed_opt->value(), false);
 		//SWTTING DATABASE USE TO ZERO	//true);
 		aqcPqcExperiment.aqcpqc_penalised = penalty->value() > 0 ? true : false;
+		aqcPqcExperiment.skip = aqc_pqc_skip->value();
 		aqcPqcExperiment.run(&acceleratorOptions, aqc_pqc_numInstances->value());
 
 		return 0;

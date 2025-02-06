@@ -106,6 +106,7 @@ class AqcPqcExperiment : AngleExperimentBase{
 public:
 
 	bool aqcpqc_penalised=true;
+	int skip=0;
 
 	AqcPqcExperiment(int loglevel, int m_start, int m_end, FastVQA::QAOAOptions* qaoaOptions, MapOptions* mapOptions, Database* database, int seed, bool use_database_to_load_dataset){
 
